@@ -48,7 +48,10 @@ import {
   FileText,
   GanttChartSquare,
   ShieldCheck,
-  Zap
+  Zap,
+  ShieldQuestion,
+  TrendingDown,
+  TrendingUp
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
@@ -741,7 +744,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-md font-extrabold tracking-tight">DePIN Stress Test</h1>
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">CAS Thesis Robustness Simulator V4.7</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">CAS Thesis Robustness Simulator V4.8</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -761,7 +764,7 @@ const App: React.FC = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-[320px] border-r border-slate-800 overflow-y-auto bg-slate-950 flex flex-col custom-scrollbar shrink-0">
+        <aside className="w-[340px] border-r border-slate-800 overflow-y-auto bg-slate-950 flex flex-col custom-scrollbar shrink-0">
           <div className="p-6 border-b border-slate-800/50">
             <div className="flex items-center gap-2 mb-6">
               <Fingerprint size={14} className="text-emerald-500" />
@@ -822,7 +825,44 @@ const App: React.FC = () => {
               </div>
             </section>
             
-            <section className="mt-auto pt-6 border-t border-slate-800">
+            {/* GLOBAL INCENTIVE RISK SUMMARY PANEL */}
+            <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-5">
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldQuestion size={14} className="text-indigo-400" />
+                <h3 className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">Incentive Risk Profile</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown size={11} className="text-rose-400" />
+                    <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">Low-Incentive Risk</span>
+                  </div>
+                  <p className="text-[9px] text-slate-400 leading-relaxed font-medium">
+                    Insufficient reward value fails to cover operational OpEx, triggering provider attrition and non-linear capacity collapse.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={11} className="text-amber-400" />
+                    <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">High-Incentive Risk</span>
+                  </div>
+                  <p className="text-[9px] text-slate-400 leading-relaxed font-medium">
+                    Excessive rewards decouple from utility, attracting non-performing speculative capital and increasing system fragility.
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800">
+                  <span className="text-[8px] font-bold text-indigo-400 uppercase block mb-1">Research Focus</span>
+                  <p className="text-[9px] text-slate-500 italic font-medium">
+                    Simulator tests the equilibrium window between these extremes under exogenous shocks.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="pt-6 border-t border-slate-800">
               <button onClick={analyzeWithAI} disabled={aiLoading} className="w-full bg-slate-900 border border-slate-800 hover:border-indigo-500 text-slate-400 py-3.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2 group active:scale-95">
                 <BrainCircuit size={14} className="group-hover:text-indigo-400" /> AI Robustness Audit
               </button>
@@ -1160,4 +1200,20 @@ const App: React.FC = () => {
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e29
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+        input[type="range"] { -webkit-appearance: none; background: transparent; }
+        input[type="range"]::-webkit-slider-thumb {
+          height: 18px; width: 18px; border-radius: 50%; background: #6366f1;
+          border: 3px solid #0f172a; -webkit-appearance: none; margin-top: -7px;
+          box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+          width: 100%; height: 4px; cursor: pointer; background: #1e293b; border-radius: 2px;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+createRoot(document.getElementById('root')!).render(<App />);
