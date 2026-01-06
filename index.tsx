@@ -42,7 +42,16 @@ import {
   LayoutDashboard,
   BarChart3,
   Scale,
-  CheckCircle2
+  CheckCircle2,
+  HeartPulse,
+  ArrowDownUp,
+  UserCheck,
+  Download,
+  Terminal,
+  Calculator,
+  Boxes,
+  ListChecks,
+  Repeat
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
@@ -70,6 +79,27 @@ class SeededRNG {
 type DemandType = 'consistent' | 'high-to-decay' | 'growth' | 'volatile';
 type MacroCondition = 'bearish' | 'bullish' | 'sideways';
 
+interface ProtocolProfileV1 {
+  version: string;
+  metadata: {
+    id: string;
+    name: string;
+    notes: string;
+    source: 'Interview-Derived' | 'Placeholder-Derived';
+  };
+  parameters: {
+    supply: { value: number; unit: string };
+    emissions: { value: number; unit: string };
+    burn_fraction: { value: number; unit: string };
+    adjustment_lag: { value: number; unit: string };
+    demand_regime: { value: DemandType; unit: string };
+    provider_economics: {
+      opex_weekly: { value: number; unit: string };
+      churn_threshold: { value: number; unit: string };
+    };
+  };
+}
+
 interface SimulationParams {
   T: number;
   initialSupply: number;
@@ -84,7 +114,8 @@ interface SimulationParams {
   baseCapacityPerProvider: number;
   kDemandPrice: number;
   kMintPrice: number;
-  events: any[];
+  rewardLagWeeks: number;
+  churnThreshold: number;
 }
 
 interface SimResult {
@@ -99,6 +130,7 @@ interface SimResult {
   minted: number;
   burned: number;
   utilization: number;
+  profit: number;
 }
 
 interface MetricStats {
@@ -119,13 +151,13 @@ interface AggregateResult {
   minted: MetricStats;
   burned: MetricStats;
   utilization: MetricStats;
+  profit: MetricStats;
 }
 
-// Multi-language strings
 const TRANSLATIONS: any = {
   en: {
     appTitle: "DePIN Stress Test",
-    version: "Thesis & Robustness Simulator V3.2",
+    version: "Thesis & Robustness Simulator V3.7",
     btnRun: "Run Simulation",
     btnBlueprint: "Research Blueprint",
     sidebarParams: "Parameters",
@@ -133,172 +165,160 @@ const TRANSLATIONS: any = {
     sidebarDuration: "Duration",
     sidebarWeeks: "weeks",
     sidebarTokenomics: "Tokenomics",
-    sidebarInitialSupply: "Initial Supply",
-    sidebarInitialPrice: "Initial Price",
-    sidebarBurnRate: "Burn Rate",
+    sidebarInitialSupply: "Initial Supply (Tokens)",
+    sidebarInitialPrice: "Initial Token Value (CHF)",
+    sidebarBurnRate: "Burn Fraction",
     sidebarEnvironment: "Market Environment",
     sidebarDemandRegime: "Demand Regime",
     sidebarMacro: "Macro Trend",
     sidebarQuality: "Simulation Quality",
     sidebarQualityLabel: "Monte Carlo Runs",
     aiBtn: "AI ROBUSTNESS AUDIT",
-    metricPrice: "Final Price (Trend)",
+    metricHealth: "Robustness Score",
     metricSupply: "Circulating Supply",
-    metricCapacity: "Final Capacity",
-    metricUtilization: "Avg. Utilization",
+    metricGap: "Sustainability Gap",
+    metricRetention: "Provider Retention",
     toolbarStatus: "Status",
     toolbarPlayback: "Playback",
-    toolbarBaseline: "Set Baseline",
     toolbarWeek: "Week",
-    chartTitle1: "Capacity vs Demand Served",
-    chartTitle2: "Provider Retention",
-    chartTitle3: "Burn vs Emissions",
-    chartTitle4: "Network Efficiency (%)",
-    chartTitle5: "Supply Trajectory",
-    chartTitle6: "Service Pricing Proxy",
+    chartTitle1: "Capacity vs Demand (Units/Week)",
+    chartTitle2: "Provider Count",
+    chartTitle3: "Burn vs Emissions (Tokens/Week)",
+    chartTitle4: "Network Utilization (%)",
+    chartTitle5: "Supply Trajectory (Tokens)",
+    chartTitle6: "Service Pricing Proxy (CHF/Unit)",
     healthStable: "ROBUST",
     healthCritical: "FRAGILE",
     healthAtRisk: "STRESSED",
     aiAuditTitle: "Research Assistant: Robustness Report",
     aiProcessing: "Assessing directional robustness...",
     aiClose: "Close Report",
-    blueprintTitle: "Research Blueprint: ONO Stress Framework",
-    blueprintMappingText: "Parameters represent relative forces, not exact predictions. Use these to test directional protocol survival.",
-    blueprintGoodBad: "Operational Performance Guide (Good vs. Bad)",
+    blueprintTitle: "Research Blueprint: DePIN Stress Framework",
+    blueprintMappingText: "Parameters represent relative forces, not exact predictions.",
+    blueprintGoodBad: "Performance Guide (Good vs. Bad)",
     blueprintMethods: "Methodology (Thesis-Ready)",
     blueprintExit: "Exit Blueprint",
+    blueprintTransfer: "Transferability & Generalization",
     aiPersona: "DePIN Protocol Research Lead",
     aiPromptRisk: "Analyze 'Death Spiral' triggers and 'Incentive Misalignment'. Avoid price targets.",
     adviceNote: "Focus on Directional Robustness • Not financial advice"
-  },
-  de: {
-    appTitle: "DePIN Stress-Test",
-    version: "Thesen- & Robustheits-Simulator V3.2",
-    btnRun: "Simulation Starten",
-    btnBlueprint: "Forschungs-Blueprint",
-    sidebarParams: "Parameter",
-    sidebarHorizon: "Zeithorizont",
-    sidebarDuration: "Dauer",
-    sidebarWeeks: "Wochen",
-    sidebarTokenomics: "Tokenomics",
-    sidebarInitialSupply: "Startangebot",
-    sidebarInitialPrice: "Startpreis",
-    sidebarBurnRate: "Burn-Rate",
-    sidebarEnvironment: "Marktumgebung",
-    sidebarDemandRegime: "Nachfrage-Regime",
-    sidebarMacro: "Makro-Trend",
-    sidebarQuality: "Simulations-Qualität",
-    sidebarQualityLabel: "Monte Carlo Durchläufe",
-    aiBtn: "AI ROBUSTHEITS-AUDIT",
-    metricPrice: "Preis-Trend",
-    metricSupply: "Umlaufmenge",
-    metricCapacity: "Netzwerkkapazität",
-    metricUtilization: "Ø Auslastung",
-    toolbarStatus: "Status",
-    toolbarPlayback: "Playback",
-    toolbarBaseline: "Baseline setzen",
-    toolbarWeek: "Woche",
-    chartTitle1: "Kapazität vs. Genutzte Nachfrage",
-    chartTitle2: "Anbieter-Retention",
-    chartTitle3: "Burn vs. Emissionen",
-    chartTitle4: "Netzwerk-Effizienz (%)",
-    chartTitle5: "Supply-Trajektorie",
-    chartTitle6: "Service-Preis Proxy",
-    healthStable: "ROBUST",
-    healthCritical: "FRAGIL",
-    healthAtRisk: "GEFÄHRDET",
-    aiAuditTitle: "Forschungsassistent: Robustheits-Bericht",
-    aiProcessing: "Analyse der Richtungs-Robustheit...",
-    aiClose: "Bericht Schliessen",
-    blueprintTitle: "Forschungs-Blueprint: ONO Stress-Framework",
-    blueprintMappingText: "Parameter stellen relative Kräfte dar, keine exakten Vorhersagen. Testen Sie das Überleben des Protokolls.",
-    blueprintGoodBad: "Operativer Leitfaden (Gut vs. Schlecht)",
-    blueprintMethods: "Methodik (Thesis-Ready)",
-    blueprintExit: "Blueprint verlassen",
-    aiPersona: "Leitender DePIN-Protokollforscher",
-    aiPromptRisk: "Analysiere 'Death Spiral' Trigger und 'Incentive Misalignment'. Keine Preisziele.",
-    adviceNote: "Fokus auf Richtungs-Robustheit • Keine Finanzberatung"
   }
 };
 
-const OPERATIONAL_GUIDE = {
-  en: [
-    { metric: "Provider Count", good: "Sticky or growing nodes even if rewards drop 20%.", bad: "Mass exit when reward < OpEx floor." },
-    { metric: "Utilization", good: "Steady 40-70% range. Balanced growth.", bad: "<10% (Ghost town) or >95% (System congestion)." },
-    { metric: "Burn/Mint Ratio", good: "Burn > Mint in high demand phases.", bad: "Mint >> Burn consistently (Supply hyperinflation)." },
-    { metric: "Service Price", good: "Stable cost for users despite token volatility.", bad: "Service cost spikes causing users to churn." }
-  ],
-  de: [
-    { metric: "Anbieter-Zahl", good: "Nodes bleiben stabil, auch wenn Belohnungen um 20% sinken.", bad: "Massen-Exodus sobald Belohnung < OpEx-Grenze." },
-    { metric: "Auslastung", good: "Stabile 40-70% Range. Ausgewogenes Wachstum.", bad: "<10% (Ghost Town) oder >95% (System-Stau)." },
-    { metric: "Burn/Mint Ratio", good: "Burn > Mint in Hochphasen.", bad: "Mint >> Burn dauerhaft (Hyperinflation)." },
-    { metric: "Service-Preis", good: "Stabile Kosten für Nutzer trotz Token-Volatilität.", bad: "Preisspitzen führen zu Nutzerverlust (Churn)." }
-  ]
+const RESEARCH_METHODS: any = {
+  en: `1. Monte Carlo Sampling: We execute multiple parallel stochastic runs (n=100) to observe the probability distribution of outcomes under varying initial seeds.
+2. Token Velocity Modeling: The interaction between token supply, burn fraction, and service pricing creates a dynamic feedback loop (Burn-and-Mint Equilibrium).
+3. Provider Churn Logic: Modeling provider retention as a function of 'Profit vs OpEx' thresholds, amplified by consecutive loss weeks.
+4. Macro Trend Integration: Testing the protocol against sustained bearish or bullish market sentiment to evaluate structural resilience.
+5. Death Spiral Analysis: Identifying triggers where declining price leads to provider exit, which reduces capacity, further hurting utility and price.`
 };
 
-const PROTOCOL_PROFILES = [
+const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
   {
-    id: "ono",
-    name: "ONO (Calibrated V3)",
-    description: "Enterprise resource DePIN. Calibrated via interview: 900k/week emissions, 65% burn fraction, 6-week reward lag.",
-    tokenomics: {
-      model: "Fee-to-Burn (Manual Lag)",
-      emissions_per_week: 900000,
-      burn_fraction: 0.65,
-      op_ex_threshold_chf: "17.3 - 34.6 per week",
-      churn_logic: "Sensitive below 10 CHF/week"
+    version: "1.0",
+    metadata: {
+      id: "ono_v3_calibrated",
+      name: "ONO (Expert Calibrated)",
+      notes: "Emissions (900k) and burn fraction (0.65) derived from Sam's interview. OpEx weekly midpoint ($25.96) calculated from annual range. Reward lag (6w) reflects manual governance.",
+      source: "Interview-Derived"
+    },
+    parameters: {
+      supply: { value: 100000000, unit: "tokens" },
+      emissions: { value: 900000, unit: "tokens/week" },
+      burn_fraction: { value: 0.65, unit: "decimal" },
+      adjustment_lag: { value: 6, unit: "weeks" },
+      demand_regime: { value: "growth", unit: "category" },
+      provider_economics: {
+        opex_weekly: { value: 25.96, unit: "chf/week" },
+        churn_threshold: { value: 10, unit: "chf/week_profit" }
+      }
     }
   },
   {
-    id: "helium",
-    name: "Helium-like (BME + Halvings)",
-    description: "Emissions-heavy bootstrap phase. Burn-and-Mint Equilibrium (BME) logic with aggressive 2-year halvings.",
-    tokenomics: {
-      model: "BME",
-      burn_dynamic: "Demand absorbs supply, fixed emission schedule",
-      emission_style: "Hard-scheduled halving"
+    version: "1.0",
+    metadata: {
+      id: "helium_bme_v1",
+      name: "Helium-like (BME)",
+      notes: "High emission bootstrap phase. Burn-and-Mint Equilibrium logic. Reward lag is minimal due to hard-coded halving schedule.",
+      source: "Placeholder-Derived"
+    },
+    parameters: {
+      supply: { value: 100000000, unit: "tokens" },
+      emissions: { value: 5000000, unit: "tokens/week" },
+      burn_fraction: { value: 1.0, unit: "decimal" },
+      adjustment_lag: { value: 0, unit: "weeks" },
+      demand_regime: { value: "consistent", unit: "category" },
+      provider_economics: {
+        opex_weekly: { value: 50.00, unit: "chf/week" },
+        churn_threshold: { value: 5.00, unit: "chf/week_profit" }
+      }
     }
   },
   {
-    id: "adaptive",
-    name: "Adaptive DePIN (Algorithmic)",
-    description: "Automated response system. Rewards adjust to demand signals within a 2-week governance window.",
-    tokenomics: {
-      model: "Demand-Pull Adaptive",
-      burn_dynamic: "Variable burn fraction based on utilization",
-      emission_style: "Algorithmic supply elasticity"
+    version: "1.0",
+    metadata: {
+      id: "adaptive_elastic_v1",
+      name: "Adaptive (Algorithmic)",
+      notes: "Low lag governance with variable burn. High sensitivity to demand signals. Supply starts tighter to encourage early parity.",
+      source: "Placeholder-Derived"
+    },
+    parameters: {
+      supply: { value: 50000000, unit: "tokens" },
+      emissions: { value: 450000, unit: "tokens/week" },
+      burn_fraction: { value: 0.50, unit: "decimal" },
+      adjustment_lag: { value: 2, unit: "weeks" },
+      demand_regime: { value: "volatile", unit: "category" },
+      provider_economics: {
+        opex_weekly: { value: 15.00, unit: "chf/week" },
+        churn_threshold: { value: 15.00, unit: "chf/week_profit" }
+      }
     }
   }
 ];
 
-const STRESS_SCENARIOS = [
-  { name: "Bear market drawdown", duration: 52, stress: "Macro Price Decay", sensitivity: "Provider OpEx floor" },
-  { name: "Demand shock", duration: 12, stress: "Rapid Utility Compression", sensitivity: "Burn volume drop" },
-  { name: "Emissions taper", duration: 26, stress: "Incentive Reduction", sensitivity: "Provider attrition" },
-  { name: "Provider churn shock", duration: 8, stress: "Operational Exit Spike", sensitivity: "Capacity redundancy" }
+const SANITY_EQUATIONS = [
+  { eq: "supply[t+1] = supply[t] + emissions[t] - burned[t]", desc: "Conservation of token mass." },
+  { eq: "burned[t] <= tokens_spent[t] * burn_fraction", desc: "Burn is capped by activity and liquidity." },
+  { eq: "demand_served[t] = min(demand[t], capacity[t])", desc: "Hard network throughput limit." },
+  { eq: "utilization[t] = demand_served[t] / capacity[t]", desc: "Efficiency ratio (zero-protected)." },
+  { eq: "profit[t] = reward_value[t] - opex[t]", desc: "Net provider incentive signal." }
 ];
 
-const RESEARCH_METHODS = {
-  en: `This methodology describes the "directional robustness" of Decentralized Physical Infrastructure Networks (DePIN) under adverse operational conditions. It is critical to note that this framework does not aim to forecast absolute market prices. Instead, it functions as a mechanistic stress-testing tool designed to evaluate the structural integrity of tokenomic designs. By simulating the feedback loops between token supply, service demand, and provider incentives, we identify the specific thresholds where a protocol either maintains equilibrium or collapses into a "death spiral."
+const BUG_CHECKLIST = [
+  "Clamping Failure: Burn > Supply causing negative or near-zero supply spikes.",
+  "Normalizing Error: Dividends cast to integers during reward calculations.",
+  "Price Singularity: Zero supply or zero demand causing Infinity/NaN service prices.",
+  "Mint Leak: Emissions continuing after demand collapse or supply caps.",
+  "Reward Lag Overflow: Array length drift in governance windows over long T."
+];
 
-To ensure a standardized comparison, we evaluate three distinct protocol archetypes: a standard buy-and-burn model (ONO), a Burn-and-Mint Equilibrium model (Helium-like), and an algorithmic adaptive system. These archetypes are subjected to four identical stress scenarios, including macro-economic drawdowns, sudden demand shocks, and accelerated provider churn. The ONO profile used in this study was calibrated using data ranges derived from public technical documentation and expert interview data to ensure the simulation reflects realistic operational costs and incentive structures.
+const MIN_VIABLE_CALIBRATION = [
+  { item: "Circulating Supply", source: "Public Block Explorer / CoinGecko" },
+  { item: "Emission Schedule", source: "Whitepaper / Technical Docs" },
+  { item: "Burn/Mint Logic", source: "Smart Contract Logic (BME vs Buy-and-Burn)" },
+  { item: "Estimated Weekly OpEx", source: "Hardware Wattage * Avg Electricity Price" },
+  { item: "Demand Archetype", source: "Project Roadmap (Enterprise vs Retail growth)" }
+];
 
-We employ Monte Carlo simulation methods (n=100 per run) to account for stochastic market volatility and parameter uncertainty. This probabilistic approach allows for the observation of emergent system behaviors that deterministic models fail to capture. The primary output metrics focus on network utility, provider retention, and the "sustainability gap" between token emissions and burns. In alignment with the principles of scientific transparency and academic rigor suitable for HSLU-level research, all simulation code, underlying mathematical assumptions, and scenario configurations are documented for full reproducibility.`,
-  de: `Diese Methodik beschreibt die "richtungsweisende Robustheit" von dezentralisierten physischen Infrastrukturnetzwerken (DePIN) unter widrigen Betriebsbedingungen. Es ist wichtig festzuhalten, dass dieser Rahmen nicht darauf abzielt, absolute Marktpreise vorherzusagen. Stattdessen fungiert er als mechanistisches Stresstest-Tool zur Bewertung der strukturellen Integrität von tokenomischen Designs.
-
-Um einen standardisierten Vergleich zu gewährleisten, evaluieren wir drei verschiedene Protokoll-Archetypen: ein Standard-Buy-and-Burn-Modell (ONO), ein Burn-and-Mint-Equilibrium-Modell (Helium-ähnlich) und ein algorithmisches adaptives System. Diese Archetypen werden vier identischen Stressszenarien unterzogen. Das ONO-Profil in dieser Studie wurde unter Verwendung von Datenbereichen kalibriert, die aus öffentlichen technischen Dokumentationen und Experteninterviews abgeleitet wurden.
-
-Wir verwenden Monte-Carlo-Simulationsmethoden (n=100 pro Durchlauf), um stochastische Marktvolatilität und Parameterunsicherheiten zu berücksichtigen. Dieser probabilistische Ansatz ermöglicht die Beobachtung von emergentem Systemverhalten. Alle Simulationscodes, mathematischen Annahmen und Szenariokonfigurationen sind für die vollständige Reproduzierbarkeit dokumentiert.`
-};
+const NICE_TO_HAVE_CALIBRATION = [
+  { item: "Secondary Sinks", source: "Staking requirements or slashing data" },
+  { item: "Hardware Lifecycle", source: "Mean time to failure (MTTF) for churn precision" },
+  { item: "Governance Lag", source: "Avg time from proposal to implementation" },
+  { item: "Price Correlation", source: "Beta to BTC/ETH for macro scaling" }
+];
 
 const MetricCard: React.FC<{ 
   title: string; 
   value: string; 
   subValue?: string; 
-  subColor?: string 
-}> = ({ title, value, subValue, subColor }) => (
+  subColor?: string;
+  icon?: any;
+}> = ({ title, value, subValue, subColor, icon: Icon }) => (
   <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-    <div className="text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-2">{title}</div>
+    <div className="flex justify-between items-start mb-2">
+      <div className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">{title}</div>
+      {Icon && <Icon size={14} className="text-slate-700" />}
+    </div>
     <div className="flex items-baseline gap-2">
       <div className="text-2xl font-bold text-white tracking-tight">{value}</div>
       {subValue && <div className={`text-[10px] font-bold ${subColor || 'text-rose-400'}`}>{subValue}</div>}
@@ -343,7 +363,7 @@ function getDemandSeries(T: number, base: number, type: DemandType, rng: SeededR
 function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
   const rng = new SeededRNG(simSeed);
   const { T, initialSupply, initialPrice, maxMintWeekly, burnPct, demandType, macro, 
-          providerCostPerWeek, baseCapacityPerProvider, kDemandPrice, kMintPrice } = params;
+          providerCostPerWeek, baseCapacityPerProvider, kDemandPrice, kMintPrice, rewardLagWeeks, churnThreshold } = params;
 
   let mu = 0.002, sigma = 0.05;
   if (macro === 'bearish') { mu = -0.01; sigma = 0.06; }
@@ -356,24 +376,47 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
   let currentPrice = initialPrice;
   let currentProviders = 30;
   let currentServicePrice = 0.5;
+  
+  let consecutiveLowProfitWeeks = 0;
+  const rewardHistory: number[] = new Array(Math.max(1, rewardLagWeeks)).fill(params.providerCostPerWeek * 1.5);
 
   for (let t = 0; t < T; t++) {
     const demand = demands[t];
-    const capacity = currentProviders * baseCapacityPerProvider;
-    const scarcity = (demand - capacity) / Math.max(capacity, 1.0);
+    const capacity = Math.max(0.001, currentProviders * baseCapacityPerProvider);
     const demand_served = Math.min(demand, capacity);
-    const utilization = (demand_served / Math.max(capacity, 1.0)) * 100;
+    const utilization = (demand_served / capacity) * 100;
     
+    const scarcity = (demand - capacity) / capacity;
     currentServicePrice = Math.min(Math.max(currentServicePrice * (1 + 0.6 * scarcity), 0.05), 5.0);
-    const tokensSpent = (demand_served * currentServicePrice) / Math.max(currentPrice, 1e-6);
-    const burned = burnPct * tokensSpent;
-    const minted = Math.min(maxMintWeekly, maxMintWeekly * (0.6 + 0.6 * Math.tanh(demand / 15000.0)));
-
-    currentSupply = Math.max(1.0, currentSupply + minted - burned);
-    const rewardPerProvider = (minted / Math.max(currentProviders, 1.0)) * currentPrice;
     
-    const incentive = (rewardPerProvider - providerCostPerWeek) / providerCostPerWeek;
-    const delta = incentive * 5 + rng.normal() * 0.5;
+    const safePrice = Math.max(currentPrice, 0.0001);
+    const tokensSpent = (demand_served * currentServicePrice) / safePrice;
+    
+    const burnedRaw = burnPct * tokensSpent;
+    const burned = Math.min(currentSupply * 0.95, burnedRaw); 
+    
+    const minted = Math.min(maxMintWeekly, maxMintWeekly * (0.6 + 0.6 * Math.tanh(demand / 15000.0)));
+    currentSupply = Math.max(1000.0, currentSupply + minted - burned);
+    
+    const instantRewardValue = (minted / Math.max(currentProviders, 0.1)) * safePrice;
+    rewardHistory.push(instantRewardValue);
+    if (rewardHistory.length > Math.max(1, rewardLagWeeks)) rewardHistory.shift();
+    
+    const delayedReward = rewardHistory[0];
+    const profit = delayedReward - providerCostPerWeek;
+    const incentive = profit / providerCostPerWeek;
+    
+    if (profit < churnThreshold) {
+      consecutiveLowProfitWeeks++;
+    } else {
+      consecutiveLowProfitWeeks = Math.max(0, consecutiveLowProfitWeeks - 1);
+    }
+    
+    let churnMultiplier = 1.0;
+    if (consecutiveLowProfitWeeks > 2) churnMultiplier = 1.8;
+    if (consecutiveLowProfitWeeks > 5) churnMultiplier = 4.0;
+    
+    const delta = (incentive * 4.5 * churnMultiplier) + rng.normal() * 0.5;
     
     const demandPressure = kDemandPrice * Math.tanh(scarcity);
     const dilutionPressure = -kMintPrice * (minted / currentSupply) * 100;
@@ -383,7 +426,7 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
     results.push({
       t, price: currentPrice, supply: currentSupply, demand, demand_served,
       providers: currentProviders, capacity, servicePrice: currentServicePrice,
-      minted, burned, utilization
+      minted, burned, utilization, profit
     });
 
     currentPrice = nextPrice;
@@ -393,22 +436,23 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
 }
 
 const App: React.FC = () => {
-  const [lang, setLang] = useState<'en' | 'de'>('en');
+  const [lang] = useState<'en'>('en');
   const [params, setParams] = useState<SimulationParams>({
     T: 52, 
-    initialSupply: 100000000, // Calibrated: Larger base for 900k emissions
+    initialSupply: 100000000, 
     initialPrice: 3.0, 
-    maxMintWeekly: 900000, // Calibrated: 900k emissions/week
-    burnPct: 0.65, // Calibrated: 65% burn fraction
-    demandType: 'growth', // Calibrated: "Early but growing"
+    maxMintWeekly: 900000, 
+    burnPct: 0.65, 
+    demandType: 'growth', 
     macro: 'bearish', 
     nSims: 100, 
     seed: 42,
-    providerCostPerWeek: 25.0, // Calibrated: 900-1800 CHF/year midpoint
+    providerCostPerWeek: 25.96, 
     baseCapacityPerProvider: 180.0, 
     kDemandPrice: 0.15, 
     kMintPrice: 0.35,
-    events: []
+    rewardLagWeeks: 6,
+    churnThreshold: 10.0
   });
 
   const [aggregated, setAggregated] = useState<AggregateResult[]>([]);
@@ -435,7 +479,7 @@ const App: React.FC = () => {
       }
 
       const aggregate: AggregateResult[] = [];
-      const keys: (keyof SimResult)[] = ['price', 'supply', 'demand', 'demand_served', 'providers', 'capacity', 'servicePrice', 'minted', 'burned', 'utilization'];
+      const keys: (keyof SimResult)[] = ['price', 'supply', 'demand', 'demand_served', 'providers', 'capacity', 'servicePrice', 'minted', 'burned', 'utilization', 'profit'];
       
       for (let tStep = 0; tStep < params.T; tStep++) {
         const step: any = { t: tStep };
@@ -469,6 +513,20 @@ const App: React.FC = () => {
     }, 30);
   };
 
+  const loadProfile = (profile: ProtocolProfileV1) => {
+    setParams({
+      ...params,
+      initialSupply: profile.parameters.supply.value,
+      maxMintWeekly: profile.parameters.emissions.value,
+      burnPct: profile.parameters.burn_fraction.value,
+      rewardLagWeeks: profile.parameters.adjustment_lag.value,
+      demandType: profile.parameters.demand_regime.value,
+      providerCostPerWeek: profile.parameters.provider_economics.opex_weekly.value,
+      churnThreshold: profile.parameters.provider_economics.churn_threshold.value
+    });
+    setTimeout(runSimulation, 100);
+  };
+
   const analyzeWithAI = async () => {
     if (!aggregated.length) return;
     setAiLoading(true);
@@ -478,15 +536,17 @@ const App: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `Act as ${t('aiPersona')}. 
       Analyze this DePIN simulation for 'Directional Robustness'. 
-      Burn Rate: ${params.burnPct*100}%. Final Capacity: ${last.capacity.mean.toFixed(0)}.
+      Burn-to-Mint Gap: ${formatCompact(last.burned.mean - last.minted.mean)} tokens/wk.
       Final Utilization: ${last.utilization.mean.toFixed(1)}%.
+      Provider Retention: ${((last.providers.mean/30)*100).toFixed(0)}%.
+      Avg Weekly Provider Profit: ${last.profit.mean.toFixed(2)} CHF.
       ${t('aiPromptRisk')}
-      No price predictions. Provide an audit in ${lang === 'de' ? 'German' : 'English'}.`;
+      No specific price targets. Return an expert audit.`;
 
       const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
       setAiAnalysis(response.text);
     } catch (e) {
-      setAiAnalysis("Analysis failed. System error.");
+      setAiAnalysis("Audit failed. System unavailable.");
     } finally {
       setAiLoading(false);
     }
@@ -499,35 +559,42 @@ const App: React.FC = () => {
   const protocolHealth = useMemo(() => {
     if (!aggregated.length) return { status: t('healthStable'), score: 100 };
     const last = aggregated[aggregated.length - 1];
-    if (last.utilization.mean > 95 || last.utilization.mean < 5) return { status: t('healthCritical'), score: 12 };
-    if (last.providers.mean < 10) return { status: t('healthAtRisk'), score: 35 };
-    return { status: t('healthStable'), score: 85 };
-  }, [aggregated, lang]);
+    let score = 100;
+    
+    if (last.utilization.mean < 15) score -= 25;
+    if (last.utilization.mean > 95) score -= 15;
+    const supplyDiff = Math.abs(last.supply.mean - params.initialSupply) / params.initialSupply;
+    if (supplyDiff > 0.5) score -= 20;
+    if (last.providers.mean < 10) score -= 50;
+    
+    score = Math.max(0, score);
+    let status = t('healthStable');
+    if (score < 40) status = t('healthCritical');
+    else if (score < 70) status = t('healthAtRisk');
+    
+    return { status, score };
+  }, [aggregated, params.initialSupply]);
 
-  const formatNum = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
   const formatCompact = (n: number) => n.toLocaleString(undefined, { notation: 'compact', maximumFractionDigits: 1 });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30">
       <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-[100]">
         <div className="flex items-center gap-4">
-          <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-2xl shadow-indigo-600/40 border border-indigo-400/20">
             <Scale className="text-white" size={20} />
           </div>
           <div>
             <h1 className="text-md font-extrabold tracking-tight">{t('appTitle')}</h1>
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{t('version')}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">{t('version')}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => setLang(lang === 'en' ? 'de' : 'en')} className="flex items-center gap-2 text-[10px] font-bold text-slate-400 bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 uppercase">
-            <Languages size={14} /><span>{lang}</span>
-          </button>
-          <button onClick={() => setShowResearchBlueprint(true)} className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-white transition-colors bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowResearchBlueprint(true)} className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-white transition-all bg-slate-900/50 hover:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-800 active:scale-95">
             <BookOpen size={14} className="text-emerald-400" />
-            <span className="hidden sm:inline">{t('btnBlueprint')}</span>
+            <span>{t('btnBlueprint')}</span>
           </button>
-          <button onClick={runSimulation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2">
+          <button onClick={runSimulation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95">
             {loading ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />}
             {t('btnRun')}
           </button>
@@ -535,264 +602,312 @@ const App: React.FC = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-[280px] border-r border-slate-800 p-6 overflow-y-auto bg-slate-950 flex flex-col gap-8 custom-scrollbar">
+        <aside className="w-[300px] border-r border-slate-800 p-6 overflow-y-auto bg-slate-950 flex flex-col gap-8 custom-scrollbar">
           <section>
             <div className="flex items-center gap-2 mb-6">
               <Settings2 size={14} className="text-slate-500" />
               <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t('sidebarParams')}</h2>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-7">
               <div>
-                <label className="block text-[9px] font-bold text-slate-600 uppercase mb-3">{t('sidebarHorizon')}</label>
+                <label className="block text-[9px] font-bold text-slate-600 uppercase mb-4 tracking-widest">{t('sidebarHorizon')}</label>
                 <input type="range" min="12" max="104" value={params.T} onChange={e => setParams({...params, T: parseInt(e.target.value)})} className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-2" />
-                <div className="flex justify-between text-[10px] font-mono"><span className="text-slate-600">{t('sidebarDuration')}</span><span className="text-indigo-400">{params.T} {t('sidebarWeeks')}</span></div>
+                <div className="flex justify-between text-[10px] font-mono text-slate-400"><span>{t('sidebarDuration')}</span><span className="text-indigo-400 font-bold">{params.T} {t('sidebarWeeks')}</span></div>
               </div>
+              
               <div className="space-y-4">
-                <label className="block text-[9px] font-bold text-slate-600 uppercase">{t('sidebarTokenomics')}</label>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <span className="text-[9px] text-slate-500 uppercase">{t('sidebarInitialPrice')}</span>
-                    <input type="number" value={params.initialPrice} onChange={e => setParams({...params, initialPrice: parseFloat(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-md px-2 py-1.5 text-xs font-mono" />
+                <label className="block text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t('sidebarTokenomics')}</label>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <span className="text-[9px] text-slate-500 uppercase font-medium">{t('sidebarInitialSupply')}</span>
+                    <input type="number" value={params.initialSupply} onChange={e => setParams({...params, initialSupply: parseFloat(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono focus:ring-1 focus:ring-indigo-500 outline-none" />
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">{t('sidebarBurnRate')}</span><span className="text-indigo-400 text-[9px] font-mono">{(params.burnPct*100).toFixed(0)}%</span></div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase font-medium">{t('sidebarBurnRate')}</span><span className="text-indigo-400 text-[9px] font-bold">{(params.burnPct*100).toFixed(0)}%</span></div>
                     <input type="range" min="0" max="1" step="0.01" value={params.burnPct} onChange={e => setParams({...params, burnPct: parseFloat(e.target.value)})} className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none" />
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">Max Weekly Mint</span><span className="text-indigo-400 text-[9px] font-mono">{formatCompact(params.maxMintWeekly)}</span></div>
-                    <input type="range" min="1000" max="2000000" step="10000" value={params.maxMintWeekly} onChange={e => setParams({...params, maxMintWeekly: parseInt(e.target.value)})} className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none" />
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase font-medium">Weekly Emissions</span><span className="text-indigo-400 text-[9px] font-bold">{formatCompact(params.maxMintWeekly)}</span></div>
+                    <input type="range" min="1000" max="10000000" step="10000" value={params.maxMintWeekly} onChange={e => setParams({...params, maxMintWeekly: parseInt(e.target.value)})} className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none" />
                   </div>
                 </div>
               </div>
+
               <div className="space-y-4">
-                <label className="block text-[9px] font-bold text-slate-600 uppercase">{t('sidebarEnvironment')}</label>
-                <div className="grid grid-cols-2 gap-1.5">
+                <label className="block text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t('sidebarEnvironment')}</label>
+                <div className="grid grid-cols-2 gap-2">
                   {['consistent', 'growth', 'volatile', 'high-to-decay'].map(d => (
-                    <button key={d} onClick={() => setParams({...params, demandType: d as any})} className={`py-1.5 rounded text-[8px] font-bold uppercase transition-all ${params.demandType === d ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-600 border border-slate-800'}`}>{d}</button>
+                    <button key={d} onClick={() => setParams({...params, demandType: d as any})} className={`py-2 rounded-lg text-[9px] font-bold uppercase transition-all border active:scale-95 ${params.demandType === d ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/20' : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'}`}>{d}</button>
                   ))}
                 </div>
               </div>
             </div>
           </section>
-          <section className="mt-auto border-t border-slate-800 pt-6">
-            <button onClick={analyzeWithAI} disabled={aiLoading} className="w-full bg-slate-900 border border-slate-800 hover:border-indigo-500 text-slate-400 py-3 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2">
-              <BrainCircuit size={14} /> {t('aiBtn')}
+          
+          <section className="mt-auto pt-6 border-t border-slate-800">
+            <button onClick={analyzeWithAI} disabled={aiLoading} className="w-full bg-slate-900 border border-slate-800 hover:border-indigo-500 text-slate-400 py-3.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2 group active:scale-95">
+              <BrainCircuit size={14} className="group-hover:text-indigo-400" /> {t('aiBtn')}
             </button>
           </section>
         </aside>
 
         <main className="flex-1 overflow-y-auto bg-slate-950 p-8 custom-scrollbar">
-          <div className="grid grid-cols-4 gap-4 mb-8">
-            <MetricCard title={t('metricPrice')} value={`$${aggregated.length ? formatNum(aggregated[aggregated.length-1].price.mean) : '0.00'}`} />
-            <MetricCard title={t('metricSupply')} value={aggregated.length ? formatCompact(aggregated[aggregated.length-1].supply.mean) : '0'} />
-            <MetricCard title={t('metricCapacity')} value={aggregated.length ? formatCompact(aggregated[aggregated.length-1].capacity.mean) : '0'} />
-            <MetricCard title={t('metricUtilization')} value={aggregated.length ? `${formatNum(aggregated[aggregated.length-1].utilization.mean)}%` : '0%'} />
+          <div className="grid grid-cols-4 gap-5 mb-10">
+            <MetricCard title={t('metricHealth')} value={protocolHealth.score.toString()} icon={HeartPulse} subValue={protocolHealth.status} subColor={protocolHealth.score > 70 ? 'text-emerald-400' : protocolHealth.score > 40 ? 'text-amber-400' : 'text-rose-400'} />
+            <MetricCard title={t('metricSupply')} value={aggregated.length ? formatCompact(aggregated[aggregated.length-1].supply.mean) : '0'} icon={Database} />
+            <MetricCard title={t('metricGap')} value={aggregated.length ? formatCompact(aggregated[aggregated.length-1].burned.mean - aggregated[aggregated.length-1].minted.mean) : '0'} icon={ArrowDownUp} subValue={aggregated.length && (aggregated[aggregated.length-1].burned.mean > aggregated[aggregated.length-1].minted.mean) ? "Deflationary" : "Inflationary"} subColor={aggregated.length && (aggregated[aggregated.length-1].burned.mean > aggregated[aggregated.length-1].minted.mean) ? "text-emerald-400" : "text-amber-400"} />
+            <MetricCard title={t('metricRetention')} value={aggregated.length ? `${((aggregated[aggregated.length-1].providers.mean / 30) * 100).toFixed(0)}%` : '100%'} icon={UserCheck} />
           </div>
 
-          <div className="flex items-center justify-between mb-8 bg-slate-900/40 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 border-r border-slate-800 pr-6">
-                <span className="text-[9px] font-bold uppercase text-slate-600">{t('toolbarStatus')}</span>
-                <div className={`px-2 py-0.5 rounded text-[9px] font-bold ${protocolHealth.status === t('healthStable') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{protocolHealth.status}</div>
+          <div className="flex items-center justify-between mb-8 bg-slate-900/40 border border-slate-800 rounded-2xl p-5 backdrop-blur-sm">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3 border-r border-slate-800 pr-8">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">{t('toolbarStatus')}</span>
+                <div className={`px-3 py-1 rounded-full text-[10px] font-bold border ${protocolHealth.score > 40 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>{protocolHealth.status}</div>
               </div>
-              <button onClick={() => setPlaybackMode(!playbackMode)} className={`flex items-center gap-2 text-[9px] font-bold uppercase px-3 py-1.5 rounded-lg border ${playbackMode ? 'bg-indigo-600 text-white border-indigo-500' : 'border-slate-800 text-slate-500'}`}><Clock size={12} /> {t('toolbarPlayback')}</button>
+              <button onClick={() => setPlaybackMode(!playbackMode)} className={`flex items-center gap-2 text-[10px] font-bold uppercase px-4 py-2 rounded-xl border transition-all active:scale-95 ${playbackMode ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30' : 'border-slate-800 text-slate-500 bg-slate-900/50 hover:bg-slate-800'}`}><Clock size={14} /> {t('toolbarPlayback')}</button>
             </div>
-            <div className="text-[10px] font-mono text-slate-600">{t('toolbarWeek')} {playbackWeek} / {params.T}</div>
+            <div className="text-[11px] font-mono text-slate-500 bg-slate-950 px-4 py-1.5 rounded-lg border border-slate-800">{t('toolbarWeek')} {playbackWeek} / {params.T}</div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
             <BaseChartBox title={t('chartTitle1')} icon={Activity} color="indigo">
               <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="t" fontSize={9} tickLine={false} axisLine={false} />
                 <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatCompact} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} />
-                <Area type="monotone" dataKey={(d: any) => d.capacity.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} />
-                <Line type="monotone" dataKey={(d: any) => d.demand_served.mean} stroke="#fbbf24" strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey={(d: any) => d.capacity.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} name="Capacity" />
+                <Line type="monotone" dataKey={(d: any) => d.demand_served.mean} stroke="#fbbf24" strokeWidth={2} dot={false} name="Demand Served" />
               </ComposedChart>
             </BaseChartBox>
-
             <BaseChartBox title={t('chartTitle2')} icon={Users} color="emerald">
               <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="t" fontSize={9} tickLine={false} axisLine={false} />
                 <YAxis fontSize={9} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} />
-                <Line type="step" dataKey={(d: any) => d.providers.mean} stroke="#10b981" strokeWidth={2} dot={false} />
+                <Line type="step" dataKey={(d: any) => d.providers.mean} stroke="#10b981" strokeWidth={2.5} dot={false} name="Providers" />
                 <ReferenceLine y={10} stroke="#f43f5e" strokeDasharray="3 3" />
               </LineChart>
             </BaseChartBox>
-
             <BaseChartBox title={t('chartTitle3')} icon={Scale} color="amber">
               <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="t" fontSize={9} tickLine={false} axisLine={false} />
-                <YAxis fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatCompact} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} />
-                <Line type="monotone" dataKey={(d: any) => d.burned.mean} stroke="#fbbf24" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey={(d: any) => d.minted.mean} stroke="#6366f1" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />
+                <Line type="monotone" dataKey={(d: any) => d.burned.mean} stroke="#fbbf24" strokeWidth={2} dot={false} name="Tokens Burned" />
+                <Line type="monotone" dataKey={(d: any) => d.minted.mean} stroke="#6366f1" strokeWidth={1.5} strokeDasharray="5 5" dot={false} name="Tokens Minted" />
               </ComposedChart>
             </BaseChartBox>
-
             <BaseChartBox title={t('chartTitle4')} icon={BarChart3} color="rose">
               <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="t" fontSize={9} tickLine={false} axisLine={false} />
                 <YAxis domain={[0, 100]} fontSize={9} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} />
-                <Area type="monotone" dataKey={(d: any) => d.utilization.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
+                <Area type="monotone" dataKey={(d: any) => d.utilization.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} name="Utilization %" />
               </AreaChart>
             </BaseChartBox>
-
             <BaseChartBox title={t('chartTitle5')} icon={Database} color="violet">
               <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="t" fontSize={9} tickLine={false} axisLine={false} />
                 <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatCompact} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} />
-                <Line type="monotone" dataKey={(d: any) => d.supply.mean} stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey={(d: any) => d.supply.mean} stroke="#8b5cf6" strokeWidth={2} dot={false} name="Circ. Supply" />
               </LineChart>
             </BaseChartBox>
-
             <BaseChartBox title={t('chartTitle6')} icon={DollarSign} color="blue">
               <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="t" fontSize={9} tickLine={false} axisLine={false} />
                 <YAxis fontSize={9} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} />
-                <Line type="monotone" dataKey={(d: any) => d.servicePrice.mean} stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey={(d: any) => d.servicePrice.mean} stroke="#3b82f6" strokeWidth={2} dot={false} name="CHF / Unit" />
               </LineChart>
             </BaseChartBox>
           </div>
 
           {showResearchBlueprint && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md">
-              <div className="bg-slate-900 border border-slate-800 w-full max-w-6xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-                <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
-                   <div className="flex items-center gap-3 text-emerald-400">
-                     <FileJson size={20} /><h3 className="text-md font-bold">{t('blueprintTitle')}</h3>
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+              <div className="bg-slate-900 border border-slate-800 w-full max-w-6xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-700/50">
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+                   <div className="flex items-center gap-3 text-emerald-400 font-bold uppercase tracking-widest text-[11px]">
+                     <FileJson size={20} /><span>{t('blueprintTitle')}</span>
                    </div>
-                   <button onClick={() => setShowResearchBlueprint(false)} className="p-1.5 text-slate-500 hover:text-white transition-colors bg-slate-800 rounded-full"><X size={18} /></button>
+                   <button onClick={() => setShowResearchBlueprint(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={20} /></button>
                 </div>
-                <div className="p-8 overflow-y-auto custom-scrollbar bg-slate-900 flex flex-col gap-10">
+                <div className="p-8 overflow-y-auto custom-scrollbar bg-slate-900 flex flex-col gap-12">
                   
-                  {/* Research Methods Section */}
-                  <section>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">{t('blueprintMethods')}</h4>
-                    <div className="bg-slate-950/50 border border-slate-800 p-6 rounded-xl">
-                      <p className="text-[11px] text-slate-400 leading-relaxed whitespace-pre-line italic">
-                        {RESEARCH_METHODS[lang]}
-                      </p>
+                  {/* Transferability Framework */}
+                  <section className="bg-slate-950/40 border border-emerald-500/10 p-7 rounded-3xl shadow-inner">
+                    <div className="flex items-center gap-3 mb-8 text-emerald-400">
+                      <Boxes size={22} className="shrink-0" />
+                      <div className="h-[2px] w-8 bg-emerald-500/20" />
+                      <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]">{t('blueprintTransfer')}</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                      <div>
+                        <h5 className="text-[10px] font-bold text-slate-500 uppercase mb-5 tracking-widest flex items-center gap-2">
+                          <ListChecks size={14} className="text-emerald-400" /> Minimum Viable Calibration (MVC)
+                        </h5>
+                        <div className="space-y-3">
+                          {MIN_VIABLE_CALIBRATION.map((item, idx) => (
+                            <div key={idx} className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center group hover:border-emerald-500/30 transition-all">
+                              <span className="text-[11px] text-slate-300 font-bold">{item.item}</span>
+                              <span className="text-[9px] text-slate-600 bg-slate-900 px-2 py-1 rounded border border-slate-800 uppercase font-mono">{item.source}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <h5 className="text-[10px] font-bold text-slate-500 uppercase mt-8 mb-5 tracking-widest flex items-center gap-2">
+                           Nice-to-Have Data Points
+                        </h5>
+                        <div className="space-y-3">
+                          {NICE_TO_HAVE_CALIBRATION.map((item, idx) => (
+                            <div key={idx} className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center opacity-60 hover:opacity-100 transition-all">
+                              <span className="text-[11px] text-slate-300 font-bold">{item.item}</span>
+                              <span className="text-[9px] text-slate-600 px-2 py-1 font-mono">{item.source}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-8">
+                        <div>
+                          <h5 className="text-[10px] font-bold text-indigo-400 uppercase mb-4 tracking-widest flex items-center gap-2">
+                            <Repeat size={14} /> Multi-DePIN Comparison Logic
+                          </h5>
+                          <div className="bg-indigo-950/5 border border-indigo-500/10 p-6 rounded-2xl">
+                             <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
+                               Where precise internal data is unavailable, we employ **Range-Based Monte Carlo Analysis**.
+                             </p>
+                             <ul className="space-y-3 text-[10px] text-slate-500 font-medium">
+                               <li className="flex gap-2"><div className="w-1 h-1 bg-indigo-500 rounded-full mt-1.5 shrink-0" /> Define <b>Lower/Upper Bounds</b> for unknown OpEx costs.</li>
+                               <li className="flex gap-2"><div className="w-1 h-1 bg-indigo-500 rounded-full mt-1.5 shrink-0" /> Stochastic sampling picks random points within ranges per iteration.</li>
+                               <li className="flex gap-2"><div className="w-1 h-1 bg-indigo-500 rounded-full mt-1.5 shrink-0" /> Observe if the system remains <b>Directionally Stable</b> across the entire range.</li>
+                             </ul>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h5 className="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest">Thesis Explanation: Directional Robustness</h5>
+                          <div className="p-5 border-l-2 border-indigo-500/50 bg-slate-950/50 rounded-r-2xl italic">
+                            <p className="text-[11px] text-slate-300 leading-relaxed">
+                              "This framework shifts the evaluation of DePIN protocols from **deterministic forecasting** (which relies on private data) to **mechanistic stress-testing**. By separating standardized scenarios (shocks) from protocol-specific calibrations, we can evaluate 'Directional Robustness'—the inherent ability of a network's incentive structure to correct itself under pressure, regardless of exact numerical starting conditions."
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </section>
 
-                  {/* Protocol Profiles Comparison */}
+                  {/* Sanity Checks Section */}
+                  <section className="bg-slate-950/40 border border-indigo-500/10 p-7 rounded-3xl shadow-inner">
+                    <div className="flex items-center gap-3 mb-8 text-indigo-400">
+                      <Calculator size={22} className="shrink-0" />
+                      <div className="h-[2px] w-8 bg-indigo-500/20" />
+                      <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]">Sanity Checks & Logic Guardrails</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                      <div>
+                        <h5 className="text-[10px] font-bold text-slate-500 uppercase mb-5 tracking-widest">Core Simulation Equations</h5>
+                        <div className="space-y-4">
+                          {SANITY_EQUATIONS.map((e, idx) => (
+                            <div key={idx} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 group hover:border-indigo-500/40 transition-all">
+                              <code className="block text-indigo-400 text-[11px] font-mono mb-2">{e.eq}</code>
+                              <p className="text-[10px] text-slate-500 leading-relaxed font-medium">{e.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-8">
+                        <div>
+                          <h5 className="text-[10px] font-bold text-rose-500/80 uppercase mb-5 tracking-widest flex items-center gap-2">
+                            <AlertTriangle size={14} /> Debugging Guide
+                          </h5>
+                          <div className="bg-rose-950/5 border border-rose-500/10 p-6 rounded-2xl">
+                             <ul className="space-y-4">
+                               {BUG_CHECKLIST.map((bug, i) => (
+                                 <li key={i} className="flex gap-3 text-[11px] text-slate-400 leading-relaxed font-medium">
+                                   <span className="text-rose-500/50 font-mono text-[10px] mt-0.5">[{i+1}]</span>
+                                   {bug}
+                                 </li>
+                               ))}
+                             </ul>
+                          </div>
+                        </div>
+                        <div className="bg-emerald-950/5 border border-emerald-500/10 p-6 rounded-2xl">
+                          <h6 className="text-[10px] font-bold text-emerald-500 uppercase mb-3 tracking-widest">Operational Safeguards</h6>
+                          <div className="space-y-2">
+                             <p className="text-[11px] text-slate-400 leading-relaxed font-medium italic border-l-2 border-emerald-500/30 pl-4">
+                               1. Clamp `supply` floor at 1k.<br/>
+                               2. Protect `capacity` zero-division spikes.<br/>
+                               3. Cumulative loss churn (Consecutive week tracking).
+                             </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
                   <section>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Protocol Archetypes (Sam-Calibrated)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-6">Standardized Protocol Archetypes (V1)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       {PROTOCOL_PROFILES.map((p) => (
-                        <div key={p.id} className="bg-slate-950 border border-slate-800 p-5 rounded-xl hover:border-emerald-500/50 transition-all">
-                          <div className="text-[11px] font-bold text-emerald-400 uppercase mb-2">{p.name}</div>
-                          <p className="text-[10px] text-slate-400 leading-relaxed mb-4">{p.description}</p>
-                          <div className="space-y-1">
-                             <div className="text-[8px] font-bold text-slate-600 uppercase">Tokenomics Logic</div>
-                             <div className="text-[10px] text-slate-300 bg-slate-900 px-2 py-1 rounded border border-slate-800">{p.tokenomics.model}</div>
+                        <div key={p.metadata.id} className="bg-slate-950 border border-slate-800 p-6 rounded-2xl hover:border-emerald-500/30 transition-all flex flex-col group">
+                          <div className="flex justify-between items-start mb-4">
+                             <div className="text-[12px] font-extrabold text-emerald-400 uppercase tracking-tight">{p.metadata.name}</div>
+                             <button onClick={() => loadProfile(p)} className="p-2 bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm active:scale-95" title="Load Params"><Download size={16} /></button>
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-relaxed mb-6 flex-1 italic group-hover:text-slate-400 transition-colors">{p.metadata.notes}</p>
+                          <div className="space-y-2.5 pt-5 border-t border-slate-800/60 font-mono">
+                             <div className="flex justify-between text-[10px] uppercase font-bold text-slate-600"><span>Lag Window</span><span className="text-slate-300">{p.parameters.adjustment_lag.value} {p.parameters.adjustment_lag.unit}</span></div>
+                             <div className="flex justify-between text-[10px] uppercase font-bold text-slate-600"><span>Emissions</span><span className="text-slate-300">{formatCompact(p.parameters.emissions.value)} / wk</span></div>
+                             <div className="flex justify-between text-[10px] uppercase font-bold text-slate-600"><span>OpEx Mid</span><span className="text-slate-300">{p.parameters.provider_economics.opex_weekly.value} CHF</span></div>
                           </div>
                         </div>
                       ))}
                     </div>
                   </section>
-
-                  {/* Good vs Bad Guide */}
-                  <section>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">{t('blueprintGoodBad')}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(OPERATIONAL_GUIDE[lang] as any).map((item: any, i: number) => (
-                        <div key={i} className="bg-slate-950 border border-slate-800 p-5 rounded-xl">
-                          <div className="text-[11px] font-bold text-indigo-400 uppercase mb-3">{item.metric}</div>
-                          <div className="space-y-3">
-                            <div className="flex gap-2">
-                              <ShieldCheck size={14} className="text-emerald-500 shrink-0" />
-                              <p className="text-[11px] text-slate-300"><span className="font-bold text-emerald-500">GOOD:</span> {item.good}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <ZapOff size={14} className="text-rose-500 shrink-0" />
-                              <p className="text-[11px] text-slate-400"><span className="font-bold text-rose-500">BAD:</span> {item.bad}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  {/* Standardization Logic & Checklist */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <section>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Research Differences</h4>
-                      <div className="bg-slate-950 border border-slate-800 p-6 rounded-xl space-y-4">
-                        <p className="text-[11px] text-slate-400 leading-relaxed">
-                          Fixed emissions (Helium) rely on market price to sustain node OpEx, making them vulnerable to "death spirals" if tokens drop during halvings. Calibrated ONO models use direct fee-burn with manual reward lags, providing a "cushion" but potentially delaying system-correction during sudden shocks.
-                        </p>
-                      </div>
-                    </section>
-                    <section>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Standardization Checklist</h4>
-                      <div className="bg-emerald-950/10 border border-emerald-500/20 p-6 rounded-xl grid grid-cols-2 gap-4">
-                         <div className="space-y-3">
-                            <div className="text-[9px] font-bold text-emerald-500 uppercase">Core Parameters</div>
-                            {["Burn Rate", "Emission Cap", "Demand Sensitivity", "Macro Momentum"].map(item => (
-                              <div key={item} className="flex items-center gap-2 text-[10px] text-slate-300"><CheckCircle2 size={12} className="text-emerald-500" />{item}</div>
-                            ))}
-                         </div>
-                         <div className="space-y-3">
-                            <div className="text-[9px] font-bold text-slate-500 uppercase">Optional Fields</div>
-                            {["Governance Lag", "Staking Floor", "Exit Penalty", "Geographic Decay"].map(item => (
-                              <div key={item} className="flex items-center gap-2 text-[10px] text-slate-500 opacity-50"><div className="w-3 h-3 border border-slate-700 rounded-sm" />{item}</div>
-                            ))}
-                         </div>
-                      </div>
-                    </section>
-                  </div>
-
-                  <section>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Calibrated Model Data (JSON)</h4>
-                    <pre className="bg-slate-950 p-6 rounded-xl border border-slate-800 text-[10px] text-emerald-400 font-mono overflow-x-auto whitespace-pre">
-                      {JSON.stringify({ 
-                        CALIBRATED_PROFILES: PROTOCOL_PROFILES,
-                        STRESS_SCENARIOS
-                      }, null, 2)}
-                    </pre>
-                  </section>
+                  
                 </div>
-                <div className="p-5 bg-slate-950/50 border-t border-slate-800 text-center">
-                    <button onClick={() => setShowResearchBlueprint(false)} className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-600/20">{t('blueprintExit')}</button>
+                <div className="p-6 bg-slate-950/50 border-t border-slate-800 text-center">
+                    <button onClick={() => setShowResearchBlueprint(false)} className="px-10 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold transition-all shadow-xl shadow-indigo-600/30 active:scale-95">{t('blueprintExit')}</button>
                 </div>
               </div>
             </div>
           )}
 
           {showAiSheet && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm">
-               <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
-                 <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                   <div className="flex items-center gap-3 text-indigo-400">
-                     <BrainCircuit size={24} /><h3 className="text-lg font-bold">{t('aiAuditTitle')}</h3>
-                   </div>
-                   <button onClick={() => setShowAiSheet(false)} className="text-slate-500 hover:text-white"><X size={24} /></button>
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in zoom-in-95 duration-200">
+               <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden border border-slate-700/50">
+                 <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                   <div className="flex items-center gap-3 text-indigo-400 font-bold uppercase tracking-widest text-sm"><BrainCircuit size={22} /><span>Robustness Report</span></div>
+                   <button onClick={() => setShowAiSheet(false)} className="p-1.5 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
                  </div>
                  <div className="p-8 overflow-y-auto custom-scrollbar">
                    {aiLoading ? (
-                     <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <RefreshCw className="animate-spin text-indigo-500" size={40} /><p className="text-slate-400 animate-pulse font-medium">{t('aiProcessing')}</p>
-                     </div>
+                    <div className="flex flex-col items-center justify-center py-20 gap-5">
+                      <div className="relative">
+                        <RefreshCw className="animate-spin text-indigo-500" size={48} />
+                        <div className="absolute inset-0 bg-indigo-500/20 blur-xl animate-pulse rounded-full" />
+                      </div>
+                      <p className="text-slate-400 animate-pulse font-bold tracking-widest text-[11px] uppercase">Processing Analysis...</p>
+                    </div>
                    ) : (
-                     <div className="prose prose-invert prose-sm max-w-none">
-                        <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{aiAnalysis || "Simulation finished."}</p>
-                     </div>
+                    <div className="prose prose-invert prose-sm max-w-none">
+                      <div className="text-slate-300 leading-relaxed whitespace-pre-wrap font-medium p-4 bg-slate-950/30 rounded-2xl border border-slate-800/50">{aiAnalysis || "Simulation complete."}</div>
+                    </div>
                    )}
                  </div>
                  <div className="p-6 bg-slate-950/50 border-t border-slate-800 text-center">
-                    <button onClick={() => setShowAiSheet(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold transition-all">{t('aiClose')}</button>
+                  <button onClick={() => setShowAiSheet(false)} className="px-8 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all uppercase tracking-widest active:scale-95">Close Report</button>
                  </div>
                </div>
             </div>
@@ -805,9 +920,14 @@ const App: React.FC = () => {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+        input[type="range"] { -webkit-appearance: none; background: transparent; }
         input[type="range"]::-webkit-slider-thumb {
-          height: 16px; width: 16px; border-radius: 50%; background: #4f46e5;
-          border: 2px solid #0f172a; -webkit-appearance: none; margin-top: -6px;
+          height: 18px; width: 18px; border-radius: 50%; background: #6366f1;
+          border: 3px solid #0f172a; -webkit-appearance: none; margin-top: -7px;
+          box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+          width: 100%; height: 4px; cursor: pointer; background: #1e293b; border-radius: 2px;
         }
       `}</style>
     </div>
