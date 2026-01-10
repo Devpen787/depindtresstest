@@ -415,6 +415,8 @@ export function simulateOne(
 
   let previousProfits: Map<string, number> | null = null;
   const results: SimResult[] = [];
+  let treasuryTokens = 0; // Track accumulated treasury
+
 
   for (let t = 0; t < params.T; t++) {
     // Check for Investor Unlock Event (Module 3)
@@ -658,7 +660,15 @@ export function simulateOne(
       urbanCount: providerPool.active.filter(p => p.type === 'urban').length * scalingFactor,
       ruralCount: providerPool.active.filter(p => p.type === 'rural').length * scalingFactor,
       weightedCoverage: providerPool.active.reduce((sum, p) => sum + p.locationScore, 0) * scalingFactor,
+      // Module 4
+      treasuryBalance: (treasuryTokens + (params.revenueStrategy === 'reserve' ? burnedMacro : 0)) * tokenPrice,
+      vampireChurn: 0, // Placeholder
     });
+
+    // Accumulate Treasury
+    if (params.revenueStrategy === 'reserve') {
+      treasuryTokens += burnedMacro;
+    }
 
     // Update state for next iteration
     tokenPrice = nextPrice;
@@ -749,6 +759,8 @@ export function runSimulation(params: SimulationParams): AggregateResult[] {
     'urbanCount',
     'ruralCount',
     'weightedCoverage',
+    'treasuryBalance',
+    'vampireChurn',
   ];
 
   for (let t = 0; t < params.T; t++) {

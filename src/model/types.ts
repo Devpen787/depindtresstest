@@ -102,6 +102,11 @@ export interface SimulationParams {
   // Simulation
   nSims: number;                       // Monte Carlo runs
   seed: number;                        // RNG seed for reproducibility
+  // Module 4: Competitive Resilience (Risk Engine)
+  competitorYield: number;             // 0.0 to 2.0 (Competitor yield advantage)
+  emissionModel: 'fixed' | 'kpi';      // Fixed schedule vs demand-driven
+  revenueStrategy: 'burn' | 'reserve'; // Buy & Burn vs Sinking Fund
+  hardwareCost: number;                // New for payback calc
 }
 
 // ============================================================================
@@ -117,6 +122,7 @@ export interface SimulationState {
   // Token State
   tokenPrice: number;
   tokenSupply: number;
+  treasuryBalance: number; // Module 4
 
   // Service State
   servicePrice: number;
@@ -141,6 +147,9 @@ export interface SimulationState {
   avgProviderProfit: number;
   avgProviderRevenue: number;
   incentive: number;                   // ROI ratio
+
+  // Module 4
+  vampireChurn: number;
 }
 
 // ============================================================================
@@ -181,6 +190,10 @@ export interface SimResult {
   urbanCount: number;
   ruralCount: number;
   weightedCoverage: number;
+
+  // Module 4: Competitive Resilience
+  treasuryBalance: number;
+  vampireChurn: number;
 }
 
 /**
@@ -229,6 +242,10 @@ export interface AggregateResult {
   urbanCount: MetricStats;
   ruralCount: MetricStats;
   weightedCoverage: MetricStats;
+
+  // Module 4: Competitive Resilience
+  treasuryBalance: MetricStats;
+  vampireChurn: MetricStats;
 }
 
 // ============================================================================

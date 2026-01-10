@@ -46,6 +46,7 @@ import {
   Stethoscope,
   FlameKindling,
   Flame,
+  Shield,
   Crosshair,
   GitCompare,
   LayoutGrid,
@@ -67,6 +68,8 @@ import {
   Clock,
   UserMinus,
   Droplets,
+  Swords,
+  Infinity as InfinityIcon,
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { ThesisDashboard } from './src/components/ThesisDashboard';
@@ -84,6 +87,7 @@ import {
   type DemandType,
   type MacroCondition,
 } from './src/model';
+import { SCENARIOS, SimulationScenario } from './src/data/scenarios';
 import { PROTOCOL_PROFILES, ProtocolProfileV1 } from './src/data/protocols';
 import { ExplorerTab } from './src/components/explorer/ExplorerTab';
 import { Settings } from './src/components/Settings';
@@ -744,6 +748,110 @@ const ParamLabel: React.FC<{
   );
 };
 
+// Header Dropdown Component
+interface HeaderDropdownProps {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  isActive?: boolean;
+}
+
+const HeaderDropdown: React.FC<HeaderDropdownProps> = ({ label, icon, children, isActive = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all ${isOpen || isActive
+          ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
+          : 'text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
+          }`}
+      >
+        {icon}
+        <span>{label}</span>
+        <ChevronDown size={12} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
+          <div className="py-1">
+            {children}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Dropdown Item Component
+interface DropdownItemProps {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  description?: string;
+}
+
+const DropdownItem: React.FC<DropdownItemProps> = ({ icon, children, onClick, disabled = false, description }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all ${disabled
+      ? 'opacity-50 cursor-not-allowed'
+      : 'hover:bg-slate-800/50'
+      }`}
+  >
+    {icon && <span className="text-slate-400 mt-0.5">{icon}</span>}
+    <div className="flex-1 min-w-0">
+      <div className="text-[11px] font-bold text-slate-200">{children}</div>
+      {description && <div className="text-[9px] text-slate-500 mt-0.5">{description}</div>}
+    </div>
+  </button>
+);
+
+// Dropdown Toggle Component
+interface DropdownToggleProps {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  checked: boolean;
+  onChange: () => void;
+  description?: string;
+}
+
+const DropdownToggle: React.FC<DropdownToggleProps> = ({ icon, children, checked, onChange, description }) => (
+  <button
+    onClick={onChange}
+    className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-800/50 transition-all"
+  >
+    {icon && <span className="text-slate-400 mt-0.5">{icon}</span>}
+    <div className="flex-1 min-w-0">
+      <div className="text-[11px] font-bold text-slate-200">{children}</div>
+      {description && <div className="text-[9px] text-slate-500 mt-0.5">{description}</div>}
+    </div>
+    <div className={`w-8 h-4 rounded-full transition-colors relative ${checked ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+      <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
+    </div>
+  </button>
+);
+
+// Dropdown Divider
+const DropdownDivider: React.FC = () => (
+  <div className="my-1 border-t border-slate-800" />
+);
+
 // Collapsible Section Component
 interface CollapsibleSectionProps {
   title: string;
@@ -753,8 +861,6 @@ interface CollapsibleSectionProps {
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
-  isAdvanced?: boolean;
-  showAdvanced?: boolean;
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
@@ -765,13 +871,10 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   isOpen,
   onToggle,
   children,
-  isAdvanced = false,
-  showAdvanced = true,
 }) => {
-  if (isAdvanced && !showAdvanced) return null;
 
   return (
-    <section className={`transition-all duration-300 ${isAdvanced ? 'opacity-80' : ''}`}>
+    <section className="transition-all duration-300">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between mb-4 group cursor-pointer"
@@ -781,9 +884,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 group-hover:text-slate-400 transition-colors">
             {title}
           </h2>
-          {isAdvanced && (
-            <span className="text-[8px] px-1.5 py-0.5 bg-slate-800 text-slate-500 rounded uppercase">Adv</span>
-          )}
+
         </div>
         <div className="flex items-center gap-3">
           {!isOpen && (
@@ -812,18 +913,20 @@ const App: React.FC = () => {
   // Sidebar UI state
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    stress: false,
-    tokenomics: true,
-    providers: true,
-    simulation: true,
-    scenarios: false,
-    competitive: false,  // Module 4: Competitive Resilience
+    stress: false,       // Primary control section - open by default
+    competitive: false,  // Module 4: Competitive Resilience - open by default
+    scenarios: true,     // Academic presets - collapsed
+    tokenomics: true,    // Secondary - collapsed
+    advanced: true,      // Combined Economics + Simulation - collapsed
+    providers: true,     // Legacy key - keep for backwards compat
+    simulation: true,    // Legacy key - keep for backwards compat
   });
 
   const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
 
   // Comparison view state
   const [normalizeCharts, setNormalizeCharts] = useState(false);
+  const [comparisonMetric, setComparisonMetric] = useState<'providers' | 'price' | 'solvencyScore' | 'utilization' | 'minted' | 'burned'>('providers');
   const [hiddenProtocols, setHiddenProtocols] = useState<Set<string>>(new Set());
 
   const toggleProtocolVisibility = (protocolId: string) => {
@@ -903,7 +1006,10 @@ const App: React.FC = () => {
   const [allDePINData, setAllDePINData] = useState<Record<string, TokenMarketData>>({});
   const [showDePINBrowser, setShowDePINBrowser] = useState(false);
   const [onChainMetrics, setOnChainMetrics] = useState<Record<string, OnChainMetrics>>({});
-  const [activeTab, setActiveTab] = useState<'simulator' | 'thesis'>('simulator'); // New state for tab
+  const [activeTab, setActiveTab] = useState<'simulator' | 'thesis'>('simulator');
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  const [showScenarioToast, setShowScenarioToast] = useState(false);
+  const [scenarioToastContent, setScenarioToastContent] = useState<SimulationScenario | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -1031,7 +1137,13 @@ const App: React.FC = () => {
           maxServicePrice: 5.0,
           rewardLagWeeks: profile.parameters.adjustment_lag.value,
           nSims: params.nSims,
-          seed: params.seed
+          seed: params.seed,
+
+          // Module 4: Competitive Resilience
+          competitorYield: params.competitorYield,
+          emissionModel: params.emissionModel,
+          revenueStrategy: params.revenueStrategy,
+          hardwareCost: params.hardwareCost,
         };
 
         let aggregate: AggregateResult[];
@@ -1110,6 +1222,29 @@ const App: React.FC = () => {
       setLoading(false);
       setPlaybackWeek(params.T);
     }, 100);
+  };
+
+  // Reset to default parameters
+  const resetToDefaults = () => {
+    // 1. Reset profile-specific params
+    loadProfile(activeProfile);
+
+    // 2. Reset scenario/structural params
+    setParams(prev => ({
+      ...prev,
+      scenario: 'baseline',
+      macro: 'bearish',
+      demandType: activeProfile.parameters.demand_regime.value,
+      nSims: 100,
+      competitorYield: 0.0,
+      emissionModel: 'fixed',
+      revenueStrategy: 'burn',
+      initialLiquidity: 50000,
+      investorSellPct: 0.15,
+      hardwareCost: 800,
+    }));
+
+    setViewMode('sandbox');
   };
 
   const loadProfile = (profile: ProtocolProfileV1) => {
@@ -1269,8 +1404,8 @@ const App: React.FC = () => {
                 formatter={(val: number) => val >= 36 ? ['Never (Unprofitable)', 'Payback Period'] : [`${val.toFixed(1)} Months`, 'Payback Period']}
                 labelFormatter={(label) => `Week ${label}`}
               />
-              <ReferenceArea y1={0} y2={12} fill="#10b981" fillOpacity={0.05} />
-              <ReferenceArea y1={24} y2={36} fill="#f43f5e" fillOpacity={0.05} />
+              <ReferenceArea y1={0} y2={12} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
+              <ReferenceArea y1={24} y2={36} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
               <Line
                 type="monotone"
                 dataKey={(d: any) => {
@@ -1310,8 +1445,8 @@ const App: React.FC = () => {
               <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} domain={[0, 5]} allowDataOverflow={true} label={{ value: 'Burn/Mint Ratio', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
-              <ReferenceArea y1={0} y2={1} fill="#f43f5e" fillOpacity={0.1} />
-              <ReferenceArea y1={1} y2={5} fill="#10b981" fillOpacity={0.05} />
+              <ReferenceArea y1={0} y2={1} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} />
+              <ReferenceArea y1={1} y2={5} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
               <Line type="monotone" dataKey={(d: any) => Math.min(d?.solvencyScore?.mean || 0, 5)} stroke="#fbbf24" strokeWidth={3} dot={false} name="Solvency Ratio" />
               <ReferenceLine y={1} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'Deflationary (>1.0)', fill: '#10b981', fontSize: 10, position: 'insideTopLeft' }} />
               <Legend verticalAlign="top" height={36} iconType="circle" />
@@ -1550,91 +1685,102 @@ const App: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Learn Dropdown - Available in both tabs */}
+          <HeaderDropdown
+            label="Learn"
+            icon={<BookOpen size={14} />}
+            isActive={isMethodologyOpen || showSpecModal || showAuditPanel}
+          >
+            <DropdownItem
+              icon={<BookOpen size={14} />}
+              onClick={() => setIsMethodologyOpen(true)}
+              description="Simulation methodology & assumptions"
+            >
+              Methodology
+            </DropdownItem>
+            <DropdownItem
+              icon={<Binary size={14} />}
+              onClick={() => setShowSpecModal(true)}
+              description="Mathematical formulas & equations"
+            >
+              Math Specification
+            </DropdownItem>
+            <DropdownItem
+              icon={<Calculator size={14} />}
+              onClick={() => setShowAuditPanel(!showAuditPanel)}
+              description="Calibration & validation checks"
+            >
+              System Audit
+            </DropdownItem>
+          </HeaderDropdown>
+
+          {/* Data Dropdown - Both tabs (useful for showing live data in thesis) */}
+          <HeaderDropdown
+            label="Data"
+            icon={<Activity size={14} />}
+            isActive={Object.keys(liveData).length > 0 || showDePINBrowser}
+          >
+            <DropdownItem
+              icon={liveDataLoading ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} />}
+              onClick={fetchLiveData}
+              disabled={liveDataLoading}
+              description={lastLiveDataFetch ? `Last: ${lastLiveDataFetch.toLocaleTimeString()}` : 'Pull from CoinGecko'}
+            >
+              {liveDataLoading ? 'Fetching...' : Object.keys(liveData).length > 0 ? 'Refresh Live Data ✓' : 'Fetch Live Data'}
+            </DropdownItem>
+            <DropdownToggle
+              icon={<RefreshCw size={14} />}
+              checked={autoRefreshEnabled}
+              onChange={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+              description="Auto-refresh every 5 minutes"
+            >
+              Auto Refresh
+            </DropdownToggle>
+            <DropdownItem
+              icon={<Layers size={14} />}
+              onClick={() => setShowDePINBrowser(true)}
+              description="Browse all DePIN token prices"
+            >
+              DePIN Browser
+            </DropdownItem>
+            <DropdownDivider />
+            <DropdownToggle
+              icon={<Zap size={14} />}
+              checked={useNewModel}
+              onChange={() => setUseNewModel(!useNewModel)}
+              description={useNewModel ? 'V2: With sell pressure model' : 'V1: Legacy model'}
+            >
+              Use V2 Model
+            </DropdownToggle>
+          </HeaderDropdown>
+
+          {/* Settings - Icon only for cleaner look */}
+          <button
+            onClick={() => setViewMode('settings')}
+            className={`p-2.5 rounded-xl border transition-all ${viewMode === 'settings' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
+            title="Settings"
+          >
+            <Settings2 size={16} />
+          </button>
+
+          {/* Export */}
+          <button
+            onClick={() => setShowExportPanel(!showExportPanel)}
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-[10px] font-bold ${showExportPanel ? 'bg-emerald-600 text-white border-emerald-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-emerald-400 hover:border-emerald-500/50'}`}
+          >
+            <Download size={14} />
+            Export
+          </button>
+
+          {/* Run Matrix - Primary CTA (Simulator only) */}
           {activeTab === 'simulator' && (
-            <>
-              <button
-                onClick={() => setIsMethodologyOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all text-[10px] font-bold uppercase tracking-widest"
-              >
-                <BookOpen size={14} /> Methodology
-              </button>
-              <button
-                onClick={() => setViewMode('settings')}
-                className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${viewMode === 'settings' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
-              >
-                <Settings2 size={14} />
-                <span>Settings</span>
-              </button>
-              <button
-                onClick={() => setShowExportPanel(!showExportPanel)}
-                className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${showExportPanel ? 'bg-emerald-600 text-white border-emerald-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-emerald-400 hover:border-emerald-500/50'}`}
-              >
-                <Download size={14} />
-                <span>Export</span>
-              </button>
-              <button
-                onClick={() => setShowSpecModal(true)}
-                className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-all px-4 py-2.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 bg-slate-950/50"
-              >
-                <Binary size={14} />
-                <span>Math Spec</span>
-              </button>
-              <button
-                onClick={() => setShowAuditPanel(!showAuditPanel)}
-                className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${showAuditPanel ? 'bg-indigo-600 text-white border-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.3)]' : 'text-slate-400 border-slate-800 hover:bg-slate-900'}`}
-              >
-                <Calculator size={14} />
-                <span>Audit</span>
-              </button>
-              <div className="h-6 w-px bg-slate-800" />
-              <button
-                onClick={() => setUseNewModel(!useNewModel)}
-                className={`flex items-center gap-2 text-[9px] font-bold transition-all px-3 py-2 rounded-lg border ${useNewModel ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30' : 'text-slate-500 border-slate-800'}`}
-                title={useNewModel ? 'Using V2 Model (with sell pressure)' : 'Using V1 Model (legacy)'}
-              >
-                {useNewModel ? 'V2' : 'V1'}
-              </button>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={fetchLiveData}
-                  disabled={liveDataLoading}
-                  className={`flex items-center gap-2 text-xs font-bold transition-all px-4 py-2.5 rounded-l-xl border-y border-l ${Object.keys(liveData).length > 0
-                    ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30'
-                    : 'text-amber-400 border-amber-500/30 bg-amber-600/10 hover:bg-amber-600/20'
-                    }`}
-                  title={lastLiveDataFetch ? `Last updated: ${lastLiveDataFetch.toLocaleTimeString()}` : 'Fetch live token data from CoinGecko'}
-                >
-                  {liveDataLoading ? <RefreshCw className="animate-spin" size={14} /> : <Activity size={14} />}
-                  {liveDataLoading ? 'Fetching...' : Object.keys(liveData).length > 0 ? 'Live ✓' : 'Fetch Live'}
-                </button>
-                <button
-                  onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                  className={`flex items-center gap-1.5 text-[9px] font-bold transition-all px-2.5 py-2.5 rounded-r-xl border ${autoRefreshEnabled
-                    ? 'bg-emerald-600/30 text-emerald-400 border-emerald-500/30'
-                    : 'text-slate-500 border-slate-700 bg-slate-800/50 hover:bg-slate-800'
-                    }`}
-                  title={autoRefreshEnabled ? `Auto-refresh ON - Next: ${timeUntilRefresh}` : 'Enable auto-refresh (every 5 min)'}
-                >
-                  <RefreshCw size={12} className={autoRefreshEnabled ? 'animate-spin-slow' : ''} />
-                  {autoRefreshEnabled ? timeUntilRefresh || '5m' : 'Auto'}
-                </button>
-              </div>
-              <button
-                onClick={() => setShowDePINBrowser(!showDePINBrowser)}
-                className={`flex items-center gap-2 text-xs font-bold transition-all px-3 py-2.5 rounded-xl border ${showDePINBrowser
-                  ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
-                  : 'text-slate-500 border-slate-700 hover:text-slate-300'
-                  }`}
-                title="Browse all DePIN tokens"
-              >
-                <Layers size={14} />
-                DePIN
-              </button>
-              <button onClick={runSimulation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95">
-                {loading ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />}
-                Run Matrix
-              </button>
-            </>
+            <button
+              onClick={runSimulation}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95"
+            >
+              {loading ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />}
+              Run Matrix
+            </button>
           )}
         </div>
       </header >
@@ -1652,7 +1798,7 @@ const App: React.FC = () => {
       ) : (
         <div className="flex flex-1 overflow-hidden">
           {viewMode === 'settings' ? (
-            <Settings onBack={() => setViewMode('sandbox')} />
+            <Settings onBack={() => setViewMode('sandbox')} onReset={resetToDefaults} />
           ) : viewMode === 'explorer' ? (
             <ExplorerTab
               profiles={PROTOCOL_PROFILES}
@@ -1716,111 +1862,13 @@ const App: React.FC = () => {
 
 
                 <div className="p-6 flex flex-col gap-6">
-                  <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
 
-                    <div className="flex items-center gap-2">
-                      <Sliders size={12} className="text-slate-500" />
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Mode</span>
-                    </div>
-                    <div className="flex items-center gap-1 bg-slate-950 rounded-lg p-0.5">
-                      <button
-                        onClick={() => setShowAdvanced(false)}
-                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold uppercase transition-all ${!showAdvanced ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-400'
-                          }`}
-                      >
-                        Simple
-                      </button>
-                      <button
-                        onClick={() => setShowAdvanced(true)}
-                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold uppercase transition-all ${showAdvanced ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-400'
-                          }`}
-                      >
-                        Advanced
-                      </button>
-                    </div>
-                  </div>
-
-
-                  <CollapsibleSection
-                    title="Academic Scenarios"
-                    icon={<BookOpen size={14} />}
-                    iconColor="text-pink-500"
-                    summary="Miner Revolt • Honey Bursts"
-                    isOpen={!collapsedSections.scenarios}
-                    onToggle={() => toggleSection('scenarios')}
-                  >
-                    <div className="grid grid-cols-1 gap-2">
-                      <button
-                        onClick={() => {
-                          setParams({
-                            ...params,
-                            scenario: 'winter',
-                            churnThreshold: 20,
-                            macro: 'bearish',
-                            providerCostPerWeek: params.providerCostPerWeek * 1.5,
-                            costStdDev: 0.4,
-                          });
-                        }}
-                        className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'winter' ? 'bg-indigo-600/20 border-indigo-500 shadow-earthquake' : 'bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20'}`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[10px] font-bold uppercase ${params.scenario === 'winter' ? 'text-white' : 'text-indigo-400'}`}>Crypto Winter</span>
-                          <TrendingDown size={12} className={params.scenario === 'winter' ? 'text-white' : 'text-indigo-400'} />
-                        </div>
-                        <p className="text-[10px] text-slate-400">
-                          Section 9.1: Testing resilience against a 2022-style market crash (-90% prices).
-                        </p>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setParams({
-                            ...params,
-                            scenario: 'saturation',
-                            demandType: 'consistent',
-                            maxMintWeekly: params.maxMintWeekly * 0.5,
-                            macro: 'neutral',
-                          });
-                        }}
-                        className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'saturation' ? 'bg-amber-600/20 border-amber-500 shadow-earthquake' : 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'}`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[10px] font-bold uppercase ${params.scenario === 'saturation' ? 'text-white' : 'text-amber-400'}`}>Hardware Saturation</span>
-                          <Target size={12} className={params.scenario === 'saturation' ? 'text-white' : 'text-amber-400'} />
-                        </div>
-                        <p className="text-[10px] text-slate-400">
-                          Section 9.2: Simulating network density exceeding utility demand (3x Node Spike).
-                        </p>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setParams({
-                            ...params,
-                            scenario: 'utility',
-                            demandType: 'growth',
-                            macro: 'bullish',
-                            kBuyPressure: 0.15,
-                          });
-                        }}
-                        className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'utility' ? 'bg-emerald-600/20 border-emerald-500 shadow-earthquake' : 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'}`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[10px] font-bold uppercase ${params.scenario === 'utility' ? 'text-white' : 'text-emerald-400'}`}>Utility Validation</span>
-                          <Activity size={12} className={params.scenario === 'utility' ? 'text-white' : 'text-emerald-400'} />
-                        </div>
-                        <p className="text-[10px] text-slate-400">
-                          Section 9.3: "Peace-time" growth where organic demand drives token burn (10% MoM).
-                        </p>
-                      </button>
-                    </div>
-                  </CollapsibleSection>
 
 
                   <CollapsibleSection
                     title="Stress Controls"
                     icon={<Settings2 size={14} />}
-                    iconColor="text-slate-500"
+                    iconColor="text-indigo-400"
                     summary={`${params.T}wk • ${params.demandType} • ${params.macro}`}
                     isOpen={!collapsedSections.stress}
                     onToggle={() => toggleSection('stress')}
@@ -1852,173 +1900,10 @@ const App: React.FC = () => {
 
 
                   <CollapsibleSection
-                    title="Tokenomics"
-                    icon={<Database size={14} />}
-                    iconColor="text-violet-500"
-                    summary={`$${params.initialPrice} • ${(params.burnPct * 100).toFixed(0)}% burn`}
-                    isOpen={!collapsedSections.tokenomics}
-                    onToggle={() => toggleSection('tokenomics')}
-                    isAdvanced={true}
-                    showAdvanced={showAdvanced}
-                  >
-                    <div>
-                      <ParamLabel label="Initial Token Price" paramKey="initialPrice" />
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0.01"
-                          max="100"
-                          value={params.initialPrice}
-                          onChange={e => setParams({ ...params, initialPrice: parseFloat(e.target.value) || 0.01 })}
-                          className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
-                        />
-                        <span className="text-[10px] text-slate-500 font-bold">USD</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <ParamLabel label="Burn Percentage" paramKey="burnPct" />
-                        <span className="text-indigo-400 text-[10px] font-mono font-bold">{(params.burnPct * 100).toFixed(0)}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={params.burnPct}
-                        onChange={e => setParams({ ...params, burnPct: parseFloat(e.target.value) })}
-                        className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
-                        <span>0% (Inflationary)</span>
-                        <span>100% (Deflationary)</span>
-                      </div>
-                    </div>
-                  </CollapsibleSection>
-
-
-                  <CollapsibleSection
-                    title="Provider Economics"
-                    icon={<Users size={14} />}
-                    iconColor="text-emerald-500"
-                    summary={`$${params.providerCostPerWeek}/wk OpEx • $${params.churnThreshold} churn`}
-                    isOpen={!collapsedSections.providers}
-                    onToggle={() => toggleSection('providers')}
-                    isAdvanced={true}
-                    showAdvanced={showAdvanced}
-                  >
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <ParamLabel label="Weekly OpEx Cost" paramKey="providerCostPerWeek" />
-                        <span className="text-emerald-400 text-[10px] font-mono font-bold">${params.providerCostPerWeek.toFixed(0)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="5"
-                        max="200"
-                        step="5"
-                        value={params.providerCostPerWeek}
-                        onChange={e => setParams({ ...params, providerCostPerWeek: parseFloat(e.target.value) })}
-                        className="w-full accent-emerald-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-6"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <ParamLabel label="Hardware Cost (Capex)" paramKey="hardwareCost" />
-                        <span className="text-emerald-400 text-[10px] font-mono font-bold">${params.hardwareCost.toFixed(0)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="200"
-                        max="2000"
-                        step="50"
-                        value={params.hardwareCost}
-                        onChange={e => setParams({ ...params, hardwareCost: parseFloat(e.target.value) })}
-                        className="w-full accent-emerald-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <ParamLabel label="Churn Threshold" paramKey="churnThreshold" />
-                        <span className="text-amber-400 text-[10px] font-mono font-bold">${params.churnThreshold.toFixed(0)}/wk</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="-20"
-                        max="50"
-                        step="5"
-                        value={params.churnThreshold}
-                        onChange={e => setParams({ ...params, churnThreshold: parseFloat(e.target.value) })}
-                        className="w-full accent-amber-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
-                        <span>Tolerant</span>
-                        <span>Sensitive</span>
-                      </div>
-                    </div>
-                  </CollapsibleSection>
-
-
-                  <CollapsibleSection
-                    title="Simulation"
-                    icon={<BarChart3 size={14} />}
-                    iconColor="text-blue-500"
-                    summary={`${params.nSims} runs • seed ${params.seed}`}
-                    isOpen={!collapsedSections.simulation}
-                    onToggle={() => toggleSection('simulation')}
-                  >
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <ParamLabel label="Monte Carlo Runs" paramKey="nSims" />
-                        <span className="text-blue-400 text-[10px] font-mono font-bold">{params.nSims}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="20"
-                        max="500"
-                        step="20"
-                        value={params.nSims}
-                        onChange={e => setParams({ ...params, nSims: parseInt(e.target.value) })}
-                        className="w-full accent-blue-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
-                        <span>Faster</span>
-                        <span>More Accurate</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <ParamLabel label="Random Seed" paramKey="seed" />
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min="1"
-                          max="999999"
-                          value={params.seed}
-                          onChange={e => setParams({ ...params, seed: parseInt(e.target.value) || 42 })}
-                          className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
-                        />
-                        <button
-                          onClick={() => setParams({ ...params, seed: Math.floor(Math.random() * 999999) })}
-                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-[9px] font-bold text-slate-400 transition-colors"
-                          title="Randomise seed"
-                        >
-                          🎲
-                        </button>
-                      </div>
-                    </div>
-                  </CollapsibleSection>
-
-                  {/* Module 4: Competitive Resilience (Risk Engine) */}
-                  <CollapsibleSection
-                    title="Competitive Resilience"
-                    icon={<Zap size={14} />}
-                    iconColor="text-purple-500"
-                    summary={`Vampire: +${(params.competitorYield * 100).toFixed(0)}% • ${params.revenueStrategy === 'reserve' ? 'Treasury' : 'Burn'}`}
+                    title="Vampire & Treasury"
+                    icon={<Shield size={14} />}
+                    iconColor="text-purple-400"
+                    summary={`Competitor: +${(params.competitorYield * 100).toFixed(0)}% • ${params.revenueStrategy === 'reserve' ? 'Reserve' : 'Burn'}`}
                     isOpen={!collapsedSections.competitive}
                     onToggle={() => toggleSection('competitive')}
                   >
@@ -2110,6 +1995,231 @@ const App: React.FC = () => {
                       </p>
                     </div>
                   </CollapsibleSection>
+
+
+                  <CollapsibleSection
+                    title="Quick Presets"
+                    icon={<Zap size={14} />}
+                    iconColor="text-pink-500"
+                    summary="Crypto Winter • Saturation • Utility"
+                    isOpen={!collapsedSections.scenarios}
+                    onToggle={() => toggleSection('scenarios')}
+                  >
+                    <div className="grid grid-cols-1 gap-2">
+                      {SCENARIOS.map((scenario) => {
+                        const Icon = scenario.iconName === 'TrendingDown' ? TrendingDown :
+                          scenario.iconName === 'Infinity' ? InfinityIcon :
+                            scenario.iconName === 'Swords' ? Swords : Zap;
+
+                        const isActive = activeScenarioId === scenario.id;
+
+                        return (
+                          <button
+                            key={scenario.id}
+                            onClick={() => {
+                              // apply params
+                              setParams(prev => ({ ...prev, ...scenario.params }));
+                              // set active state
+                              setActiveScenarioId(scenario.id);
+                              setScenarioToastContent(scenario);
+                              setShowScenarioToast(true);
+
+                              // Auto-focus the relevant chart for "Proof"
+                              if (scenario.focusChart) {
+                                setFocusChart(scenario.focusChart);
+                              }
+
+                              // Auto-hide toast after 8 seconds
+                              setTimeout(() => setShowScenarioToast(false), 8000);
+                            }}
+                            className={`p-3 rounded-xl border text-left transition-all group ${isActive ? 'bg-indigo-600/20 border-indigo-500 shadow-earthquake' : 'bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20'}`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`text-[10px] font-bold uppercase ${isActive ? 'text-white' : 'text-indigo-400'}`}>{scenario.name}</span>
+                              <Icon size={12} className={isActive ? 'text-white' : 'text-indigo-400'} />
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                              {scenario.description}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CollapsibleSection>
+
+
+                  <CollapsibleSection
+                    title="Tokenomics"
+                    icon={<Database size={14} />}
+                    iconColor="text-violet-500"
+                    summary={`$${params.initialPrice} • ${(params.burnPct * 100).toFixed(0)}% burn`}
+                    isOpen={!collapsedSections.tokenomics}
+                    onToggle={() => toggleSection('tokenomics')}
+
+                  >
+                    <div>
+                      <ParamLabel label="Initial Token Price" paramKey="initialPrice" />
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.01"
+                          max="100"
+                          value={params.initialPrice}
+                          onChange={e => setParams({ ...params, initialPrice: parseFloat(e.target.value) || 0.01 })}
+                          className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
+                        />
+                        <span className="text-[10px] text-slate-500 font-bold">USD</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <ParamLabel label="Burn Percentage" paramKey="burnPct" />
+                        <span className="text-indigo-400 text-[10px] font-mono font-bold">{(params.burnPct * 100).toFixed(0)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={params.burnPct}
+                        onChange={e => setParams({ ...params, burnPct: parseFloat(e.target.value) })}
+                        className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                        <span>0% (Inflationary)</span>
+                        <span>100% (Deflationary)</span>
+                      </div>
+                    </div>
+                  </CollapsibleSection>
+
+
+                  <CollapsibleSection
+                    title="Advanced Configuration"
+                    icon={<Sliders size={14} />}
+                    iconColor="text-slate-400"
+                    summary="Economics • Simulation"
+                    isOpen={!collapsedSections.advanced}
+                    onToggle={() => toggleSection('advanced')}
+                  >
+                    <div className="space-y-6">
+                      <CollapsibleSection
+                        title="Provider Economics"
+                        icon={<Users size={14} />}
+                        iconColor="text-emerald-500"
+                        summary={`$${params.providerCostPerWeek}/wk OpEx • $${params.churnThreshold} churn`}
+                        isOpen={!collapsedSections.providers}
+                        onToggle={() => toggleSection('providers')}
+
+                      >
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <ParamLabel label="Weekly OpEx Cost" paramKey="providerCostPerWeek" />
+                            <span className="text-emerald-400 text-[10px] font-mono font-bold">${params.providerCostPerWeek.toFixed(0)}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="5"
+                            max="200"
+                            step="5"
+                            value={params.providerCostPerWeek}
+                            onChange={e => setParams({ ...params, providerCostPerWeek: parseFloat(e.target.value) })}
+                            className="w-full accent-emerald-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-6"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <ParamLabel label="Hardware Cost (Capex)" paramKey="hardwareCost" />
+                            <span className="text-emerald-400 text-[10px] font-mono font-bold">${params.hardwareCost.toFixed(0)}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="200"
+                            max="2000"
+                            step="50"
+                            value={params.hardwareCost}
+                            onChange={e => setParams({ ...params, hardwareCost: parseFloat(e.target.value) })}
+                            className="w-full accent-emerald-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <ParamLabel label="Churn Threshold" paramKey="churnThreshold" />
+                            <span className="text-amber-400 text-[10px] font-mono font-bold">${params.churnThreshold.toFixed(0)}/wk</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-20"
+                            max="50"
+                            step="5"
+                            value={params.churnThreshold}
+                            onChange={e => setParams({ ...params, churnThreshold: parseFloat(e.target.value) })}
+                            className="w-full accent-amber-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                            <span>Tolerant</span>
+                            <span>Sensitive</span>
+                          </div>
+                        </div>
+                      </CollapsibleSection>
+
+
+                      <CollapsibleSection
+                        title="Simulation"
+                        icon={<BarChart3 size={14} />}
+                        iconColor="text-blue-500"
+                        summary={`${params.nSims} runs • seed ${params.seed}`}
+                        isOpen={!collapsedSections.simulation}
+                        onToggle={() => toggleSection('simulation')}
+                      >
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <ParamLabel label="Monte Carlo Runs" paramKey="nSims" />
+                            <span className="text-blue-400 text-[10px] font-mono font-bold">{params.nSims}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="20"
+                            max="500"
+                            step="20"
+                            value={params.nSims}
+                            onChange={e => setParams({ ...params, nSims: parseInt(e.target.value) })}
+                            className="w-full accent-blue-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                            <span>Faster</span>
+                            <span>More Accurate</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <ParamLabel label="Random Seed" paramKey="seed" />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              max="999999"
+                              value={params.seed}
+                              onChange={e => setParams({ ...params, seed: parseInt(e.target.value) || 42 })}
+                              className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
+                            />
+                            <button
+                              onClick={() => setParams({ ...params, seed: Math.floor(Math.random() * 999999) })}
+                              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-[9px] font-bold text-slate-400 transition-colors"
+                              title="Randomise seed"
+                            >
+                              🎲
+                            </button>
+                          </div>
+                        </div>
+                      </CollapsibleSection>
+                    </div>
+                  </CollapsibleSection>
+
+
 
                   {
                     viewMode === 'sandbox' && (
@@ -2624,8 +2734,8 @@ const App: React.FC = () => {
                             />
 
                             {/* Reference Zones: Explicit Backgrounds for Readability */}
-                            <ReferenceArea y1={0} y2={12} fill="#10b981" fillOpacity={0.05} />
-                            <ReferenceArea y1={24} y2={36} fill="#f43f5e" fillOpacity={0.05} />
+                            <ReferenceArea y1={0} y2={12} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={24} y2={36} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
 
                             <Line
                               type="monotone"
@@ -2665,8 +2775,8 @@ const App: React.FC = () => {
                             />
 
                             {/* Reference Zones */}
-                            <ReferenceArea y1={0} y2={1} fill="#f43f5e" fillOpacity={0.1} /> {/* Dilutive Zone */}
-                            <ReferenceArea y1={1} y2={5} fill="#10b981" fillOpacity={0.05} /> {/* Deflationary Zone */}
+                            <ReferenceArea y1={0} y2={1} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} /> {/* Dilutive Zone */}
+                            <ReferenceArea y1={1} y2={5} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} /> {/* Deflationary Zone */}
 
                             <Line
                               type="monotone"
@@ -3301,12 +3411,40 @@ const App: React.FC = () => {
                         })}
                       </div>
 
+                      {/* Metric Selector */}
+                      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mb-4">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Activity size={16} className="text-slate-400" />
+                          <h3 className="text-xs font-black text-white uppercase tracking-widest">Comparison Metric</h3>
+                        </div>
+                        <div className="grid grid-cols-6 gap-2">
+                          {[
+                            { id: 'providers', label: 'Nodes' },
+                            { id: 'price', label: 'Price' },
+                            { id: 'solvencyScore', label: 'Solvency' },
+                            { id: 'utilization', label: 'Util %' },
+                            { id: 'minted', label: 'Emissions' },
+                            { id: 'burned', label: 'Revenue' }
+                          ].map(m => (
+                            <button
+                              key={m.id}
+                              onClick={() => setComparisonMetric(m.id as any)}
+                              className={`px-3 py-2 rounded-lg text-[10px] font-bold border transition-colors ${comparisonMetric === m.id
+                                ? 'bg-indigo-600 border-indigo-500 text-white'
+                                : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
+                                }`}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
                       <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <TrendingUp size={16} className="text-indigo-400" />
-                            <h3 className="text-xs font-black text-white uppercase tracking-widest">Provider Count Overlay</h3>
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest">{comparisonMetric === 'solvencyScore' ? 'Solvency' : comparisonMetric.charAt(0).toUpperCase() + comparisonMetric.slice(1)} Overlay</h3>
 
                             <button
                               onClick={() => setNormalizeCharts(!normalizeCharts)}
@@ -3368,7 +3506,7 @@ const App: React.FC = () => {
                                 fontSize={9}
                                 tick={{ fill: '#64748b' }}
                                 domain={normalizeCharts ? [0, 'auto'] : ['auto', 'auto']}
-                                tickFormatter={(val) => normalizeCharts ? `${val}` : val}
+                                tickFormatter={(val) => normalizeCharts ? `${val}` : formatCompact(val)}
                               />
                               <Tooltip
                                 contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
@@ -3379,22 +3517,22 @@ const App: React.FC = () => {
                                     const protocolId = PROTOCOL_PROFILES.find(p => p.metadata.name === name)?.metadata.id;
                                     const data = protocolId ? multiAggregated[protocolId] : [];
                                     const point = data.find((d: any) => d.t === props.payload?.t);
-                                    const actual = point?.providers?.mean || 0;
-                                    return [`Index: ${value.toFixed(1)} | Actual: ${Math.round(actual)}`, name];
+                                    const actual = point?.[comparisonMetric as keyof AggregateResult]?.mean || 0;
+                                    return [`Index: ${value.toFixed(1)} | Actual: ${formatCompact(actual)}`, name];
                                   }
-                                  return [Math.round(value as number), name];
+                                  return [formatCompact(value as number), name];
                                 }}
                               />
                               {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id) && !hiddenProtocols.has(p.metadata.id)).map((p, i) => {
                                 const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
                                 const data = multiAggregated[p.metadata.id] || [];
-                                const baselineValue = data[0]?.providers?.mean || 1;
+                                const baselineValue = Math.max(0.0001, data[0]?.[comparisonMetric as keyof AggregateResult]?.mean || 1);
 
                                 // Normalize data if toggle is on
                                 const chartData = normalizeCharts
                                   ? data.map((d: any) => ({
                                     ...d,
-                                    normalizedProviders: ((d?.providers?.mean || 0) / baselineValue) * 100
+                                    normalizedValue: ((d?.[comparisonMetric as keyof AggregateResult]?.mean || 0) / baselineValue) * 100
                                   }))
                                   : data;
 
@@ -3403,7 +3541,7 @@ const App: React.FC = () => {
                                     key={p.metadata.id}
                                     data={chartData}
                                     type="monotone"
-                                    dataKey={normalizeCharts ? 'normalizedProviders' : (d: any) => d?.providers?.mean}
+                                    dataKey={normalizeCharts ? 'normalizedValue' : (d: any) => d?.[comparisonMetric as keyof AggregateResult]?.mean}
                                     stroke={colors[i % colors.length]}
                                     strokeWidth={2}
                                     dot={false}
@@ -3427,15 +3565,15 @@ const App: React.FC = () => {
                                 const data = multiAggregated[p.metadata.id] || [];
                                 const last = data[data.length - 1];
                                 const first = data[0];
-                                const finalValue = last?.providers?.mean || 0;
-                                const startValue = first?.providers?.mean || 1;
+                                const finalValue = last?.[comparisonMetric as keyof AggregateResult]?.mean || 0;
+                                const startValue = first?.[comparisonMetric as keyof AggregateResult]?.mean || 1;
                                 const change = ((finalValue - startValue) / startValue) * 100;
 
                                 return (
                                   <div key={p.metadata.id} className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded">
                                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
                                     <span className="text-[9px] text-slate-400 font-bold">{p.metadata.name}:</span>
-                                    <span className="text-[10px] font-mono text-white">{Math.round(finalValue)}</span>
+                                    <span className="text-[10px] font-mono text-white">{formatCompact(finalValue)}</span>
                                     <span className={`text-[9px] font-bold ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                       ({change >= 0 ? '+' : ''}{change.toFixed(0)}%)
                                     </span>
@@ -4012,10 +4150,48 @@ const App: React.FC = () => {
               </main >
             </>
           )}
+
+          {/* Scenario Insight Toast */}
+          {showScenarioToast && scenarioToastContent && (
+            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mx-4 bg-slate-900/90 backdrop-blur-xl border border-indigo-500/50 rounded-2xl shadow-2xl shadow-indigo-500/20 p-6 relative overflow-hidden group">
+                {/* Progress Bar */}
+                <div className="absolute top-0 left-0 h-1 bg-indigo-500/30 w-full">
+                  <div className="h-full bg-indigo-500 w-full animate-[shrink_8s_linear_forwards]" />
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="p-3 bg-indigo-500/20 rounded-xl h-fit border border-indigo-500/30">
+                    {(() => {
+                      const Icon = scenarioToastContent.iconName === 'TrendingDown' ? TrendingDown :
+                        scenarioToastContent.iconName === 'Infinity' ? InfinityIcon :
+                          scenarioToastContent.iconName === 'Swords' ? Swords : Zap;
+                      return <Icon size={24} className="text-indigo-400" />;
+                    })()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                        Scenario Active: <span className="text-indigo-400">{scenarioToastContent.name}</span>
+                      </h4>
+                      <button onClick={() => setShowScenarioToast(false)} className="text-slate-500 hover:text-white transition-colors"><X size={16} /></button>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                      {scenarioToastContent.thesisPoint}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div >
       )}
 
       <style>{`
+        @keyframes shrink {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
         :root {
           --rose-rgb: 244, 63, 94;
           --amber-rgb: 251, 191, 36;

@@ -3,13 +3,14 @@ import { ArrowLeft, Moon, Smartphone, Monitor, Shield, Save } from 'lucide-react
 
 interface SettingsProps {
   onBack: () => void;
+  onReset: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
+export const Settings: React.FC<SettingsProps> = ({ onBack, onReset }) => {
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-200 p-6 overflow-y-auto">
       <div className="flex items-center gap-4 mb-8">
-        <button 
+        <button
           onClick={onBack}
           className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white"
         >
@@ -26,7 +27,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
           <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
             <Monitor size={14} /> Appearance
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button className="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-800 border-2 border-indigo-500 text-white transition-all">
               <Moon size={24} className="text-indigo-400" />
@@ -36,7 +37,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
               <Smartphone size={24} />
               <span className="text-xs font-bold">Light Mode</span>
             </button>
-             <button className="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-500 hover:bg-slate-800 transition-all opacity-50 cursor-not-allowed">
+            <button className="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-500 hover:bg-slate-800 transition-all opacity-50 cursor-not-allowed">
               <Monitor size={24} />
               <span className="text-xs font-bold">System</span>
             </button>
@@ -48,7 +49,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
           <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
             <Shield size={14} /> Data & Simulation
           </h2>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
               <div className="flex flex-col">
@@ -63,20 +64,29 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
             <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800 opacity-75">
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-slate-300">Developer Mode</span>
-                <span className="text-[10px] text-slate-500">Enable advanced debug metrics and raw simulation logs</span>
+                <span className="text-xs text-slate-500">Enable advanced debug metrics and raw simulation logs</span>
               </div>
               <div className="w-10 h-5 bg-slate-700 rounded-full relative cursor-pointer">
-                 <div className="absolute left-1 top-1 w-3 h-3 bg-slate-400 rounded-full shadow-sm" />
+                <div className="absolute left-1 top-1 w-3 h-3 bg-slate-400 rounded-full shadow-sm" />
               </div>
             </div>
           </div>
         </section>
 
-        <button className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
-          <Save size={16} />
-          Save Preferences
-        </button>
-        
+        <div className="flex flex-col gap-3">
+          <button className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+            <Save size={16} />
+            Save Preferences
+          </button>
+
+          <button
+            onClick={onReset}
+            className="w-full py-3 bg-transparent border border-rose-900/30 hover:border-rose-500/50 hover:bg-rose-950/10 text-rose-400 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+          >
+            Reset to Defaults
+          </button>
+        </div>
+
         <div className="text-center text-[10px] text-slate-600 font-mono">
           DePIN Stress Test v1.2.0 • Build 2026.01.08
         </div>
