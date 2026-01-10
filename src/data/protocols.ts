@@ -11,6 +11,7 @@ export interface ProtocolProfileV1 {
         model_type: 'location_based' | 'fungible_resource';
         source: string;
         coingeckoId: string;
+        chain: 'solana' | 'ethereum' | 'polygon' | 'cosmos' | 'filecoin' | 'other';
     };
     parameters: {
         supply: { value: number; unit: string };
@@ -22,6 +23,7 @@ export interface ProtocolProfileV1 {
             opex_weekly: { value: number; unit: string };
             churn_threshold: { value: number; unit: string };
         };
+        initial_active_providers: { value: number; unit: string };
     };
 }
 
@@ -35,7 +37,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             notes: "Real data from CoinGecko. GPS/GNSS precision network. ~3000 active stations.",
             model_type: "location_based",
             source: "CoinGecko + Onocoy Docs",
-            coingeckoId: "onocoy-token"
+            coingeckoId: "onocoy-token",
+            chain: "solana"
         },
         parameters: {
             // Real data: 410M circulating, 810M total supply
@@ -49,7 +52,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
                 // Typical GNSS station OpEx ~$100-150/month = ~$25-35/week
                 opex_weekly: { value: 30.00, unit: "usd/week" },
                 churn_threshold: { value: 10, unit: "usd/week_profit" }
-            }
+            },
+            initial_active_providers: { value: 3000, unit: "nodes" }
         }
     },
     {
@@ -61,7 +65,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             notes: "Real Helium Network data. IoT/5G wireless network. 370K+ hotspots.",
             model_type: "location_based",
             source: "CoinGecko + Helium Explorer",
-            coingeckoId: "helium"
+            coingeckoId: "helium",
+            chain: "solana"
         },
         parameters: {
             // Real data: ~180M circulating supply
@@ -75,7 +80,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
                 // Helium hotspot OpEx varies: $5-50/month electricity
                 opex_weekly: { value: 8.00, unit: "usd/week" },
                 churn_threshold: { value: 2.00, unit: "usd/week_profit" }
-            }
+            },
+            initial_active_providers: { value: 370000, unit: "hotspots" }
         }
     },
     {
@@ -87,7 +93,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             notes: "Real Render Network data. Distributed GPU computing. Elastic supply based on work.",
             model_type: "fungible_resource",
             source: "CoinGecko + Render Docs",
-            coingeckoId: "render-token"
+            coingeckoId: "render-token",
+            chain: "solana"
         },
         parameters: {
             // Real data: ~520M circulating supply
@@ -101,7 +108,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
                 // GPU node OpEx: electricity + hardware depreciation ~$50-200/week
                 opex_weekly: { value: 75.00, unit: "usd/week" },
                 churn_threshold: { value: 25.00, unit: "usd/week_profit" }
-            }
+            },
+            initial_active_providers: { value: 5000, unit: "gpu_nodes" }
         }
     },
     {
@@ -113,7 +121,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             notes: "Decentralised storage network. Storage providers stake FIL as collateral.",
             model_type: "fungible_resource",
             source: "CoinGecko + Filecoin Docs",
-            coingeckoId: "filecoin"
+            coingeckoId: "filecoin",
+            chain: "filecoin"
         },
         parameters: {
             supply: { value: 500_000_000, unit: "tokens" },
@@ -124,7 +133,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             provider_economics: {
                 opex_weekly: { value: 150.00, unit: "usd/week" },
                 churn_threshold: { value: 50.00, unit: "usd/week_profit" }
-            }
+            },
+            initial_active_providers: { value: 3500, unit: "storage_providers" }
         }
     },
     {
@@ -136,7 +146,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             notes: "Decentralised cloud computing. Providers bid for compute jobs.",
             model_type: "fungible_resource",
             source: "CoinGecko + Akash Docs",
-            coingeckoId: "akash-network"
+            coingeckoId: "akash-network",
+            chain: "cosmos"
         },
         parameters: {
             supply: { value: 230_000_000, unit: "tokens" },
@@ -147,7 +158,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             provider_economics: {
                 opex_weekly: { value: 40.00, unit: "usd/week" },
                 churn_threshold: { value: 15.00, unit: "usd/week_profit" }
-            }
+            },
+            initial_active_providers: { value: 1000, unit: "providers" }
         }
     },
     {
@@ -159,7 +171,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             notes: "Decentralised mapping using dashcams. Rewards for fresh map coverage.",
             model_type: "location_based",
             source: "CoinGecko + Hivemapper Docs",
-            coingeckoId: "hivemapper"
+            coingeckoId: "hivemapper",
+            chain: "solana"
         },
         parameters: {
             supply: { value: 100_000_000, unit: "tokens" },
@@ -170,7 +183,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             provider_economics: {
                 opex_weekly: { value: 5.00, unit: "usd/week" },
                 churn_threshold: { value: 2.00, unit: "usd/week_profit" }
-            }
+            },
+            initial_active_providers: { value: 60000, unit: "cameras" }
         }
     },
     {
@@ -182,7 +196,8 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             notes: "User-owned vehicle data network. Drivers earn for sharing telemetry.",
             model_type: "location_based",
             source: "CoinGecko + DIMO Docs",
-            coingeckoId: "dimo"
+            coingeckoId: "dimo",
+            chain: "polygon"
         },
         parameters: {
             supply: { value: 70_000_000, unit: "tokens" },
@@ -193,7 +208,36 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             provider_economics: {
                 opex_weekly: { value: 2.00, unit: "usd/week" },
                 churn_threshold: { value: 1.00, unit: "usd/week_profit" }
-            }
+            },
+            initial_active_providers: { value: 25000, unit: "vehicles" }
+        }
+    },
+    {
+        version: "1.2",
+        metadata: {
+            id: "grass_v1",
+            name: "Grass",
+            mechanism: "Bandwidth Sharing + AI Data",
+            notes: "Residential proxy network for AI training. 2.5M+ nodes. Solana L2.",
+            model_type: "fungible_resource",
+            source: "CoinGecko + Grass Foundation",
+            coingeckoId: "grass",
+            chain: "solana"
+        },
+        parameters: {
+            // Real data: ~244M circulating, 1B total
+            supply: { value: 244_000_000, unit: "tokens" },
+            // Estimate based on unlocks + rewards
+            emissions: { value: 3_500_000, unit: "tokens/week" },
+            burn_fraction: { value: 0.10, unit: "decimal" }, // Buyback model
+            adjustment_lag: { value: 0, unit: "weeks" },
+            demand_regime: { value: "growth", unit: "category" },
+            provider_economics: {
+                // Negligible OpEx for user (bandwidth sharing)
+                opex_weekly: { value: 0.50, unit: "usd/week" },
+                churn_threshold: { value: 0.10, unit: "usd/week_profit" }
+            },
+            initial_active_providers: { value: 2_500_000, unit: "nodes" }
         }
     }
 ];

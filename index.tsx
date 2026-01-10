@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart, ReferenceLine, ComposedChart, Bar, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart, ReferenceLine, ComposedChart, Bar, Cell, ReferenceArea } from 'recharts';
 import {
   Play,
   Settings2,
@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   HeartPulse,
   ArrowDownUp,
+  Zap,
+  Power,
   UserCheck,
   BookOpen,
   FileJson,
@@ -35,7 +37,6 @@ import {
   FileText,
   GanttChartSquare,
   ShieldCheck,
-  Zap,
   ShieldQuestion,
   TrendingDown,
   TrendingUp,
@@ -68,6 +69,7 @@ import {
   Droplets,
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { ThesisDashboard } from './src/components/ThesisDashboard';
 
 // Import new modular model
 import {
@@ -160,6 +162,12 @@ interface SimulationParams {
   kMintPrice: number;
   rewardLagWeeks: number;
   churnThreshold: number;
+  hardwareCost: number; // [NEW] Added for customizable payback calc
+
+  // Module 4: Competitive Resilience (Risk Engine)
+  competitorYield: number;  // 0.0 to 2.0 (0% to 200% competitor yield advantage)
+  emissionModel: 'fixed' | 'kpi';  // Fixed schedule vs demand-driven
+  revenueStrategy: 'burn' | 'reserve';  // Buy & Burn vs Sinking Fund
 }
 
 interface SimResult {
@@ -184,6 +192,8 @@ interface SimResult {
   netFlow: number;
   churnCount: number;
   joinCount: number;
+  treasuryBalance: number;  // Module 4: Accumulated Sinking Fund
+  vampireChurn: number;     // Module 4: Churn from competitor yield
 }
 
 interface MetricStats {
@@ -214,6 +224,8 @@ interface AggregateResult {
   netFlow: MetricStats;
   churnCount: MetricStats;
   joinCount: MetricStats;
+  treasuryBalance: MetricStats;  // Module 4: Accumulated Sinking Fund
+  vampireChurn: MetricStats;     // Module 4: Churn from competitor yield
 }
 
 interface ChartInterpretation {
@@ -233,14 +245,6 @@ const CHART_INTERPRETATIONS: Record<string, ChartInterpretation> = {
     robust: "Capacity remains slightly above demand; minimal unserved requests.",
     fragile: "Sustained service gaps or excessive idle hardware waste.",
     failureMode: "Supply-side bottleneck: The network cannot scale to meet utility needs."
-  },
-  "Provider Count": {
-    subtitle: "Assessment of supply-side participation and node operator churn.",
-    question: "Does the reward structure retain a minimum viable threshold of operators during macro stress?",
-    formula: "Providers_{t+1} = Providers_t + (ROI_t * Sensitivity * ChurnFactor)",
-    robust: "Stable or mean-reverting provider base; resilience to macro shocks.",
-    fragile: "Sharp attrition leading to network security or availability collapse.",
-    failureMode: "Network Death Spiral: Declining rewards trigger mass operator exit."
   },
   "Burn vs Emissions": {
     subtitle: "Evaluation of tokenomic sustainability and equilibrium.",
@@ -281,6 +285,38 @@ const CHART_INTERPRETATIONS: Record<string, ChartInterpretation> = {
     robust: "Price recovers within 4-8 weeks; Churn remains manageable.",
     fragile: "Price crashes > 60% and fails to recover; triggers mass exodus.",
     failureMode: "Liquidity Death Spiral: Price crash -> Miner Churn -> Service Fail -> Price Crash."
+  },
+  "Miner Payback Period (Months)": {
+    subtitle: "Time required to recover hardware investment at current earnings.",
+    question: "Is the payback period short enough to attract and retain rational miners?",
+    formula: "Payback = HardwareCost / (DailyEarnings * 30)",
+    robust: "Payback < 12 months; high incentive for new entrants.",
+    fragile: "Payback > 24 months; existing miners barely breaking even.",
+    failureMode: "Capital Flight: Investment recovery becomes mathematically impossible."
+  },
+  "The Solvency Ratio": {
+    subtitle: "Ratio of Value Burned to Value Emitted.",
+    question: "Is the network generating enough real value to offset its inflation?",
+    formula: "Ratio = (Burned_USD / Minted_USD)",
+    robust: "Ratio > 1.0 (Deflationary); Network is profitable.",
+    fragile: "Ratio < 0.5 (Highly Inflationary); Value dilution.",
+    failureMode: "Ponzi Dynamics: Structural reliance on new capital to pay old yield."
+  },
+  "The Capitulation Stack": {
+    subtitle: "Composition of network supply by provider type.",
+    question: "Are we losing the 'Mercenaries' (Urban) or the 'Believers' (Rural)?",
+    formula: "Stack = Urban_Count + Rural_Count",
+    robust: "Balanced growth; Rural base maintains coverage stability.",
+    fragile: "Urban collapse leaving gaps; Rural churn indicates deep despair.",
+    failureMode: "Network Hollow-Out: Loss of critical density in high-value areas."
+  },
+  "Effective Service Capacity": {
+    subtitle: "Serviceable Demand vs Total Available Capacity.",
+    question: "How much of the deployed infrastructure is actually useful?",
+    formula: "Utilization = Demand_Served / Total_Capacity",
+    robust: "High utilization of deployed assets; efficient capital allocation.",
+    fragile: "Massive over-provisioning (Ghost Network).",
+    failureMode: "Capital Inefficiency: Vast resources deployed for zero utility."
   }
 };
 
@@ -502,7 +538,9 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
   const rng = new SeededRNG(simSeed);
   const { T, initialSupply, initialPrice, maxMintWeekly, burnPct, demandType, macro,
     providerCostPerWeek, baseCapacityPerProvider, kDemandPrice, kMintPrice, rewardLagWeeks, churnThreshold,
-    initialLiquidity, investorUnlockWeek, investorSellPct
+    initialLiquidity, investorUnlockWeek, investorSellPct,
+    // Module 4: Competitive Resilience
+    competitorYield, emissionModel, revenueStrategy
   } = params;
 
   let mu = 0.002, sigma = 0.05;
@@ -524,6 +562,9 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
   let consecutiveLowProfitWeeks = 0;
   const rewardHistory: number[] = new Array(Math.max(1, rewardLagWeeks)).fill(params.providerCostPerWeek * 1.5);
 
+  // Module 4: Treasury tracking for Sinking Fund
+  let treasuryBalance = 0;
+
   for (let t = 0; t < T; t++) {
     const demand = demands[t];
     const capacity = Math.max(0.001, currentProviders * baseCapacityPerProvider);
@@ -541,7 +582,18 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
 
     // Emissions sigmoid growth + saturation dampening
     const saturation = Math.min(1.0, currentProviders / 5000.0);
-    const emissionFactor = 0.6 + 0.4 * Math.tanh(demand / 15000.0) - (0.2 * saturation);
+    let emissionFactor = 0.6 + 0.4 * Math.tanh(demand / 15000.0) - (0.2 * saturation);
+
+    // Module 4: KPI-Based Emissions - reduce emissions during low utilization/bear market
+    if (emissionModel === 'kpi') {
+      const utilizationRatio = Math.min(1, demand_served / capacity);
+      emissionFactor *= Math.max(0.3, utilizationRatio); // Scale by utilization
+      // In bear market (low price), reduce emissions further to preserve value
+      if (currentPrice < initialPrice * 0.8) {
+        emissionFactor *= 0.6;
+      }
+    }
+
     const minted = Math.max(0, Math.min(maxMintWeekly, maxMintWeekly * emissionFactor));
     currentSupply = Math.max(1000.0, currentSupply + minted - burned);
 
@@ -567,6 +619,20 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
     const maxGrowth = currentProviders * 0.15;
     const rawDelta = (incentive * 4.5 * churnMultiplier) + rng.normal() * 0.5;
     let delta = Math.max(-currentProviders * 0.1, Math.min(maxGrowth, rawDelta));
+
+    // Module 4: Vampire Attack - competitor yield stealing nodes
+    let vampireChurnAmount = 0;
+    if (competitorYield > 0.2) {
+      // Extra churn: 2.5% of providers per 100% yield difference (scaled for weekly, was 10%/month)
+      vampireChurnAmount = currentProviders * competitorYield * 0.025;
+      delta -= vampireChurnAmount;
+    }
+
+    // Module 4: ROI-based churn (payback period triggers)
+    const weeklyRewardUsd = instantRewardValue;
+    const paybackMonths = weeklyRewardUsd > 0 ? params.hardwareCost / (weeklyRewardUsd * 4.33) : 999;
+    if (paybackMonths > 24) delta -= currentProviders * 0.0125; // +5%/month = 1.25%/week
+    if (paybackMonths > 36) delta -= currentProviders * 0.025;  // +10%/month additional
 
     let netFlow = 0;
     let nextPrice = currentPrice;
@@ -600,16 +666,31 @@ function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
 
     const dailyMintUsd = (minted / 7) * currentPrice;
     const dailyBurnUsd = (burned / 7) * currentPrice;
-    const netDailyLoss = dailyBurnUsd - dailyMintUsd;
+    let netDailyLoss = dailyBurnUsd - dailyMintUsd;
     const solvencyScore = dailyMintUsd > 0 ? dailyBurnUsd / dailyMintUsd : 10; // Default to healthy if no minting
+
+    // Module 4: Sinking Fund - accumulate treasury and dampen price drops
+    if (revenueStrategy === 'reserve') {
+      // Accumulate 10% of emission value as reserve
+      treasuryBalance += minted * currentPrice * 0.1;
+      // Dampen negative price movements by 50%
+      if (nextPrice < currentPrice) {
+        const priceDrop = currentPrice - nextPrice;
+        nextPrice = currentPrice - (priceDrop * 0.5);
+      }
+    } else {
+      // Burn strategy: slight price bump (0.1%/week ≈ 5.3%/year)
+      nextPrice = nextPrice * 1.001;
+    }
 
     results.push({
       t, price: currentPrice, supply: currentSupply, demand, demand_served,
       providers: currentProviders, capacity, servicePrice: currentServicePrice,
       minted, burned, utilization, profit, scarcity, incentive,
       solvencyScore, netDailyLoss, dailyMintUsd, dailyBurnUsd,
-      netFlow, churnCount: delta < 0 ? Math.abs(delta) : 0, joinCount: delta > 0 ? delta : 0
-    } as any);
+      netFlow, churnCount: delta < 0 ? Math.abs(delta) : 0, joinCount: delta > 0 ? delta : 0,
+      treasuryBalance, vampireChurn: vampireChurnAmount
+    } as SimResult);
 
     currentPrice = nextPrice;
     currentProviders = Math.max(2, currentProviders + delta);
@@ -736,6 +817,7 @@ const App: React.FC = () => {
     providers: true,
     simulation: true,
     scenarios: false,
+    competitive: false,  // Module 4: Competitive Resilience
   });
 
   const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
@@ -772,6 +854,7 @@ const App: React.FC = () => {
     seed: 42,
     providerCostPerWeek: PROTOCOL_PROFILES[0].parameters.provider_economics.opex_weekly.value,
     baseCapacityPerProvider: 180.0,
+    hardwareCost: 800, // Default to Prosumer
     kDemandPrice: 0.15,
     kMintPrice: 0.35,
     rewardLagWeeks: PROTOCOL_PROFILES[0].parameters.adjustment_lag.value,
@@ -779,12 +862,29 @@ const App: React.FC = () => {
     initialLiquidity: 50000,
     investorUnlockWeek: 26,
     investorSellPct: 0.15,
+    // Module 4: Competitive Resilience (Risk Engine)
+    competitorYield: 0.0,  // 0% competitor advantage
+    emissionModel: 'fixed',
+    revenueStrategy: 'burn',
   });
 
   const [aggregated, setAggregated] = useState<AggregateResult[]>([]);
   const [multiAggregated, setMultiAggregated] = useState<Record<string, AggregateResult[]>>({});
   const [loading, setLoading] = useState(false);
-  const [playbackWeek, setPlaybackWeek] = useState(0);
+  const [autoRun, setAutoRun] = useState(true);
+  const [playbackWeek, setPlaybackWeek] = useState(52);
+
+  // Auto-run simulation when params change, debounced
+  useEffect(() => {
+    if (autoRun && viewMode === 'sandbox') {
+      const timer = setTimeout(() => {
+        runSimulation();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [params, autoRun, viewMode]);
+
+  // Re-initialize state specific to simulation run
   const [focusChart, setFocusChart] = useState<string | null>(null);
   const [showKnowledgeLayer, setShowKnowledgeLayer] = useState(false);
   const [showAuditPanel, setShowAuditPanel] = useState(false);
@@ -801,9 +901,9 @@ const App: React.FC = () => {
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [timeUntilRefresh, setTimeUntilRefresh] = useState<string>('');
   const [allDePINData, setAllDePINData] = useState<Record<string, TokenMarketData>>({});
-  const [showMethodology, setShowMethodology] = useState(false);
   const [showDePINBrowser, setShowDePINBrowser] = useState(false);
   const [onChainMetrics, setOnChainMetrics] = useState<Record<string, OnChainMetrics>>({});
+  const [activeTab, setActiveTab] = useState<'simulator' | 'thesis'>('simulator'); // New state for tab
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -911,7 +1011,7 @@ const App: React.FC = () => {
           baseDemand: 12000,
           demandVolatility: 0.05,
           macro: params.macro,
-          initialProviders: 30,
+          initialProviders: profile.parameters.initial_active_providers.value,
           baseCapacityPerProvider: params.baseCapacityPerProvider,
           capacityStdDev: 0.2,
           providerCostPerWeek: isSandbox ? params.providerCostPerWeek : profile.parameters.provider_economics.opex_weekly.value,
@@ -966,7 +1066,9 @@ const App: React.FC = () => {
             dailyBurnUsd: r.dailyBurnUsd,
             urbanCount: r.urbanCount,
             ruralCount: r.ruralCount,
-            weightedCoverage: r.weightedCoverage
+            weightedCoverage: r.weightedCoverage,
+            treasuryBalance: r.treasuryBalance || { mean: 0, p10: 0, p90: 0 },
+            vampireChurn: r.vampireChurn || { mean: 0, p10: 0, p90: 0 }
           })) as unknown as AggregateResult[];
 
           // Calculate derived metrics for active profile
@@ -982,7 +1084,7 @@ const App: React.FC = () => {
           }
 
           aggregate = [];
-          const keys: (keyof SimResult)[] = ['price', 'supply', 'demand', 'demand_served', 'providers', 'capacity', 'servicePrice', 'minted', 'burned', 'utilization', 'profit', 'scarcity', 'incentive', 'solvencyScore', 'netDailyLoss', 'dailyMintUsd', 'dailyBurnUsd'];
+          const keys: (keyof SimResult)[] = ['price', 'supply', 'demand', 'demand_served', 'providers', 'capacity', 'servicePrice', 'minted', 'burned', 'utilization', 'profit', 'scarcity', 'incentive', 'solvencyScore', 'netDailyLoss', 'dailyMintUsd', 'dailyBurnUsd', 'treasuryBalance', 'vampireChurn'];
 
           for (let tStep = 0; tStep < params.T; tStep++) {
             const step: any = { t: tStep };
@@ -1039,7 +1141,18 @@ const App: React.FC = () => {
 
   useEffect(() => { runSimulation(); }, []);
 
-  const displayedData = useMemo(() => aggregated.slice(0, playbackWeek), [aggregated, playbackWeek]);
+  const displayedData = useMemo(() => {
+    const data = aggregated.slice(0, playbackWeek);
+    let runningTotalLoss = 0;
+    return data.map(d => {
+      const netDailyLoss = d.netDailyLoss?.mean || 0;
+      runningTotalLoss += netDailyLoss;
+      return {
+        ...d,
+        cumulativeNetLoss: runningTotalLoss
+      };
+    });
+  }, [aggregated, playbackWeek]);
 
   const protocolHealth = useMemo(() => {
     if (!aggregated.length) return { status: 'ROBUST', score: 100, dominance: 'Initial State' };
@@ -1136,8 +1249,8 @@ const App: React.FC = () => {
           return (
             <ComposedChart data={displayedData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={formatCompact} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Units', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Area type="monotone" dataKey={(d: any) => d?.capacity?.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.15} name="Capacity" />
               {isDriver && <Line data={focusedCounterfactual} type="monotone" dataKey="capacityRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Equilibrium Reference" opacity={0.4} />}
@@ -1145,12 +1258,44 @@ const App: React.FC = () => {
               <Legend verticalAlign="top" height={36} iconType="circle" />
             </ComposedChart>
           );
+        case "Miner Payback Period (Months)":
+          return (
+            <LineChart data={displayedData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} domain={[0, 36]} allowDataOverflow={true} label={{ value: 'Months', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                formatter={(val: number) => val >= 36 ? ['Never (Unprofitable)', 'Payback Period'] : [`${val.toFixed(1)} Months`, 'Payback Period']}
+                labelFormatter={(label) => `Week ${label}`}
+              />
+              <ReferenceArea y1={0} y2={12} fill="#10b981" fillOpacity={0.05} />
+              <ReferenceArea y1={24} y2={36} fill="#f43f5e" fillOpacity={0.05} />
+              <Line
+                type="monotone"
+                dataKey={(d: any) => {
+                  const weeklyRevenue = (d.minted.mean / d.providers.mean) * d.price.mean;
+                  const profit = weeklyRevenue - params.providerCostPerWeek;
+                  if (profit <= 0) return 36;
+                  const payback = (500 / profit) / 4.33;
+                  return Math.min(payback, 36);
+                }}
+                stroke="#f43f5e"
+                strokeWidth={3}
+                dot={false}
+                name="Payback Period"
+              />
+              <ReferenceLine y={12} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Healthy (<12m)', fill: '#10b981', fontSize: 10, position: 'insideBottomRight' }} />
+              <ReferenceLine y={24} stroke="#fbbf24" strokeDasharray="3 3" label={{ value: 'Risk (>24m)', fill: '#fbbf24', fontSize: 10, position: 'insideTopRight' }} />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+            </LineChart>
+          );
         case "Provider Count":
           return (
             <LineChart data={displayedData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} />
-              <YAxis fontSize={11} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} label={{ value: 'Active Nodes', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Line type="step" dataKey={(d: any) => d?.providers?.mean} stroke="#10b981" strokeWidth={3} dot={false} name="Providers" />
               {isDriver && <Line data={focusedCounterfactual} type="step" dataKey="providersRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Equilibrium Reference" opacity={0.4} />}
@@ -1158,12 +1303,71 @@ const App: React.FC = () => {
               <Legend verticalAlign="top" height={36} iconType="circle" />
             </LineChart>
           );
+        case "The Solvency Ratio":
+          return (
+            <ComposedChart data={displayedData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} domain={[0, 5]} allowDataOverflow={true} label={{ value: 'Burn/Mint Ratio', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <ReferenceArea y1={0} y2={1} fill="#f43f5e" fillOpacity={0.1} />
+              <ReferenceArea y1={1} y2={5} fill="#10b981" fillOpacity={0.05} />
+              <Line type="monotone" dataKey={(d: any) => Math.min(d?.solvencyScore?.mean || 0, 5)} stroke="#fbbf24" strokeWidth={3} dot={false} name="Solvency Ratio" />
+              <ReferenceLine y={1} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'Deflationary (>1.0)', fill: '#10b981', fontSize: 10, position: 'insideTopLeft' }} />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+            </ComposedChart>
+          );
+        case "The Capitulation Stack":
+          return (
+            <AreaChart data={displayedData}>
+              <defs>
+                <linearGradient id="urbanGradientFocus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="ruralGradientFocus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} label={{ value: 'Node Count', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <Area type="monotone" dataKey="ruralCount.mean" stackId="1" stroke="#10b981" fill="url(#ruralGradientFocus)" name="Rural (Utility)" />
+              <Area type="monotone" dataKey="urbanCount.mean" stackId="1" stroke="#ef4444" fill="url(#urbanGradientFocus)" name="Urban (Speculator)" />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+            </AreaChart>
+          );
+        case "Effective Service Capacity":
+          return (
+            <ComposedChart data={displayedData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Units', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <Area type="monotone" dataKey={(d: any) => d?.capacity?.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.15} name="Total Capacity" />
+              <Line type="monotone" dataKey={(d: any) => d?.demand_served?.mean} stroke="#fbbf24" strokeWidth={3} dot={false} name="Served Demand" />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+            </ComposedChart>
+          );
+        case "Liquidity Shock Impact":
+          return (
+            <LineChart data={displayedData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Price (USD)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <Line type="monotone" dataKey={(d: any) => d?.price?.mean} stroke="#8b5cf6" strokeWidth={3} dot={false} name="Token Price" />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+            </LineChart>
+          );
         case "Burn vs Emissions":
           return (
             <ComposedChart data={displayedData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={formatCompact} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Tokens', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Line type="monotone" dataKey={(d: any) => d?.burned?.mean} stroke="#fbbf24" strokeWidth={3} dot={false} name="Tokens Burned" />
               {isDriver && <Line data={focusedCounterfactual} type="monotone" dataKey="burnRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Equilibrium Reference" opacity={0.4} />}
@@ -1175,8 +1379,8 @@ const App: React.FC = () => {
           return (
             <AreaChart data={displayedData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} />
-              <YAxis domain={[0, 100]} fontSize={11} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis domain={[0, 100]} fontSize={11} label={{ value: '% Utilized', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.2} name="Utilization %" />
               {isDriver && <Line data={focusedCounterfactual} type="monotone" dataKey="utilizationRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Equilibrium Reference" opacity={0.4} />}
@@ -1187,8 +1391,8 @@ const App: React.FC = () => {
           return (
             <LineChart data={displayedData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={formatCompact} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Total Supply', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Line type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" strokeWidth={3} dot={false} name="Circ. Supply" />
               <Legend verticalAlign="top" height={36} iconType="circle" />
@@ -1198,8 +1402,8 @@ const App: React.FC = () => {
           return (
             <LineChart data={displayedData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} />
-              <YAxis fontSize={11} />
+              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} label={{ value: 'CHF', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Line type="monotone" dataKey={(d: any) => d?.servicePrice?.mean} stroke="#3b82f6" strokeWidth={3} dot={false} name="CHF / Unit" />
               <Legend verticalAlign="top" height={36} iconType="circle" />
@@ -1225,7 +1429,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex-1 p-8 flex flex-col lg:flex-row gap-10 overflow-hidden">
-            <div className="flex-[3] bg-slate-950/50 rounded-2xl p-6 border border-slate-800 relative">
+            <div className="flex-[3] w-full h-[600px] bg-slate-950/50 rounded-2xl p-6 border border-slate-800 relative">
               {isDriver && (
                 <div className="absolute top-10 left-10 z-20 flex items-center gap-3 px-4 py-2 bg-slate-950/90 border border-slate-800 rounded-xl shadow-2xl">
                   <GitCompare size={14} className="text-slate-500" />
@@ -1301,2007 +1505,2515 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <nav className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <div className="flex p-1 bg-slate-900 rounded-xl border border-slate-800">
             <button
-              onClick={() => setViewMode('explorer')}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'explorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              onClick={() => setActiveTab('simulator')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'simulator' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
             >
-              <Search size={14} /> Explorer
+              Simulator
             </button>
             <button
-              onClick={() => {
-                setViewMode('comparison');
-                // Auto-select all protocols when entering comparison mode
-                setSelectedProtocolIds(PROTOCOL_PROFILES.map(p => p.metadata.id));
-              }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'comparison' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              onClick={() => setActiveTab('thesis')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'thesis' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
             >
-              <GitCompare size={14} /> Comparison
+              Thesis
             </button>
-            <button
-              onClick={() => setViewMode('sandbox')}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'sandbox' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <LayoutGrid size={14} /> Sandbox
-            </button>
-          </nav>
+          </div>
+
+          {activeTab === 'simulator' && (
+
+            <nav className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => setViewMode('explorer')}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'explorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                <Search size={14} /> Explorer
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('comparison');
+                  // Auto-select all protocols when entering comparison mode
+                  setSelectedProtocolIds(PROTOCOL_PROFILES.map(p => p.metadata.id));
+                }}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'comparison' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                <GitCompare size={14} /> Comparison
+              </button>
+              <button
+                onClick={() => setViewMode('sandbox')}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'sandbox' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                <LayoutGrid size={14} /> Sandbox
+              </button>
+            </nav>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsMethodologyOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all text-[10px] font-bold uppercase tracking-widest"
-          >
-            <BookOpen size={14} /> Methodology
-          </button>
-          <button
-            onClick={() => setViewMode('settings')}
-            className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${viewMode === 'settings' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
-          >
-            <Settings2 size={14} />
-            <span>Settings</span>
-          </button>
-          <button
-            onClick={() => setShowExportPanel(!showExportPanel)}
-            className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${showExportPanel ? 'bg-emerald-600 text-white border-emerald-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-emerald-400 hover:border-emerald-500/50'}`}
-          >
-            <Download size={14} />
-            <span>Export</span>
-          </button>
-          <button
-            onClick={() => setShowSpecModal(true)}
-            className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-all px-4 py-2.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 bg-slate-950/50"
-          >
-            <Binary size={14} />
-            <span>Math Spec</span>
-          </button>
-          <button
-            onClick={() => setShowAuditPanel(!showAuditPanel)}
-            className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${showAuditPanel ? 'bg-indigo-600 text-white border-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.3)]' : 'text-slate-400 border-slate-800 hover:bg-slate-900'}`}
-          >
-            <Calculator size={14} />
-            <span>Audit</span>
-          </button>
-          <button
-            onClick={() => setShowMethodology(true)}
-            className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-all px-4 py-2.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 bg-slate-950/50"
-          >
-            <BookOpen size={14} />
-            <span>Methodology</span>
-          </button>
-          <div className="h-6 w-px bg-slate-800" />
-          <button
-            onClick={() => setUseNewModel(!useNewModel)}
-            className={`flex items-center gap-2 text-[9px] font-bold transition-all px-3 py-2 rounded-lg border ${useNewModel ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30' : 'text-slate-500 border-slate-800'}`}
-            title={useNewModel ? 'Using V2 Model (with sell pressure)' : 'Using V1 Model (legacy)'}
-          >
-            {useNewModel ? 'V2' : 'V1'}
-          </button>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={fetchLiveData}
-              disabled={liveDataLoading}
-              className={`flex items-center gap-2 text-xs font-bold transition-all px-4 py-2.5 rounded-l-xl border-y border-l ${Object.keys(liveData).length > 0
-                ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30'
-                : 'text-amber-400 border-amber-500/30 bg-amber-600/10 hover:bg-amber-600/20'
-                }`}
-              title={lastLiveDataFetch ? `Last updated: ${lastLiveDataFetch.toLocaleTimeString()}` : 'Fetch live token data from CoinGecko'}
-            >
-              {liveDataLoading ? <RefreshCw className="animate-spin" size={14} /> : <Activity size={14} />}
-              {liveDataLoading ? 'Fetching...' : Object.keys(liveData).length > 0 ? 'Live ✓' : 'Fetch Live'}
-            </button>
-            <button
-              onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-              className={`flex items-center gap-1.5 text-[9px] font-bold transition-all px-2.5 py-2.5 rounded-r-xl border ${autoRefreshEnabled
-                ? 'bg-emerald-600/30 text-emerald-400 border-emerald-500/30'
-                : 'text-slate-500 border-slate-700 bg-slate-800/50 hover:bg-slate-800'
-                }`}
-              title={autoRefreshEnabled ? `Auto-refresh ON - Next: ${timeUntilRefresh}` : 'Enable auto-refresh (every 5 min)'}
-            >
-              <RefreshCw size={12} className={autoRefreshEnabled ? 'animate-spin-slow' : ''} />
-              {autoRefreshEnabled ? timeUntilRefresh || '5m' : 'Auto'}
-            </button>
-          </div>
-          <button
-            onClick={() => setShowDePINBrowser(!showDePINBrowser)}
-            className={`flex items-center gap-2 text-xs font-bold transition-all px-3 py-2.5 rounded-xl border ${showDePINBrowser
-              ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
-              : 'text-slate-500 border-slate-700 hover:text-slate-300'
-              }`}
-            title="Browse all DePIN tokens"
-          >
-            <Layers size={14} />
-            DePIN
-          </button>
-          <button onClick={runSimulation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95">
-            {loading ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />}
-            Run Matrix
-          </button>
-        </div>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden">
-        {viewMode === 'settings' ? (
-          <Settings onBack={() => setViewMode('sandbox')} />
-        ) : viewMode === 'explorer' ? (
-          <ExplorerTab
-            profiles={PROTOCOL_PROFILES}
-            onAnalyze={(id) => {
-              // Switch to sandbox and load the profile
-              const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id);
-              if (profile) {
-                loadProfile(profile);
-                setViewMode('sandbox');
-              }
-            }}
-            onCompare={(id) => {
-              // Switch to comparison and ensure protocol is selected
-              if (!selectedProtocolIds.includes(id)) {
-                setSelectedProtocolIds(prev => [...prev, id]);
-              }
-              setViewMode('comparison');
-            }}
-          />
-        ) : (
-          <>
-            <aside className="w-[340px] border-r border-slate-800 overflow-y-auto bg-slate-950 flex flex-col custom-scrollbar shrink-0">
-              <div className="p-6 border-b border-slate-800/50">
-                <div className="flex items-center gap-2 mb-6">
-                  <Fingerprint size={14} className="text-emerald-500" />
-                  <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
-                    {viewMode === 'sandbox' ? 'Active Archetype' : 'Select Protocols'}
-                  </h2>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {PROTOCOL_PROFILES.map(p => {
-                    const isSelected = selectedProtocolIds.includes(p.metadata.id);
-                    const isActive = activeProfile.metadata.id === p.metadata.id;
-
-                    return (
-                      <button
-                        key={p.metadata.id}
-                        onClick={() => viewMode === 'sandbox' ? loadProfile(p) : toggleProtocolSelection(p.metadata.id)}
-                        className={`p-4 rounded-xl text-left transition-all border group active:scale-[0.98] ${(viewMode === 'sandbox' && isActive) || (viewMode === 'comparison' && isSelected)
-                          ? 'bg-indigo-600/10 border-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.1)]'
-                          : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
-                          }`}
-                      >
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-[11px] font-extrabold uppercase tracking-tight ${(viewMode === 'sandbox' && isActive) || (viewMode === 'comparison' && isSelected) ? 'text-indigo-400' : 'text-slate-300'
-                            }`}>{p.metadata.name}</span>
-                          <div className="flex items-center gap-1">
-                            {p.metadata.model_type === 'location_based' ?
-                              <Fingerprint size={10} className="text-emerald-500" title="Category A: Location-Based (Physical Density)" /> :
-                              <Database size={10} className="text-amber-500" title="Category B: Fungible Resource (Compute/Storage)" />
-                            }
-                            {((viewMode === 'sandbox' && isActive) || (viewMode === 'comparison' && isSelected)) && <CheckCircle2 size={12} className="text-indigo-400" />}
-                          </div>
-                        </div>
-                        <div className="text-[9px] text-slate-500 font-medium leading-tight">{p.metadata.mechanism}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+          {activeTab === 'simulator' && (
+            <>
+              <button
+                onClick={() => setIsMethodologyOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all text-[10px] font-bold uppercase tracking-widest"
+              >
+                <BookOpen size={14} /> Methodology
+              </button>
+              <button
+                onClick={() => setViewMode('settings')}
+                className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${viewMode === 'settings' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
+              >
+                <Settings2 size={14} />
+                <span>Settings</span>
+              </button>
+              <button
+                onClick={() => setShowExportPanel(!showExportPanel)}
+                className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${showExportPanel ? 'bg-emerald-600 text-white border-emerald-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-emerald-400 hover:border-emerald-500/50'}`}
+              >
+                <Download size={14} />
+                <span>Export</span>
+              </button>
+              <button
+                onClick={() => setShowSpecModal(true)}
+                className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-all px-4 py-2.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 bg-slate-950/50"
+              >
+                <Binary size={14} />
+                <span>Math Spec</span>
+              </button>
+              <button
+                onClick={() => setShowAuditPanel(!showAuditPanel)}
+                className={`flex items-center gap-2 text-[10px] font-bold transition-all px-4 py-2.5 rounded-xl border active:scale-95 ${showAuditPanel ? 'bg-indigo-600 text-white border-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.3)]' : 'text-slate-400 border-slate-800 hover:bg-slate-900'}`}
+              >
+                <Calculator size={14} />
+                <span>Audit</span>
+              </button>
+              <div className="h-6 w-px bg-slate-800" />
+              <button
+                onClick={() => setUseNewModel(!useNewModel)}
+                className={`flex items-center gap-2 text-[9px] font-bold transition-all px-3 py-2 rounded-lg border ${useNewModel ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30' : 'text-slate-500 border-slate-800'}`}
+                title={useNewModel ? 'Using V2 Model (with sell pressure)' : 'Using V1 Model (legacy)'}
+              >
+                {useNewModel ? 'V2' : 'V1'}
+              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={fetchLiveData}
+                  disabled={liveDataLoading}
+                  className={`flex items-center gap-2 text-xs font-bold transition-all px-4 py-2.5 rounded-l-xl border-y border-l ${Object.keys(liveData).length > 0
+                    ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30'
+                    : 'text-amber-400 border-amber-500/30 bg-amber-600/10 hover:bg-amber-600/20'
+                    }`}
+                  title={lastLiveDataFetch ? `Last updated: ${lastLiveDataFetch.toLocaleTimeString()}` : 'Fetch live token data from CoinGecko'}
+                >
+                  {liveDataLoading ? <RefreshCw className="animate-spin" size={14} /> : <Activity size={14} />}
+                  {liveDataLoading ? 'Fetching...' : Object.keys(liveData).length > 0 ? 'Live ✓' : 'Fetch Live'}
+                </button>
+                <button
+                  onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                  className={`flex items-center gap-1.5 text-[9px] font-bold transition-all px-2.5 py-2.5 rounded-r-xl border ${autoRefreshEnabled
+                    ? 'bg-emerald-600/30 text-emerald-400 border-emerald-500/30'
+                    : 'text-slate-500 border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                    }`}
+                  title={autoRefreshEnabled ? `Auto-refresh ON - Next: ${timeUntilRefresh}` : 'Enable auto-refresh (every 5 min)'}
+                >
+                  <RefreshCw size={12} className={autoRefreshEnabled ? 'animate-spin-slow' : ''} />
+                  {autoRefreshEnabled ? timeUntilRefresh || '5m' : 'Auto'}
+                </button>
               </div>
+              <button
+                onClick={() => setShowDePINBrowser(!showDePINBrowser)}
+                className={`flex items-center gap-2 text-xs font-bold transition-all px-3 py-2.5 rounded-xl border ${showDePINBrowser
+                  ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
+                  : 'text-slate-500 border-slate-700 hover:text-slate-300'
+                  }`}
+                title="Browse all DePIN tokens"
+              >
+                <Layers size={14} />
+                DePIN
+              </button>
+              <button onClick={runSimulation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95">
+                {loading ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />}
+                Run Matrix
+              </button>
+            </>
+          )}
+        </div>
+      </header >
 
-
-              <div className="p-6 flex flex-col gap-6">
-                <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
-
-                  <div className="flex items-center gap-2">
-                    <Sliders size={12} className="text-slate-500" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Mode</span>
-                  </div>
-                  <div className="flex items-center gap-1 bg-slate-950 rounded-lg p-0.5">
-                    <button
-                      onClick={() => setShowAdvanced(false)}
-                      className={`px-3 py-1.5 rounded-md text-[9px] font-bold uppercase transition-all ${!showAdvanced ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-400'
-                        }`}
-                    >
-                      Simple
-                    </button>
-                    <button
-                      onClick={() => setShowAdvanced(true)}
-                      className={`px-3 py-1.5 rounded-md text-[9px] font-bold uppercase transition-all ${showAdvanced ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-400'
-                        }`}
-                    >
-                      Advanced
-                    </button>
-                  </div>
-                </div>
-
-
-                <CollapsibleSection
-                  title="Academic Scenarios"
-                  icon={<BookOpen size={14} />}
-                  iconColor="text-pink-500"
-                  summary="Miner Revolt • Honey Bursts"
-                  isOpen={!collapsedSections.scenarios}
-                  onToggle={() => toggleSection('scenarios')}
-                >
-                  <div className="grid grid-cols-1 gap-2">
-                    <button
-                      onClick={() => {
-                        setParams({
-                          ...params,
-                          scenario: 'winter',
-                          churnThreshold: 20,
-                          macro: 'bearish',
-                          providerCostPerWeek: params.providerCostPerWeek * 1.5,
-                          costStdDev: 0.4,
-                        });
-                      }}
-                      className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'winter' ? 'bg-indigo-600/20 border-indigo-500 shadow-earthquake' : 'bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20'}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-[10px] font-bold uppercase ${params.scenario === 'winter' ? 'text-white' : 'text-indigo-400'}`}>Crypto Winter</span>
-                        <TrendingDown size={12} className={params.scenario === 'winter' ? 'text-white' : 'text-indigo-400'} />
-                      </div>
-                      <p className="text-[10px] text-slate-400">
-                        Section 9.1: Testing resilience against a 2022-style market crash (-90% prices).
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setParams({
-                          ...params,
-                          scenario: 'saturation',
-                          demandType: 'consistent',
-                          maxMintWeekly: params.maxMintWeekly * 0.5,
-                          macro: 'neutral',
-                        });
-                      }}
-                      className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'saturation' ? 'bg-amber-600/20 border-amber-500 shadow-earthquake' : 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-[10px] font-bold uppercase ${params.scenario === 'saturation' ? 'text-white' : 'text-amber-400'}`}>Hardware Saturation</span>
-                        <Target size={12} className={params.scenario === 'saturation' ? 'text-white' : 'text-amber-400'} />
-                      </div>
-                      <p className="text-[10px] text-slate-400">
-                        Section 9.2: Simulating network density exceeding utility demand (3x Node Spike).
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setParams({
-                          ...params,
-                          scenario: 'utility',
-                          demandType: 'growth',
-                          macro: 'bullish',
-                          kBuyPressure: 0.15,
-                        });
-                      }}
-                      className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'utility' ? 'bg-emerald-600/20 border-emerald-500 shadow-earthquake' : 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-[10px] font-bold uppercase ${params.scenario === 'utility' ? 'text-white' : 'text-emerald-400'}`}>Utility Validation</span>
-                        <Activity size={12} className={params.scenario === 'utility' ? 'text-white' : 'text-emerald-400'} />
-                      </div>
-                      <p className="text-[10px] text-slate-400">
-                        Section 9.3: "Peace-time" growth where organic demand drives token burn (10% MoM).
-                      </p>
-                    </button>
-                  </div>
-                </CollapsibleSection>
-
-
-                <CollapsibleSection
-                  title="Stress Controls"
-                  icon={<Settings2 size={14} />}
-                  iconColor="text-slate-500"
-                  summary={`${params.T}wk • ${params.demandType} • ${params.macro}`}
-                  isOpen={!collapsedSections.stress}
-                  onToggle={() => toggleSection('stress')}
-                >
-                  <div>
-                    <ParamLabel label="Time Horizon" paramKey="T" locked={viewMode === 'comparison'} />
-                    <input type="range" min="12" max="104" value={params.T} onChange={e => setParams({ ...params, T: parseInt(e.target.value) })} className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-2" />
-                    <div className="flex justify-between text-[10px] font-mono text-slate-400"><span>Duration</span><span className="text-indigo-400 font-bold">{params.T} weeks</span></div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <ParamLabel label="Exogenous Load (Demand)" paramKey="demandType" locked={viewMode === 'comparison'} />
-                    <div className="grid grid-cols-2 gap-2">
-                      {['consistent', 'growth', 'volatile', 'high-to-decay'].map(d => (
-                        <button key={d} onClick={() => setParams({ ...params, demandType: d as any })} className={`py-2 rounded-lg text-[9px] font-bold uppercase transition-all border active:scale-95 ${params.demandType === d ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>{d}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <ParamLabel label="Macro Condition" paramKey="macro" />
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['bearish', 'sideways', 'bullish'] as const).map(m => (
-                        <button key={m} onClick={() => setParams({ ...params, macro: m })} className={`py-2 rounded-lg text-[9px] font-bold uppercase transition-all border active:scale-95 ${params.macro === m ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>{m}</button>
-                      ))}
-                    </div>
-                  </div>
-                </CollapsibleSection>
-
-
-                <CollapsibleSection
-                  title="Tokenomics"
-                  icon={<Database size={14} />}
-                  iconColor="text-violet-500"
-                  summary={`$${params.initialPrice} • ${(params.burnPct * 100).toFixed(0)}% burn`}
-                  isOpen={!collapsedSections.tokenomics}
-                  onToggle={() => toggleSection('tokenomics')}
-                  isAdvanced={true}
-                  showAdvanced={showAdvanced}
-                >
-                  <div>
-                    <ParamLabel label="Initial Token Price" paramKey="initialPrice" />
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0.01"
-                        max="100"
-                        value={params.initialPrice}
-                        onChange={e => setParams({ ...params, initialPrice: parseFloat(e.target.value) || 0.01 })}
-                        className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
-                      />
-                      <span className="text-[10px] text-slate-500 font-bold">USD</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <ParamLabel label="Burn Percentage" paramKey="burnPct" />
-                      <span className="text-indigo-400 text-[10px] font-mono font-bold">{(params.burnPct * 100).toFixed(0)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={params.burnPct}
-                      onChange={e => setParams({ ...params, burnPct: parseFloat(e.target.value) })}
-                      className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[9px] text-slate-600 mt-1">
-                      <span>0% (Inflationary)</span>
-                      <span>100% (Deflationary)</span>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-
-
-                <CollapsibleSection
-                  title="Provider Economics"
-                  icon={<Users size={14} />}
-                  iconColor="text-emerald-500"
-                  summary={`$${params.providerCostPerWeek}/wk OpEx • $${params.churnThreshold} churn`}
-                  isOpen={!collapsedSections.providers}
-                  onToggle={() => toggleSection('providers')}
-                  isAdvanced={true}
-                  showAdvanced={showAdvanced}
-                >
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <ParamLabel label="Weekly OpEx Cost" paramKey="providerCostPerWeek" />
-                      <span className="text-emerald-400 text-[10px] font-mono font-bold">${params.providerCostPerWeek.toFixed(0)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="5"
-                      max="200"
-                      step="5"
-                      value={params.providerCostPerWeek}
-                      onChange={e => setParams({ ...params, providerCostPerWeek: parseFloat(e.target.value) })}
-                      className="w-full accent-emerald-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <ParamLabel label="Churn Threshold" paramKey="churnThreshold" />
-                      <span className="text-amber-400 text-[10px] font-mono font-bold">${params.churnThreshold.toFixed(0)}/wk</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="-20"
-                      max="50"
-                      step="5"
-                      value={params.churnThreshold}
-                      onChange={e => setParams({ ...params, churnThreshold: parseFloat(e.target.value) })}
-                      className="w-full accent-amber-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[9px] text-slate-600 mt-1">
-                      <span>Tolerant</span>
-                      <span>Sensitive</span>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-
-
-                <CollapsibleSection
-                  title="Simulation"
-                  icon={<BarChart3 size={14} />}
-                  iconColor="text-blue-500"
-                  summary={`${params.nSims} runs • seed ${params.seed}`}
-                  isOpen={!collapsedSections.simulation}
-                  onToggle={() => toggleSection('simulation')}
-                >
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <ParamLabel label="Monte Carlo Runs" paramKey="nSims" />
-                      <span className="text-blue-400 text-[10px] font-mono font-bold">{params.nSims}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="20"
-                      max="500"
-                      step="20"
-                      value={params.nSims}
-                      onChange={e => setParams({ ...params, nSims: parseInt(e.target.value) })}
-                      className="w-full accent-blue-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[9px] text-slate-600 mt-1">
-                      <span>Faster</span>
-                      <span>More Accurate</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <ParamLabel label="Random Seed" paramKey="seed" />
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="999999"
-                        value={params.seed}
-                        onChange={e => setParams({ ...params, seed: parseInt(e.target.value) || 42 })}
-                        className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
-                      />
-                      <button
-                        onClick={() => setParams({ ...params, seed: Math.floor(Math.random() * 999999) })}
-                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-[9px] font-bold text-slate-400 transition-colors"
-                        title="Randomise seed"
-                      >
-                        🎲
-                      </button>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-
-                {
-                  viewMode === 'sandbox' && (
-                    <section className={`bg-slate-900/80 border border-${incentiveRegime.color}-500/30 rounded-2xl p-5 space-y-4 transition-all duration-500`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <ShieldQuestion size={14} className={`text-${incentiveRegime.color}-400`} />
-                          <h3 className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">Incentive Regime</h3>
-                        </div>
-                        <Target size={12} className={`text-${incentiveRegime.color}-400 animate-pulse`} />
-                      </div>
-                      <div className="space-y-3">
-                        <div className={`px-2 py-1.5 rounded-lg bg-${incentiveRegime.color}-500/10 border border-${incentiveRegime.color}-500/20 shadow-inner`}>
-                          <span className={`text-[10px] font-extrabold uppercase tracking-widest text-${incentiveRegime.color}-400`}>{incentiveRegime.regime}</span>
-                        </div>
-                        <button onClick={() => setShowKnowledgeLayer(true)} className="w-full py-2 bg-slate-800/50 hover:bg-slate-800 rounded-xl text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
-                          <Library size={12} /> Knowledge Layer
-                        </button>
-                      </div>
-                    </section>
-                  )
+      {activeTab === 'thesis' ? (
+        <ThesisDashboard
+          activeProfile={activeProfile}
+          protocols={PROTOCOL_PROFILES}
+          onSelectProtocol={(p) => {
+            setActiveProfile(p);
+            // Optionally sync selected ID for other views if needed, though activeProfile usually drives it
+            setSelectedProtocolIds([p.metadata.id]);
+          }}
+        />
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          {viewMode === 'settings' ? (
+            <Settings onBack={() => setViewMode('sandbox')} />
+          ) : viewMode === 'explorer' ? (
+            <ExplorerTab
+              profiles={PROTOCOL_PROFILES}
+              onAnalyze={(id) => {
+                // Switch to sandbox and load the profile
+                const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id);
+                if (profile) {
+                  loadProfile(profile);
+                  setViewMode('sandbox');
                 }
-              </div >
-            </aside >
-
-            <main className="flex-1 overflow-y-auto bg-slate-950 p-6 custom-scrollbar relative">
-              <div className="max-w-[1600px] mx-auto">
-                {viewMode === 'sandbox' ? (
-                  <div className="space-y-20 pb-32">
-                    {/* Hero Section */}
-                    <section className="relative py-20 px-4 md:px-0">
-                      <div className="max-w-4xl mx-auto text-center space-y-6">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-widest">
-                          <CheckCircle2 size={12} />
-                          <span>Thesis Validation Framework 1.2</span>
-                        </div>
-                        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase">
-                          {activeProfile.metadata.name}
-                          <span className="block text-slate-500 text-lg md:text-2xl font-bold tracking-widest mt-4">Stress Test Environment</span>
-                        </h1>
-                        <p className="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
-                          This dashboard subjects the protocol to the three canonical stress-tests defined in <strong>Chapter 9</strong> of the Thesis.
-                          Scroll to explore the narrative impact of solvency, capitulation, and liquidity shocks.
-                        </p>
-                      </div>
-                    </section>
-
-                    {/* Module 1: Solvency */}
-                    <SectionLayout
-                      id="module-1"
-                      title="The Solvency Test"
-                      subtitle="Module 01 // Equilibrium"
-                      description={
-                        <div className="space-y-6">
-                          <p>
-                            <strong>The Burn-and-Mint Equilibrium (BME)</strong> model relies on a simple premise: for the token price to remain stable, the value of tokens burned (demand) must at least equal the value of tokens minted (supply).
-                          </p>
-                          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs text-indigo-300">
-                            P_ono = (D_fiat) / (V * S_circ)
-                          </div>
-                          <p>
-                            When <code>Ratio &lt; 1.0</code>, the protocol is subsidizing operations through inflation (Shareholder Dilution).
-                          </p>
-                        </div>
-                      }
-                    >
-                      <div className="space-y-6">
-                        {/* Solvency Score Header */}
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest">Solvency Metrics</h3>
-                          <div className={`px-3 py-1 rounded-lg border flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) > 1.0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
-                            {(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) > 1.0 ? 'Deflationary' : 'Inflationary'}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <MetricCard
-                            title="Solvency Score"
-                            value={aggregated[aggregated.length - 1]?.solvencyScore?.mean > 0 ? formatCompact(aggregated[aggregated.length - 1]?.solvencyScore?.mean) : '-'}
-                            subValue={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'Dilutive' : 'Solvent'}
-                            subColor={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'text-amber-400' : 'text-emerald-400'}
-                            icon={Activity}
-                            tooltip="Ratio of Value Burned to Value Minted. >1.0 indicates deflationary sustainability."
-                            formula="(Burned_USD / 7) / (Minted_USD / 7)"
-                          />
-                          <MetricCard
-                            title="Net Daily Loss"
-                            value={aggregated[aggregated.length - 1]?.netDailyLoss?.mean ? formatCompact(Math.abs(aggregated[aggregated.length - 1]?.netDailyLoss?.mean)) : '-'}
-                            subValue="USD"
-                            subColor="text-slate-500"
-                            icon={DollarSign}
-                            tooltip="Daily USD difference between Burn and Emissions. Negative values indicate subsidy."
-                            formula="DailyBurn_USD - DailyMint_USD"
-                          />
-                        </div>
-
-                        <BaseChartBox title="Net Daily Loss ($)" icon={TrendingDown} color="rose" source="Daily Burn ($) - Daily Mint ($)" heightClass="h-[300px]">
-                          <ComposedChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                            <XAxis dataKey="t" fontSize={9} />
-                            <YAxis fontSize={9} tickFormatter={formatCompact} />
-                            <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1} />
-                            <Bar dataKey={(d: any) => d?.netDailyLoss?.mean} barSize={4}>
-                              {displayedData.map((entry: any, index: number) => (
-                                <Cell key={`cell-${index}`} fill={(entry?.netDailyLoss?.mean || 0) >= 0 ? '#10b981' : '#f43f5e'} />
-                              ))}
-                            </Bar>
-                            <Line type="monotone" dataKey={(d: any) => d?.netDailyLoss?.mean} stroke="#cbd5e1" strokeWidth={1} dot={false} opacity={0.5} />
-                          </ComposedChart>
-                        </BaseChartBox>
-                      </div>
-                    </SectionLayout>
-
-                    {/* Module 2: Capitulation */}
-                    <SectionLayout
-                      id="module-2"
-                      title="The Capitulation Test"
-                      subtitle="Module 02 // Resilience"
-                      description={
-                        <div className="space-y-6">
-                          <p>
-                            <strong>The Miner's Dilemma.</strong> As token price crashes, miners with higher OPEX (Urban/Professional) become unprofitable first. They unplug, leading to a loss of redundancy.
-                          </p>
-                          <p>
-                            This module tests the network's "Kill Switch" threshold—the price point where mass exodus occurs.
-                          </p>
-                        </div>
-                      }
-                    >
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
-                            <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Urban Miners (Fragile)</div>
-                            <div className="text-lg font-mono text-rose-400">{(aggregated[aggregated.length - 1]?.urbanCount?.mean || 0).toFixed(0)}</div>
-                            <div className="h-1 mt-2 bg-slate-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-rose-500" style={{ width: `${((aggregated[aggregated.length - 1]?.urbanCount?.mean || 0) / (aggregated[aggregated.length - 1]?.providers?.mean || 1)) * 100}%` }}></div>
-                            </div>
-                          </div>
-                          <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
-                            <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Rural Miners (Resilient)</div>
-                            <div className="text-lg font-mono text-emerald-400">{(aggregated[aggregated.length - 1]?.ruralCount?.mean || 0).toFixed(0)}</div>
-                            <div className="h-1 mt-2 bg-slate-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-500" style={{ width: `${((aggregated[aggregated.length - 1]?.ruralCount?.mean || 0) / (aggregated[aggregated.length - 1]?.providers?.mean || 1)) * 100}%` }}></div>
-                            </div>
-                          </div>
-                        </div>
-                        <BaseChartBox title="Miner Capitulation (Urban vs Rural)" icon={ShieldAlert} color="amber" source="Simulated Miner Churn by Tier" heightClass="h-[300px]">
-                          <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="urbanGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                              </linearGradient>
-                              <linearGradient id="ruralGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                            <XAxis dataKey="t" fontSize={9} />
-                            <YAxis fontSize={9} tickFormatter={formatCompact} />
-                            <Tooltip
-                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }}
-                              itemStyle={{ fontSize: '12px' }}
-                              labelStyle={{ color: '#94a3b8', marginBottom: '0.5rem' }}
-                            />
-                            <Area type="monotone" dataKey="ruralCount.mean" name="Rural (Resilient)" stackId="1" stroke="#10b981" fill="url(#ruralGradient)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="urbanCount.mean" name="Urban (Fragile)" stackId="1" stroke="#f43f5e" fill="url(#urbanGradient)" strokeWidth={2} />
-                          </AreaChart>
-                        </BaseChartBox>
-                      </div>
-                    </SectionLayout>
-
-                    {/* Module 3: Liquidity Shock */}
-                    <SectionLayout
-                      id="module-3"
-                      title="The Liquidity Shock"
-                      subtitle="Module 03 // Depth"
-                      description={
-                        <div className="space-y-6">
-                          <p>
-                            A stress test of the market's ability to absorb sell pressure.
-                            We simulate a <strong>Liquid Investor Vesting Event</strong> where a percentage of supply is sold into the pool.
-                          </p>
-                          <p>
-                            If the price crash is severe enough, it triggers the "Death Spiral": Price Crash → Miner Churn → Network Utility Drop → Further Price Crash.
-                          </p>
-                        </div>
-                      }
-                    >
-                      <div className="space-y-8">
-                        {/* Controls */}
-                        <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800">
-                          <div className="grid grid-cols-2 gap-8">
-                            <div className="space-y-3">
-                              <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                                <span>Liquidity Depth</span>
-                                <span className="text-purple-400">${formatCompact(params.initialLiquidity)}</span>
-                              </div>
-                              <input
-                                type="range" min="10000" max="1000000" step="10000"
-                                value={params.initialLiquidity}
-                                onChange={(e) => setParams({ ...params, initialLiquidity: parseFloat(e.target.value) })}
-                                className="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                              />
-                            </div>
-                            <div className="space-y-3">
-                              <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                                <span>Sell Pressure (Dump)</span>
-                                <span className="text-rose-400">{(params.investorSellPct * 100).toFixed(0)}%</span>
-                              </div>
-                              <input
-                                type="range" min="0.01" max="0.30" step="0.01"
-                                value={params.investorSellPct}
-                                onChange={(e) => setParams({ ...params, investorSellPct: parseFloat(e.target.value) })}
-                                className="w-full accent-rose-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Warning Logic */}
-                        {(() => {
-                          const crashPct = (1 - (params.initialLiquidity / (params.initialLiquidity + (params.initialSupply * params.investorSellPct * params.initialPrice))));
-                          if (crashPct > 0.4) {
-                            return (
-                              <div className="p-4 bg-rose-950/20 border border-rose-500/30 rounded-xl flex items-center gap-4 animate-pulse">
-                                <AlertTriangle className="text-rose-500 shrink-0" size={20} />
-                                <div>
-                                  <h4 className="text-rose-400 text-xs font-black uppercase tracking-widest">Warning: Recursive Feedback Loop Active</h4>
-                                  <p className="text-[10px] text-rose-300/70 mt-1">Price impact {'>'} 40% triggers stochastic miner capitulation.</p>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        <BaseChartBox title="Liquidity Shock Impact" icon={TrendingDown} color="purple" source="Token Price ($) vs Time" heightClass="h-[300px]">
-                          <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                            <XAxis dataKey="t" fontSize={9} tickFormatter={(val) => val === params.investorUnlockWeek ? `⚡ W${val}` : val} />
-                            <YAxis fontSize={9} tickFormatter={(val) => `$${val.toFixed(2)}`} />
-                            <Tooltip />
-                            <ReferenceLine x={params.investorUnlockWeek} stroke="#f43f5e" strokeDasharray="3 3" />
-                            <Area type="monotone" dataKey="price.mean" name="Price" stroke="#a855f7" fill="url(#priceGradient)" strokeWidth={2} />
-                          </AreaChart>
-                        </BaseChartBox>
-                      </div>
-                    </SectionLayout>
-                    {showAuditPanel && (
-                      <div className="p-6 bg-slate-900 border border-indigo-500/30 rounded-3xl animate-in zoom-in-95 duration-200 shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <Calculator className="text-indigo-400" size={18} />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-white">System Calibration Audit (T={params.T})</h4>
-                          </div>
-                          <button onClick={() => setShowAuditPanel(false)} className="text-slate-600 hover:text-white transition-colors"><X size={14} /></button>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-                          <div className="space-y-1 group">
-                            <span className="text-[8px] font-bold text-slate-500 uppercase flex items-center gap-1.5">Provider ROI (Incentive) <Info size={10} className="opacity-30" /></span>
-                            <div className="text-sm font-mono text-emerald-400 bg-emerald-400/5 px-2 py-1 rounded border border-emerald-400/20">{((aggregated[aggregated.length - 1]?.incentive?.mean || 0) * 100).toFixed(1)}%</div>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-[8px] font-bold text-slate-500 uppercase">System Scarcity</span>
-                            <div className="text-sm font-mono text-amber-400 bg-amber-400/5 px-2 py-1 rounded border border-amber-400/20">{((aggregated[aggregated.length - 1]?.scarcity?.mean || 0) * 100).toFixed(1)}%</div>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-[8px] font-bold text-slate-500 uppercase">Weekly Emission Ratio</span>
-                            <div className="text-sm font-mono text-indigo-400 bg-indigo-400/5 px-2 py-1 rounded border border-indigo-400/20">{((aggregated[aggregated.length - 1]?.minted?.mean || 0) / (params.initialSupply) * 100).toFixed(4)}%</div>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-[8px] font-bold text-slate-500 uppercase">Realized OpEx</span>
-                            <div className="text-sm font-mono text-slate-300 bg-slate-300/5 px-2 py-1 rounded border border-slate-300/20">CHF {params.providerCostPerWeek.toFixed(2)} / unit</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                      <BaseChartBox title="Capacity vs Demand" icon={Activity} color="indigo" onExpand={() => setFocusChart("Capacity vs Demand")} isDriver={incentiveRegime.drivers.includes('Capacity vs Demand')} driverColor={incentiveRegime.color} source="Market/Protocol Model V1.2">
-                        <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                          <XAxis dataKey="t" fontSize={9} />
-                          <YAxis fontSize={9} tickFormatter={formatCompact} />
-                          <Area type="monotone" dataKey={(d: any) => d?.capacity?.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} />
-                          {incentiveRegime.drivers.includes('Capacity vs Demand') && (
-                            <Line data={counterfactualData.slice(0, playbackWeek)} type="monotone" dataKey="capacityRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} opacity={0.3} />
-                          )}
-                          <Line type="monotone" dataKey={(d: any) => d?.demand_served?.mean} stroke="#fbbf24" strokeWidth={2} dot={false} />
-                        </ComposedChart>
-                      </BaseChartBox>
-                      <BaseChartBox title="Provider Count" icon={Users} color="emerald" onExpand={() => setFocusChart("Provider Count")} isDriver={incentiveRegime.drivers.includes('Provider Count')} driverColor={incentiveRegime.color} source="Agent-Based Sim (Stochastic)">
-                        <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                          <XAxis dataKey="t" fontSize={9} />
-                          <YAxis fontSize={9} />
-                          <Line type="step" dataKey={(d: any) => d?.providers?.mean} stroke="#10b981" strokeWidth={2.5} dot={false} />
-                          {incentiveRegime.drivers.includes('Provider Count') && (
-                            <Line data={counterfactualData.slice(0, playbackWeek)} type="step" dataKey="providersRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} opacity={0.3} />
-                          )}
-                          <ReferenceLine y={10} stroke="#f43f5e" strokeDasharray="3 3" />
-                        </LineChart>
-                      </BaseChartBox>
-                      <BaseChartBox title="Burn vs Emissions" icon={Scale} color="amber" onExpand={() => setFocusChart("Burn vs Emissions")} isDriver={incentiveRegime.drivers.includes('Burn vs Emissions')} driverColor={incentiveRegime.color} source="Protocol Parameters/Sim">
-                        <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                          <XAxis dataKey="t" fontSize={9} />
-                          <YAxis fontSize={9} tickFormatter={formatCompact} />
-                          <Line type="monotone" dataKey={(d: any) => d?.burned?.mean} stroke="#fbbf24" strokeWidth={2} dot={false} />
-                          {incentiveRegime.drivers.includes('Burn vs Emissions') && (
-                            <Line data={counterfactualData.slice(0, playbackWeek)} type="monotone" dataKey="burnRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} opacity={0.3} />
-                          )}
-                          <Line type="monotone" dataKey={(d: any) => d?.minted?.mean} stroke="#6366f1" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />
-                        </ComposedChart>
-                      </BaseChartBox>
-                      <BaseChartBox title="Network Utilization (%)" icon={BarChart3} color="rose" onExpand={() => setFocusChart("Network Utilization (%)")} isDriver={incentiveRegime.drivers.includes('Network Utilization (%)')} driverColor={incentiveRegime.color} source="Derived Metric">
-                        <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                          <XAxis dataKey="t" fontSize={9} />
-                          <YAxis domain={[0, 100]} fontSize={9} />
-                          <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
-                          {incentiveRegime.drivers.includes('Network Utilization (%)') && (
-                            <Line data={counterfactualData.slice(0, playbackWeek)} type="monotone" dataKey="utilizationRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} opacity={0.3} />
-                          )}
-                        </AreaChart>
-                      </BaseChartBox>
-                      <BaseChartBox title="Supply Trajectory" icon={Database} color="violet" onExpand={() => setFocusChart("Supply Trajectory")} isDriver={incentiveRegime.drivers.includes('Supply Trajectory')} driverColor={incentiveRegime.color} source="Protocol Parameters">
-                        <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                          <XAxis dataKey="t" fontSize={9} />
-                          <YAxis fontSize={9} tickFormatter={formatCompact} />
-                          <Line type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </BaseChartBox>
-                      <BaseChartBox title="Service Pricing Proxy" icon={DollarSign} color="blue" onExpand={() => setFocusChart("Service Pricing Proxy")} isDriver={incentiveRegime.drivers.includes('Service Pricing Proxy')} driverColor={incentiveRegime.color} source="Market Model (GBM)">
-                        <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                          <XAxis dataKey="t" fontSize={9} />
-                          <YAxis fontSize={9} />
-                          <Line type="monotone" dataKey={(d: any) => d?.servicePrice?.mean} stroke="#3b82f6" strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </BaseChartBox>
-                    </div>
-                  </div >
-                ) : (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                    <div className="flex items-center justify-between p-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl"><Lock size={18} /></div>
-                        <div>
-                          <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Comparative Control Method</h3>
-                          <p className="text-[10px] text-slate-500 font-medium italic">Locked stress parameters for structural comparability across all archetypes.</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-slate-500 font-bold">{selectedProtocolIds.length} of {PROTOCOL_PROFILES.length} selected</span>
-                        <button
-                          onClick={() => setSelectedProtocolIds(PROTOCOL_PROFILES.map(p => p.metadata.id))}
-                          className="px-3 py-1.5 bg-indigo-600/20 text-indigo-400 text-[10px] font-bold rounded-lg hover:bg-indigo-600/30 transition-colors"
-                        >
-                          Select All
-                        </button>
-                      </div>
-                    </div>
-
-
-                    {Object.keys(liveData).length > 0 && (
-                      <div className="p-4 bg-emerald-900/20 border border-emerald-500/30 rounded-2xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-500/20 rounded-lg">
-                              <Activity size={16} className="text-emerald-400" />
-                            </div>
-                            <div>
-                              <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider">Live Market Data</h3>
-                              <p className="text-[9px] text-emerald-400/70">
-                                From CoinGecko • Updated {lastLiveDataFetch?.toLocaleTimeString()}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={fetchLiveData}
-                            disabled={liveDataLoading}
-                            className="text-[9px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
-                          >
-                            <RefreshCw size={12} className={liveDataLoading ? 'animate-spin' : ''} /> Refresh
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-
-                    {selectedProtocolIds.length > 0 && (() => {
-                      // Calculate metrics for all selected protocols
-                      const protocolMetrics = PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
-                        const data = multiAggregated[p.metadata.id] || [];
-                        const last = data[data.length - 1];
-                        const first = data[0];
-                        const live = liveData[p.metadata.id];
-
-                        // Price & Token metrics
-                        // Note: price comes from sim params or live data, not protocol profile
-                        const livePrice = live?.currentPrice || 0;
-                        const defaultPrice = livePrice > 0 ? livePrice : params.initialPrice;
-                        const finalPrice = last?.price?.mean || defaultPrice;
-                        const initialPrice = first?.price?.mean || defaultPrice;
-                        const priceChange = initialPrice > 0 ? ((finalPrice - initialPrice) / initialPrice) * 100 : 0;
-
-                        // Calculate max drawdown
-                        let peak = initialPrice;
-                        let maxDrawdown = 0;
-                        data.forEach(d => {
-                          const price = d?.price?.mean || 0;
-                          if (price > peak) peak = price;
-                          const dd = peak > 0 ? ((peak - price) / peak) * 100 : 0;
-                          if (dd > maxDrawdown) maxDrawdown = dd;
-                        });
-
-                        // Supply & Inflation
-                        const defaultSupply = p.parameters?.supply?.value || 100_000_000;
-                        const finalSupply = last?.supply?.mean || defaultSupply;
-                        const initialSupply = first?.supply?.mean || defaultSupply;
-                        const supplyChange = initialSupply > 0 ? ((finalSupply - initialSupply) / initialSupply) * 100 : 0;
-                        const annualisedInflation = data.length > 0 ? supplyChange * (52 / data.length) : 0;
-
-                        // Net emissions
-                        const totalMinted = data.reduce((sum, d) => sum + (d?.minted?.mean || 0), 0);
-                        const totalBurned = data.reduce((sum, d) => sum + (d?.burned?.mean || 0), 0);
-                        const netEmissions = totalMinted - totalBurned;
-
-                        // Provider metrics
-                        const finalProviders = last?.providers?.mean || 30;
-                        const initialProviders = first?.providers?.mean || 30;
-                        const providerGrowth = initialProviders > 0 ? ((finalProviders - initialProviders) / initialProviders) * 100 : 0;
-                        const totalChurn = data.reduce((sum, d) => sum + (d?.churnCount?.mean || 0), 0);
-                        const totalJoins = data.reduce((sum, d) => sum + (d?.joinCount?.mean || 0), 0);
-                        const churnRate = totalJoins > 0 ? (totalChurn / totalJoins) * 100 : 0;
-
-                        // Utilisation
-                        const avgUtilisation = data.length > 0
-                          ? data.reduce((sum, d) => sum + (d?.utilization?.mean || 0), 0) / data.length
-                          : 0;
-
-                        // Unit Economics
-                        const weeklyOpEx = p.parameters?.provider_economics?.opex_weekly?.value || 26;
-                        const avgWeeklyReward = data.length > 0 && finalProviders > 0
-                          ? (totalMinted / data.length) / finalProviders
-                          : 0;
-                        const avgRewardValue = avgWeeklyReward * finalPrice;
-                        const weeklyProfit = avgRewardValue - weeklyOpEx;
-                        const monthlyEarnings = weeklyProfit * 4.33;
-                        const hardwareCost = p.metadata.id === 'ono_v3_calibrated' ? 650 :
-                          p.metadata.id === 'helium_bme_v1' ? 500 :
-                            p.metadata.id === 'hivemapper_map_v1' ? 549 :
-                              p.metadata.id === 'dimo_vehicle_v1' ? 350 : 1000;
-                        const paybackWeeks = weeklyProfit > 0 ? hardwareCost / weeklyProfit : Infinity;
-                        const breakEvenPrice = avgWeeklyReward > 0 ? weeklyOpEx / avgWeeklyReward : 0;
-
-                        // Risk metrics
-                        const regime = calculateRegime(data, p);
-                        const deathSpiralRisk = maxDrawdown > 80 ? 'HIGH' : maxDrawdown > 50 ? 'MEDIUM' : 'LOW';
-
-                        // Sustainability ratio (real revenue vs emissions)
-                        const totalRevenue = data.reduce((sum, d) => {
-                          const served = d?.demandServed?.mean || 0;
-                          const svcPrice = d?.servicePrice?.mean || 0;
-                          return sum + (served * svcPrice);
-                        }, 0);
-                        const emissionValue = totalMinted * finalPrice;
-                        const sustainabilityRatio = emissionValue > 0 ? (totalRevenue / emissionValue) * 100 : 0;
-
-                        return {
-                          protocol: p,
-                          live,
-                          regime,
-                          // Token Performance
-                          finalPrice,
-                          priceChange,
-                          annualisedInflation,
-                          maxDrawdown,
-                          // Network Health
-                          finalProviders,
-                          providerGrowth,
-                          avgUtilisation,
-                          churnRate,
-                          netEmissions,
-                          // Unit Economics
-                          hardwareCost,
-                          monthlyEarnings,
-                          paybackWeeks,
-                          breakEvenPrice,
-                          weeklyProfit,
-                          // Risk
-                          deathSpiralRisk,
-                          sustainabilityRatio,
-                          finalSupply,
-                        };
-                      });
-
-                      const baseline = protocolMetrics[0];
-
-                      // Metric row component
-                      const MetricRow = ({
-                        icon,
-                        iconColor,
-                        label,
-                        getValue,
-                        format,
-                        goodDirection,
-                        getDelta,
-                        hint
-                      }: {
-                        icon: React.ReactNode;
-                        iconColor: string;
-                        label: string;
-                        getValue: (m: typeof protocolMetrics[0]) => number;
-                        format: (v: number) => string;
-                        goodDirection: 'up' | 'down' | 'neutral';
-                        getDelta?: (m: typeof protocolMetrics[0], baseline: typeof protocolMetrics[0]) => number | null;
-                        hint?: string;
-                      }) => (
-                        <tr className="border-b border-slate-800/30 hover:bg-slate-800/20 transition-colors group">
-                          <td className="p-3 text-[10px] font-bold text-slate-400 bg-slate-950/30 sticky left-0 z-10">
-                            <div className="flex items-center gap-2">
-                              <span className={iconColor}>{icon}</span>
-                              <span>{label}</span>
-                              {hint && (
-                                <span className="opacity-0 group-hover:opacity-100 text-[8px] text-slate-600 transition-opacity">
-                                  {hint}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          {protocolMetrics.map((m, idx) => {
-                            const value = getValue(m);
-                            const delta = getDelta && idx > 0 ? getDelta(m, baseline) : null;
-                            const isGood = goodDirection === 'up' ? value > 0 :
-                              goodDirection === 'down' ? value < 0 : true;
-
-                            return (
-                              <td key={m.protocol.metadata.id} className="p-3 text-center">
-                                <div className={`text-sm font-mono font-bold ${goodDirection === 'neutral' ? 'text-white' :
-                                  isGood ? 'text-emerald-400' : 'text-rose-400'
-                                  }`}>
-                                  {format(value)}
-                                </div>
-                                {delta !== null && (
-                                  <div className={`text-[9px] mt-0.5 font-bold ${goodDirection === 'up' ? (delta >= 0 ? 'text-emerald-400' : 'text-rose-400') :
-                                    goodDirection === 'down' ? (delta <= 0 ? 'text-emerald-400' : 'text-rose-400') :
-                                      'text-slate-500'
-                                    }`}>
-                                    {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
-                                  </div>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-
-                      // Section header component
-                      const SectionHeader = ({ icon, iconColor, title, hint }: { icon: React.ReactNode; iconColor: string; title: string; hint: string }) => (
-                        <tr className="bg-slate-950/80">
-                          <td colSpan={protocolMetrics.length + 1} className="p-3">
-                            <div className="flex items-center gap-2">
-                              <span className={iconColor}>{icon}</span>
-                              <span className="text-[10px] font-black text-white uppercase tracking-widest">{title}</span>
-                              <span className="text-[9px] text-slate-500 ml-2">{hint}</span>
-                            </div>
-                          </td>
-                        </tr>
-                      );
+              }}
+              onCompare={(id) => {
+                // Switch to comparison and ensure protocol is selected
+                if (!selectedProtocolIds.includes(id)) {
+                  setSelectedProtocolIds(prev => [...prev, id]);
+                }
+                setViewMode('comparison');
+              }}
+            />
+          ) : (
+            <>
+              <aside className="w-[340px] border-r border-slate-800 overflow-y-auto bg-slate-950 flex flex-col custom-scrollbar shrink-0">
+                <div className="p-6 border-b border-slate-800/50">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Fingerprint size={14} className="text-emerald-500" />
+                    <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                      {viewMode === 'sandbox' ? 'Active Archetype' : 'Select Protocols'}
+                    </h2>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {PROTOCOL_PROFILES.map(p => {
+                      const isSelected = selectedProtocolIds.includes(p.metadata.id);
+                      const isActive = activeProfile.metadata.id === p.metadata.id;
 
                       return (
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
-                          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <BarChart3 size={16} className="text-indigo-400" />
-                              <h3 className="text-xs font-black text-white uppercase tracking-widest">DePIN Protocol Scorecard</h3>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2 text-[9px]">
-                                <span className="text-emerald-400">● Good</span>
-                                <span className="text-rose-400">● Caution</span>
-                              </div>
-                              <div className="text-[9px] text-slate-500">
-                                Baseline: <span className="text-indigo-400 font-bold">{baseline?.protocol.metadata.name}</span>
-                              </div>
+                        <button
+                          key={p.metadata.id}
+                          onClick={() => viewMode === 'sandbox' ? loadProfile(p) : toggleProtocolSelection(p.metadata.id)}
+                          className={`p-4 rounded-xl text-left transition-all border group active:scale-[0.98] ${(viewMode === 'sandbox' && isActive) || (viewMode === 'comparison' && isSelected)
+                            ? 'bg-indigo-600/10 border-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.1)]'
+                            : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+                            }`}
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className={`text-[11px] font-extrabold uppercase tracking-tight ${(viewMode === 'sandbox' && isActive) || (viewMode === 'comparison' && isSelected) ? 'text-indigo-400' : 'text-slate-300'
+                              }`}>{p.metadata.name}</span>
+                            <div className="flex items-center gap-1">
+                              {p.metadata.model_type === 'location_based' ?
+                                <Fingerprint size={10} className="text-emerald-500" title="Category A: Location-Based (Physical Density)" /> :
+                                <Database size={10} className="text-amber-500" title="Category B: Fungible Resource (Compute/Storage)" />
+                              }
+                              {((viewMode === 'sandbox' && isActive) || (viewMode === 'comparison' && isSelected)) && <CheckCircle2 size={12} className="text-indigo-400" />}
                             </div>
                           </div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="border-b border-slate-800/50">
-                                  <th className="p-3 text-left text-[9px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/30 sticky left-0 z-10 min-w-[160px]">
-                                    Metric
-                                  </th>
-                                  {protocolMetrics.map((m, idx) => (
-                                    <th key={m.protocol.metadata.id} className="p-3 text-center text-[9px] font-bold uppercase tracking-wider min-w-[120px]">
-                                      <div className="flex flex-col items-center gap-1">
-                                        <span className={idx === 0 ? 'text-indigo-400' : 'text-slate-400'}>{m.protocol.metadata.name}</span>
-                                        {m.live && (
-                                          <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">LIVE</span>
-                                        )}
-                                      </div>
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-
-                                <SectionHeader
-                                  icon={<DollarSign size={12} />}
-                                  iconColor="text-emerald-500"
-                                  title="Unit Economics"
-                                  hint="🔧 For hardware operators"
-                                />
-                                <MetricRow
-                                  icon={<Box size={12} />}
-                                  iconColor="text-emerald-500"
-                                  label="Hardware Cost"
-                                  getValue={m => m.hardwareCost}
-                                  format={v => `$${v.toLocaleString()}`}
-                                  goodDirection="down"
-                                  getDelta={(m, b) => b.hardwareCost > 0 ? ((m.hardwareCost - b.hardwareCost) / b.hardwareCost) * 100 : null}
-                                />
-                                <MetricRow
-                                  icon={<Wallet size={12} />}
-                                  iconColor="text-emerald-500"
-                                  label="Monthly Earnings"
-                                  getValue={m => m.monthlyEarnings}
-                                  format={v => v > 0 ? `$${v.toFixed(0)}/mo` : `-$${Math.abs(v).toFixed(0)}/mo`}
-                                  goodDirection="up"
-                                  getDelta={(m, b) => Math.abs(b.monthlyEarnings) > 0 ? ((m.monthlyEarnings - b.monthlyEarnings) / Math.abs(b.monthlyEarnings)) * 100 : null}
-                                />
-                                <MetricRow
-                                  icon={<Clock size={12} />}
-                                  iconColor="text-emerald-500"
-                                  label="Payback Period"
-                                  getValue={m => m.paybackWeeks}
-                                  format={v => v === Infinity ? '∞' : v > 52 ? `${(v / 52).toFixed(1)}yr` : `${v.toFixed(0)}wk`}
-                                  goodDirection="down"
-                                  hint="Shorter = better"
-                                />
-                                <MetricRow
-                                  icon={<Target size={12} />}
-                                  iconColor="text-emerald-500"
-                                  label="Break-even Price"
-                                  getValue={m => m.breakEvenPrice}
-                                  format={v => v < 0.001 ? `$${v.toFixed(6)}` : `$${v.toFixed(4)}`}
-                                  goodDirection="down"
-                                  hint="Token floor to cover costs"
-                                />
-
-
-                                <SectionHeader
-                                  icon={<TrendingUp size={12} />}
-                                  iconColor="text-blue-500"
-                                  title="Token Performance"
-                                  hint="💰 For investors"
-                                />
-                                <MetricRow
-                                  icon={<DollarSign size={12} />}
-                                  iconColor="text-blue-500"
-                                  label="Final Price"
-                                  getValue={m => m.finalPrice}
-                                  format={v => v < 0.01 ? `$${v.toFixed(6)}` : `$${v.toFixed(4)}`}
-                                  goodDirection="neutral"
-                                  getDelta={(m, b) => b.finalPrice > 0 ? ((m.finalPrice - b.finalPrice) / b.finalPrice) * 100 : null}
-                                />
-                                <MetricRow
-                                  icon={<Trending size={12} />}
-                                  iconColor="text-blue-500"
-                                  label="Price Change"
-                                  getValue={m => m.priceChange}
-                                  format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`}
-                                  goodDirection="up"
-                                />
-                                <MetricRow
-                                  icon={<Layers size={12} />}
-                                  iconColor="text-blue-500"
-                                  label="Inflation Rate"
-                                  getValue={m => m.annualisedInflation}
-                                  format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%/yr`}
-                                  goodDirection="down"
-                                  hint="Lower = less dilution"
-                                />
-                                <MetricRow
-                                  icon={<TrendingDown size={12} />}
-                                  iconColor="text-blue-500"
-                                  label="Max Drawdown"
-                                  getValue={m => m.maxDrawdown}
-                                  format={v => `-${v.toFixed(1)}%`}
-                                  goodDirection="down"
-                                  hint="Peak-to-trough loss"
-                                />
-
-
-                                <SectionHeader
-                                  icon={<Zap size={12} />}
-                                  iconColor="text-amber-500"
-                                  title="Network Health"
-                                  hint="⚙️ For protocol designers"
-                                />
-                                <MetricRow
-                                  icon={<Users size={12} />}
-                                  iconColor="text-amber-500"
-                                  label="Final Providers"
-                                  getValue={m => m.finalProviders}
-                                  format={v => formatCompact(v)}
-                                  goodDirection="up"
-                                  getDelta={(m, b) => b.finalProviders > 0 ? ((m.finalProviders - b.finalProviders) / b.finalProviders) * 100 : null}
-                                />
-                                <MetricRow
-                                  icon={<Gauge size={12} />}
-                                  iconColor="text-amber-500"
-                                  label="Avg Utilisation"
-                                  getValue={m => m.avgUtilisation}
-                                  format={v => `${v.toFixed(1)}%`}
-                                  goodDirection="up"
-                                />
-                                <MetricRow
-                                  icon={<UserMinus size={12} />}
-                                  iconColor="text-amber-500"
-                                  label="Churn Rate"
-                                  getValue={m => m.churnRate}
-                                  format={v => `${v.toFixed(1)}%`}
-                                  goodDirection="down"
-                                  hint="Providers leaving"
-                                />
-                                <MetricRow
-                                  icon={<Flame size={12} />}
-                                  iconColor="text-amber-500"
-                                  label="Net Emissions"
-                                  getValue={m => m.netEmissions}
-                                  format={v => `${v >= 0 ? '+' : ''}${formatCompact(v)}`}
-                                  goodDirection="down"
-                                  hint="Minted - Burned"
-                                />
-
-
-                                <SectionHeader
-                                  icon={<AlertTriangle size={12} />}
-                                  iconColor="text-rose-500"
-                                  title="Risk Indicators"
-                                  hint="🎓 For researchers & VCs"
-                                />
-                                <MetricRow
-                                  icon={<ShieldQuestion size={12} />}
-                                  iconColor="text-rose-500"
-                                  label="Death Spiral Risk"
-                                  getValue={m => m.deathSpiralRisk === 'HIGH' ? 100 : m.deathSpiralRisk === 'MEDIUM' ? 50 : 10}
-                                  format={v => v >= 100 ? '⚠️ HIGH' : v >= 50 ? '⚡ MEDIUM' : '✓ LOW'}
-                                  goodDirection="down"
-                                />
-                                <MetricRow
-                                  icon={<BarChart3 size={12} />}
-                                  iconColor="text-rose-500"
-                                  label="Sustainability"
-                                  getValue={m => m.sustainabilityRatio}
-                                  format={v => `${v.toFixed(0)}%`}
-                                  goodDirection="up"
-                                  hint="Revenue vs emissions"
-                                />
-
-
-                                <tr className="bg-slate-950/50 hover:bg-slate-800/20 transition-colors">
-                                  <td className="p-3 text-[10px] font-bold text-white bg-slate-950/50 sticky left-0 z-10">
-                                    <div className="flex items-center gap-2">
-                                      <Activity size={12} className="text-violet-500" />
-                                      <span>Overall Regime</span>
-                                    </div>
-                                  </td>
-                                  {protocolMetrics.map(m => (
-                                    <td key={m.protocol.metadata.id} className="p-3 text-center">
-                                      <span className={`inline-block px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide
-                                    ${m.regime.color === 'emerald' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                                          m.regime.color === 'amber' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                                            m.regime.color === 'rose' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
-                                              'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                                        }`}>
-                                        {m.regime.regime.split(' ').slice(0, 2).join(' ')}
-                                      </span>
-                                    </td>
-                                  ))}
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
+                          <div className="text-[9px] text-slate-500 font-medium leading-tight">{p.metadata.mechanism}</div>
+                        </button>
                       );
-                    })()}
+                    })}
+                  </div>
+                </div>
 
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
-                        const data = multiAggregated[p.metadata.id] || [];
-                        const last = data[data.length - 1];
-                        const regime = calculateRegime(data, p);
-                        const finalSupply = last?.supply?.mean || p.parameters.supply.value;
-                        const finalProviders = last?.providers?.mean || 30;
-                        const avgUtilization = data.length > 0
-                          ? data.reduce((sum, d) => sum + (d?.utilization?.mean || 0), 0) / data.length
-                          : 0;
+                <div className="p-6 flex flex-col gap-6">
+                  <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
 
-                        // Get live data for this protocol
-                        const live = liveData[p.metadata.id];
-
-                        return (
-                          <div key={p.metadata.id} className={`p-5 bg-slate-900/80 border rounded-2xl ${selectedProtocolIds[0] === p.metadata.id ? 'border-indigo-500/50' : 'border-slate-800'}`}>
-                            <div className="flex items-center justify-between mb-4">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-xs font-black text-white uppercase tracking-wider">{p.metadata.name}</h4>
-                                  {live && (
-                                    <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">
-                                      LIVE
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[9px] text-slate-500">{p.metadata.mechanism}</p>
-                              </div>
-                              <div className={`px-2 py-1 rounded-md bg-${regime.color}-500/10 border border-${regime.color}-500/20`}>
-                                <span className={`text-[8px] font-black text-${regime.color}-400 uppercase`}>{regime.regime.split(' ')[0]}</span>
-                              </div>
-                            </div>
+                    <div className="flex items-center gap-2">
+                      <Sliders size={12} className="text-slate-500" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Mode</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-slate-950 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setShowAdvanced(false)}
+                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold uppercase transition-all ${!showAdvanced ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-400'
+                          }`}
+                      >
+                        Simple
+                      </button>
+                      <button
+                        onClick={() => setShowAdvanced(true)}
+                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold uppercase transition-all ${showAdvanced ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-400'
+                          }`}
+                      >
+                        Advanced
+                      </button>
+                    </div>
+                  </div>
 
 
-                            {live && (
-                              <div className="mb-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-[9px] text-slate-500 uppercase">Live Price</span>
-                                  <span className={`text-[9px] font-bold ${live.priceChangePercentage24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                    {live.priceChangePercentage24h >= 0 ? '↑' : '↓'} {Math.abs(live.priceChangePercentage24h).toFixed(2)}%
-                                  </span>
-                                </div>
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-lg font-bold text-white font-mono">
-                                    ${live.currentPrice < 0.01 ? live.currentPrice.toFixed(6) : live.currentPrice.toFixed(4)}
-                                  </span>
-                                  <span className="text-[9px] text-slate-500">
-                                    MCap: {formatCompact(live.marketCap)}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
+                  <CollapsibleSection
+                    title="Academic Scenarios"
+                    icon={<BookOpen size={14} />}
+                    iconColor="text-pink-500"
+                    summary="Miner Revolt • Honey Bursts"
+                    isOpen={!collapsedSections.scenarios}
+                    onToggle={() => toggleSection('scenarios')}
+                  >
+                    <div className="grid grid-cols-1 gap-2">
+                      <button
+                        onClick={() => {
+                          setParams({
+                            ...params,
+                            scenario: 'winter',
+                            churnThreshold: 20,
+                            macro: 'bearish',
+                            providerCostPerWeek: params.providerCostPerWeek * 1.5,
+                            costStdDev: 0.4,
+                          });
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'winter' ? 'bg-indigo-600/20 border-indigo-500 shadow-earthquake' : 'bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20'}`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-[10px] font-bold uppercase ${params.scenario === 'winter' ? 'text-white' : 'text-indigo-400'}`}>Crypto Winter</span>
+                          <TrendingDown size={12} className={params.scenario === 'winter' ? 'text-white' : 'text-indigo-400'} />
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          Section 9.1: Testing resilience against a 2022-style market crash (-90% prices).
+                        </p>
+                      </button>
 
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="text-center">
-                                <p className="text-[9px] text-slate-500 uppercase mb-1">
-                                  {live ? 'Real Supply' : 'Sim Supply'}
-                                </p>
-                                <p className="text-sm font-mono font-bold text-emerald-400">
-                                  {formatCompact(live ? live.circulatingSupply : finalSupply)}
-                                </p>
-                                {live && data.length > 0 && (
-                                  <p className="text-[8px] text-slate-600 mt-0.5">
-                                    Sim: {formatCompact(finalSupply)}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="text-center">
-                                <p className="text-[9px] text-slate-500 uppercase mb-1">Providers</p>
-                                <p className="text-sm font-mono font-bold text-blue-400">{Math.round(finalProviders)}</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-[9px] text-slate-500 uppercase mb-1">Util.</p>
-                                <p className="text-sm font-mono font-bold text-amber-400">{avgUtilization.toFixed(0)}%</p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      <button
+                        onClick={() => {
+                          setParams({
+                            ...params,
+                            scenario: 'saturation',
+                            demandType: 'consistent',
+                            maxMintWeekly: params.maxMintWeekly * 0.5,
+                            macro: 'neutral',
+                          });
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'saturation' ? 'bg-amber-600/20 border-amber-500 shadow-earthquake' : 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'}`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-[10px] font-bold uppercase ${params.scenario === 'saturation' ? 'text-white' : 'text-amber-400'}`}>Hardware Saturation</span>
+                          <Target size={12} className={params.scenario === 'saturation' ? 'text-white' : 'text-amber-400'} />
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          Section 9.2: Simulating network density exceeding utility demand (3x Node Spike).
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setParams({
+                            ...params,
+                            scenario: 'utility',
+                            demandType: 'growth',
+                            macro: 'bullish',
+                            kBuyPressure: 0.15,
+                          });
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all group ${params.scenario === 'utility' ? 'bg-emerald-600/20 border-emerald-500 shadow-earthquake' : 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'}`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-[10px] font-bold uppercase ${params.scenario === 'utility' ? 'text-white' : 'text-emerald-400'}`}>Utility Validation</span>
+                          <Activity size={12} className={params.scenario === 'utility' ? 'text-white' : 'text-emerald-400'} />
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          Section 9.3: "Peace-time" growth where organic demand drives token burn (10% MoM).
+                        </p>
+                      </button>
+                    </div>
+                  </CollapsibleSection>
+
+
+                  <CollapsibleSection
+                    title="Stress Controls"
+                    icon={<Settings2 size={14} />}
+                    iconColor="text-slate-500"
+                    summary={`${params.T}wk • ${params.demandType} • ${params.macro}`}
+                    isOpen={!collapsedSections.stress}
+                    onToggle={() => toggleSection('stress')}
+                  >
+                    <div>
+                      <ParamLabel label="Time Horizon" paramKey="T" locked={viewMode === 'comparison'} />
+                      <input type="range" min="12" max="104" value={params.T} onChange={e => setParams({ ...params, T: parseInt(e.target.value) })} className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-2" />
+                      <div className="flex justify-between text-[10px] font-mono text-slate-400"><span>Duration</span><span className="text-indigo-400 font-bold">{params.T} weeks</span></div>
                     </div>
 
+                    <div className="space-y-3">
+                      <ParamLabel label="Exogenous Load (Demand)" paramKey="demandType" locked={viewMode === 'comparison'} />
+                      <div className="grid grid-cols-2 gap-2">
+                        {['consistent', 'growth', 'volatile', 'high-to-decay'].map(d => (
+                          <button key={d} onClick={() => setParams({ ...params, demandType: d as any })} className={`py-2 rounded-lg text-[9px] font-bold uppercase transition-all border active:scale-95 ${params.demandType === d ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>{d}</button>
+                        ))}
+                      </div>
+                    </div>
 
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <TrendingUp size={16} className="text-indigo-400" />
-                          <h3 className="text-xs font-black text-white uppercase tracking-widest">Provider Count Overlay</h3>
+                    <div className="space-y-3">
+                      <ParamLabel label="Macro Condition" paramKey="macro" />
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['bearish', 'sideways', 'bullish'] as const).map(m => (
+                          <button key={m} onClick={() => setParams({ ...params, macro: m })} className={`py-2 rounded-lg text-[9px] font-bold uppercase transition-all border active:scale-95 ${params.macro === m ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>{m}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </CollapsibleSection>
 
-                          <button
-                            onClick={() => setNormalizeCharts(!normalizeCharts)}
-                            className={`ml-2 px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all border ${normalizeCharts
-                              ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
-                              : 'text-slate-500 border-slate-700 hover:border-slate-600'
-                              }`}
-                            title="Normalize all lines to start at 100 for shape comparison"
-                          >
-                            {normalizeCharts ? '📊 Indexed (100)' : '📈 Absolute'}
+
+                  <CollapsibleSection
+                    title="Tokenomics"
+                    icon={<Database size={14} />}
+                    iconColor="text-violet-500"
+                    summary={`$${params.initialPrice} • ${(params.burnPct * 100).toFixed(0)}% burn`}
+                    isOpen={!collapsedSections.tokenomics}
+                    onToggle={() => toggleSection('tokenomics')}
+                    isAdvanced={true}
+                    showAdvanced={showAdvanced}
+                  >
+                    <div>
+                      <ParamLabel label="Initial Token Price" paramKey="initialPrice" />
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.01"
+                          max="100"
+                          value={params.initialPrice}
+                          onChange={e => setParams({ ...params, initialPrice: parseFloat(e.target.value) || 0.01 })}
+                          className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
+                        />
+                        <span className="text-[10px] text-slate-500 font-bold">USD</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <ParamLabel label="Burn Percentage" paramKey="burnPct" />
+                        <span className="text-indigo-400 text-[10px] font-mono font-bold">{(params.burnPct * 100).toFixed(0)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={params.burnPct}
+                        onChange={e => setParams({ ...params, burnPct: parseFloat(e.target.value) })}
+                        className="w-full accent-indigo-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                        <span>0% (Inflationary)</span>
+                        <span>100% (Deflationary)</span>
+                      </div>
+                    </div>
+                  </CollapsibleSection>
+
+
+                  <CollapsibleSection
+                    title="Provider Economics"
+                    icon={<Users size={14} />}
+                    iconColor="text-emerald-500"
+                    summary={`$${params.providerCostPerWeek}/wk OpEx • $${params.churnThreshold} churn`}
+                    isOpen={!collapsedSections.providers}
+                    onToggle={() => toggleSection('providers')}
+                    isAdvanced={true}
+                    showAdvanced={showAdvanced}
+                  >
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <ParamLabel label="Weekly OpEx Cost" paramKey="providerCostPerWeek" />
+                        <span className="text-emerald-400 text-[10px] font-mono font-bold">${params.providerCostPerWeek.toFixed(0)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="200"
+                        step="5"
+                        value={params.providerCostPerWeek}
+                        onChange={e => setParams({ ...params, providerCostPerWeek: parseFloat(e.target.value) })}
+                        className="w-full accent-emerald-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-6"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <ParamLabel label="Hardware Cost (Capex)" paramKey="hardwareCost" />
+                        <span className="text-emerald-400 text-[10px] font-mono font-bold">${params.hardwareCost.toFixed(0)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="200"
+                        max="2000"
+                        step="50"
+                        value={params.hardwareCost}
+                        onChange={e => setParams({ ...params, hardwareCost: parseFloat(e.target.value) })}
+                        className="w-full accent-emerald-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <ParamLabel label="Churn Threshold" paramKey="churnThreshold" />
+                        <span className="text-amber-400 text-[10px] font-mono font-bold">${params.churnThreshold.toFixed(0)}/wk</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-20"
+                        max="50"
+                        step="5"
+                        value={params.churnThreshold}
+                        onChange={e => setParams({ ...params, churnThreshold: parseFloat(e.target.value) })}
+                        className="w-full accent-amber-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                        <span>Tolerant</span>
+                        <span>Sensitive</span>
+                      </div>
+                    </div>
+                  </CollapsibleSection>
+
+
+                  <CollapsibleSection
+                    title="Simulation"
+                    icon={<BarChart3 size={14} />}
+                    iconColor="text-blue-500"
+                    summary={`${params.nSims} runs • seed ${params.seed}`}
+                    isOpen={!collapsedSections.simulation}
+                    onToggle={() => toggleSection('simulation')}
+                  >
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <ParamLabel label="Monte Carlo Runs" paramKey="nSims" />
+                        <span className="text-blue-400 text-[10px] font-mono font-bold">{params.nSims}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="20"
+                        max="500"
+                        step="20"
+                        value={params.nSims}
+                        onChange={e => setParams({ ...params, nSims: parseInt(e.target.value) })}
+                        className="w-full accent-blue-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                        <span>Faster</span>
+                        <span>More Accurate</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <ParamLabel label="Random Seed" paramKey="seed" />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="999999"
+                          value={params.seed}
+                          onChange={e => setParams({ ...params, seed: parseInt(e.target.value) || 42 })}
+                          className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:border-indigo-500 outline-none"
+                        />
+                        <button
+                          onClick={() => setParams({ ...params, seed: Math.floor(Math.random() * 999999) })}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-[9px] font-bold text-slate-400 transition-colors"
+                          title="Randomise seed"
+                        >
+                          🎲
+                        </button>
+                      </div>
+                    </div>
+                  </CollapsibleSection>
+
+                  {/* Module 4: Competitive Resilience (Risk Engine) */}
+                  <CollapsibleSection
+                    title="Competitive Resilience"
+                    icon={<Zap size={14} />}
+                    iconColor="text-purple-500"
+                    summary={`Vampire: +${(params.competitorYield * 100).toFixed(0)}% • ${params.revenueStrategy === 'reserve' ? 'Treasury' : 'Burn'}`}
+                    isOpen={!collapsedSections.competitive}
+                    onToggle={() => toggleSection('competitive')}
+                  >
+                    {/* Vampire Attack Slider */}
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <ParamLabel label="Competitor Yield Advantage" paramKey="competitorYield" />
+                        <span className="text-purple-400 text-[10px] font-mono font-bold">
+                          +{(params.competitorYield * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={params.competitorYield}
+                        onChange={e => setParams({ ...params, competitorYield: parseFloat(e.target.value) })}
+                        className="w-full accent-purple-600 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                        <span>No Threat</span>
+                        <span>200% (Critical)</span>
+                      </div>
+                      <p className="text-[9px] text-slate-500 mt-2 italic">
+                        Simulates a competitor offering higher APY to steal your nodes.
+                      </p>
+                    </div>
+
+                    {/* Emission Model Toggle */}
+                    <div className="mt-4">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Emission Model</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setParams({ ...params, emissionModel: 'fixed' })}
+                          className={`px-3 py-2 rounded-lg border text-xs font-bold uppercase transition-all ${params.emissionModel === 'fixed'
+                            ? 'bg-blue-600 border-blue-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                            }`}
+                        >
+                          Fixed Schedule
+                        </button>
+                        <button
+                          onClick={() => setParams({ ...params, emissionModel: 'kpi' })}
+                          className={`px-3 py-2 rounded-lg border text-xs font-bold uppercase transition-all ${params.emissionModel === 'kpi'
+                            ? 'bg-emerald-600 border-emerald-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                            }`}
+                        >
+                          KPI-Based
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-slate-500 mt-2">
+                        <span className="text-blue-400">Fixed:</span> Prints tokens regardless of usage.{' '}
+                        <span className="text-emerald-400">KPI:</span> Only mints when utilization is high.
+                      </p>
+                    </div>
+
+                    {/* Revenue Strategy Toggle */}
+                    <div className="mt-4">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Revenue Strategy</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setParams({ ...params, revenueStrategy: 'burn' })}
+                          className={`px-3 py-2 rounded-lg border text-xs font-bold uppercase transition-all ${params.revenueStrategy === 'burn'
+                            ? 'bg-rose-600 border-rose-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                            }`}
+                        >
+                          Buy & Burn
+                        </button>
+                        <button
+                          onClick={() => setParams({ ...params, revenueStrategy: 'reserve' })}
+                          className={`px-3 py-2 rounded-lg border text-xs font-bold uppercase transition-all ${params.revenueStrategy === 'reserve'
+                            ? 'bg-emerald-600 border-emerald-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                            }`}
+                        >
+                          Sinking Fund
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-slate-500 mt-2">
+                        <span className="text-rose-400">Burn:</span> Short-term pump.{' '}
+                        <span className="text-emerald-400">Reserve:</span> Builds war chest to support price in crashes.
+                      </p>
+                    </div>
+                  </CollapsibleSection>
+
+                  {
+                    viewMode === 'sandbox' && (
+                      <section className={`bg-slate-900/80 border border-${incentiveRegime.color}-500/30 rounded-2xl p-5 space-y-4 transition-all duration-500`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <ShieldQuestion size={14} className={`text-${incentiveRegime.color}-400`} />
+                            <h3 className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">Incentive Regime</h3>
+                          </div>
+                          <Target size={12} className={`text-${incentiveRegime.color}-400 animate-pulse`} />
+                        </div>
+                        <div className="space-y-3">
+                          <div className={`px-2 py-1.5 rounded-lg bg-${incentiveRegime.color}-500/10 border border-${incentiveRegime.color}-500/20 shadow-inner`}>
+                            <span className={`text-[10px] font-extrabold uppercase tracking-widest text-${incentiveRegime.color}-400`}>{incentiveRegime.regime}</span>
+                          </div>
+                          <button onClick={() => setShowKnowledgeLayer(true)} className="w-full py-2 bg-slate-800/50 hover:bg-slate-800 rounded-xl text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
+                            <Library size={12} /> Knowledge Layer
                           </button>
                         </div>
+                      </section>
+                    )
+                  }
+                </div >
+              </aside >
 
-                        <div className="flex items-center gap-3">
-                          {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map((p, i) => {
-                            const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
-                            const isHidden = hiddenProtocols.has(p.metadata.id);
-                            return (
-                              <button
-                                key={p.metadata.id}
-                                onClick={() => toggleProtocolVisibility(p.metadata.id)}
-                                className={`flex items-center gap-2 px-2 py-1 rounded transition-all ${isHidden ? 'opacity-40 hover:opacity-60' : 'hover:bg-slate-800/50'
-                                  }`}
-                                title={isHidden ? `Show ${p.metadata.name}` : `Hide ${p.metadata.name}`}
-                              >
-                                <div
-                                  className={`w-3 h-0.5 rounded transition-all ${isHidden ? 'bg-slate-600' : ''}`}
-                                  style={{ backgroundColor: isHidden ? undefined : colors[i % colors.length] }}
-                                />
-                                <span className={`text-[9px] font-bold uppercase ${isHidden ? 'text-slate-600 line-through' : 'text-slate-400'}`}>
-                                  {p.metadata.name}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-
-                      {normalizeCharts && (
-                        <div className="mb-3 px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
-                          <p className="text-[9px] text-indigo-400">
-                            <strong>Indexed view:</strong> All protocols start at 100 (week 0). Compare <em>shapes</em> and <em>trends</em>, not absolute values. Hover for actual numbers.
+              <main className="flex-1 overflow-y-auto bg-slate-950 p-6 custom-scrollbar relative">
+                <div className="max-w-[1600px] mx-auto">
+                  {viewMode === 'sandbox' ? (
+                    <div className="space-y-20 pb-32">
+                      {/* Hero Section */}
+                      <section className="relative py-20 px-4 md:px-0">
+                        <div className="max-w-4xl mx-auto text-center space-y-6">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-widest">
+                            <CheckCircle2 size={12} />
+                            <span>Thesis Validation Framework 1.2</span>
+                          </div>
+                          <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase">
+                            {activeProfile.metadata.name}
+                            <span className="block text-slate-500 text-lg md:text-2xl font-bold tracking-widest mt-4">Stress Test Environment</span>
+                          </h1>
+                          <p className="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+                            This dashboard subjects the protocol to the three canonical stress-tests defined in <strong>Chapter 9</strong> of the Thesis.
+                            Scroll to explore the narrative impact of solvency, capitulation, and liquidity shocks.
                           </p>
                         </div>
-                      )}
+                      </section>
 
-                      <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart margin={{ left: 0, right: 20, top: 10, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                            <XAxis
-                              dataKey="t"
-                              fontSize={9}
-                              tick={{ fill: '#64748b' }}
-                              allowDuplicatedCategory={false}
-                            />
-                            <YAxis
-                              fontSize={9}
-                              tick={{ fill: '#64748b' }}
-                              domain={normalizeCharts ? [0, 'auto'] : ['auto', 'auto']}
-                              tickFormatter={(val) => normalizeCharts ? `${val}` : val}
-                            />
-                            <Tooltip
-                              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
-                              labelStyle={{ color: '#94a3b8', fontSize: 10 }}
-                              formatter={(value: number, name: string, props: any) => {
-                                if (normalizeCharts) {
-                                  // Find actual value from original data
-                                  const protocolId = PROTOCOL_PROFILES.find(p => p.metadata.name === name)?.metadata.id;
-                                  const data = protocolId ? multiAggregated[protocolId] : [];
-                                  const point = data.find((d: any) => d.t === props.payload?.t);
-                                  const actual = point?.providers?.mean || 0;
-                                  return [`Index: ${value.toFixed(1)} | Actual: ${Math.round(actual)}`, name];
-                                }
-                                return [Math.round(value as number), name];
-                              }}
-                            />
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id) && !hiddenProtocols.has(p.metadata.id)).map((p, i) => {
-                              const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
-                              const data = multiAggregated[p.metadata.id] || [];
-                              const baselineValue = data[0]?.providers?.mean || 1;
-
-                              // Normalize data if toggle is on
-                              const chartData = normalizeCharts
-                                ? data.map((d: any) => ({
-                                  ...d,
-                                  normalizedProviders: ((d?.providers?.mean || 0) / baselineValue) * 100
-                                }))
-                                : data;
-
-                              return (
-                                <Line
-                                  key={p.metadata.id}
-                                  data={chartData}
-                                  type="monotone"
-                                  dataKey={normalizeCharts ? 'normalizedProviders' : (d: any) => d?.providers?.mean}
-                                  stroke={colors[i % colors.length]}
-                                  strokeWidth={2}
-                                  dot={false}
-                                  name={p.metadata.name}
-                                />
-                              );
-                            })}
-                          </LineChart>
-                        </ResponsiveContainer>
+                      {/* Module Quick-Nav */}
+                      <div className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-sm border-b border-slate-800/50 py-3 px-4 -mx-6 mb-8">
+                        <div className="max-w-4xl mx-auto flex items-center justify-center gap-2">
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mr-3">Jump to:</span>
+                          <a
+                            href="#module-1"
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-500/20 border border-slate-800 hover:border-rose-500/50 text-[10px] font-bold text-slate-400 hover:text-rose-400 transition-all"
+                          >
+                            M1 Solvency
+                          </a>
+                          <a
+                            href="#module-2"
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-amber-500/20 border border-slate-800 hover:border-amber-500/50 text-[10px] font-bold text-slate-400 hover:text-amber-400 transition-all"
+                          >
+                            M2 Capitulation
+                          </a>
+                          <a
+                            href="#module-3"
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-purple-500/20 border border-slate-800 hover:border-purple-500/50 text-[10px] font-bold text-slate-400 hover:text-purple-400 transition-all"
+                          >
+                            M3 Liquidity
+                          </a>
+                          <a
+                            href="#module-4"
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/50 text-[10px] font-bold text-slate-400 hover:text-emerald-400 transition-all"
+                          >
+                            M4 Vampire
+                          </a>
+                        </div>
                       </div>
 
-
-                      {normalizeCharts && (
-                        <div className="mt-4 pt-4 border-t border-slate-800">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[9px] text-slate-500 uppercase font-bold">Absolute Values (Week {params.T}):</span>
+                      {/* Module 1: Solvency */}
+                      <SectionLayout
+                        id="module-1"
+                        title="The Solvency Test"
+                        subtitle="Module 01 // Equilibrium"
+                        description={
+                          <div className="space-y-6">
+                            <p>
+                              <strong>The Burn-and-Mint Equilibrium (BME)</strong> model relies on a simple premise: for the token price to remain stable, the value of tokens burned (demand) must at least equal the value of tokens minted (supply).
+                            </p>
+                            <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs text-indigo-300">
+                              P_ono = (D_fiat) / (V * S_circ)
+                            </div>
+                            <p>
+                              When <code>Ratio &lt; 1.0</code>, the protocol is subsidizing operations through inflation (Shareholder Dilution).
+                            </p>
                           </div>
-                          <div className="flex flex-wrap gap-3">
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id) && !hiddenProtocols.has(p.metadata.id)).map((p, i) => {
-                              const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
-                              const data = multiAggregated[p.metadata.id] || [];
-                              const last = data[data.length - 1];
-                              const first = data[0];
-                              const finalValue = last?.providers?.mean || 0;
-                              const startValue = first?.providers?.mean || 1;
-                              const change = ((finalValue - startValue) / startValue) * 100;
+                        }
+                      >
+                        <div className="space-y-6">
+                          {/* Solvency Score Header */}
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Solvency Metrics</h3>
+                            <div className={`px-3 py-1 rounded-lg border flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) > 1.0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
+                              {(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) > 1.0 ? 'Deflationary' : 'Inflationary'}
+                            </div>
+                          </div>
 
+                          <div className="grid grid-cols-2 gap-4">
+                            <MetricCard
+                              title="Solvency Score"
+                              value={aggregated[aggregated.length - 1]?.solvencyScore?.mean > 0 ? formatCompact(aggregated[aggregated.length - 1]?.solvencyScore?.mean) : '-'}
+                              subValue={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'Dilutive' : 'Solvent'}
+                              subColor={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'text-amber-400' : 'text-emerald-400'}
+                              icon={Activity}
+                              tooltip="Ratio of Value Burned to Value Minted. >1.0 indicates deflationary sustainability."
+                              formula="(Burned_USD / 7) / (Minted_USD / 7)"
+                            />
+                            <MetricCard
+                              title="Net Daily Loss"
+                              value={aggregated[aggregated.length - 1]?.netDailyLoss?.mean ? formatCompact(Math.abs(aggregated[aggregated.length - 1]?.netDailyLoss?.mean)) : '-'}
+                              subValue="USD"
+                              subColor="text-slate-500"
+                              icon={DollarSign}
+                              tooltip="Daily USD difference between Burn and Emissions. Negative values indicate subsidy."
+                              formula="DailyBurn_USD - DailyMint_USD"
+                            />
+                            {/* [NEW] Payback Period Metric */}
+                            <MetricCard
+                              className="col-span-2 md:col-span-1"
+                              title="Payback Period"
+                              value={(() => {
+                                const last = aggregated[aggregated.length - 1];
+                                if (!last) return '-';
+                                const weeklyRev = (last.minted.mean / Math.max(1, last.providers.mean)) * last.price.mean;
+                                const profit = weeklyRev - params.providerCostPerWeek;
+                                if (profit <= 0) return '>36mo';
+                                const months = (params.hardwareCost / profit) / 4.33;
+                                return months > 60 ? '>5y' : `${months.toFixed(1)}mo`;
+                              })()}
+                              subValue={(() => {
+                                const last = aggregated[aggregated.length - 1];
+                                if (!last) return '';
+                                const weeklyRev = (last.minted.mean / Math.max(1, last.providers.mean)) * last.price.mean;
+                                const profit = weeklyRev - params.providerCostPerWeek;
+                                return profit <= 0 ? 'Never (Loss)' : 'ROI Time';
+                              })()}
+                              subColor={(() => {
+                                const last = aggregated[aggregated.length - 1];
+                                if (!last) return '';
+                                const weeklyRev = (last.minted.mean / Math.max(1, last.providers.mean)) * last.price.mean;
+                                const profit = weeklyRev - params.providerCostPerWeek;
+                                if (profit <= 0) return 'text-rose-400';
+                                const months = (params.hardwareCost / profit) / 4.33;
+                                return months > 18 ? 'text-rose-400' : 'text-emerald-400';
+                              })()}
+                              icon={Clock}
+                              tooltip="Estimated time to recover hardware cost based on current daily earnings."
+                              formula="HardwareCost / (WeeklyProfit * 4.33)"
+                            />
+                          </div>
+
+                          <BaseChartBox title="Cumulative Network Subsidy" icon={TrendingDown} color="rose" source="Σ (Daily Burn - Daily Mint)" heightClass="h-[300px]">
+                            <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="subsidyGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <XAxis dataKey="t" fontSize={9} />
+                              <YAxis fontSize={9} tickFormatter={formatCompact} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }}
+                                formatter={(val: number) => [formatCompact(val), 'Cumulative Subsidy ($)']}
+                                labelFormatter={(label) => `Week ${label}`}
+                              />
+                              <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1} />
+                              <Area
+                                type="monotone"
+                                dataKey="cumulativeNetLoss"
+                                stroke="#f43f5e"
+                                fill="url(#subsidyGradient)"
+                                strokeWidth={2}
+                              />
+                            </AreaChart>
+                          </BaseChartBox>
+                        </div>
+                      </SectionLayout>
+
+                      {/* Module 2: Capitulation */}
+                      <SectionLayout
+                        id="module-2"
+                        title="The Capitulation Test"
+                        subtitle="Module 02 // Resilience"
+                        description={
+                          <div className="space-y-6">
+                            <p>
+                              <strong>The Miner's Dilemma.</strong> As token price crashes, miners with higher OPEX (Urban/Professional) become unprofitable first. They unplug, leading to a loss of redundancy.
+                            </p>
+                            <p>
+                              This module tests the network's "Kill Switch" threshold—the price point where mass exodus occurs.
+                            </p>
+                          </div>
+                        }
+                      >
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                              <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Urban Miners (Fragile)</div>
+                              <div className="text-lg font-mono text-rose-400">{(aggregated[aggregated.length - 1]?.urbanCount?.mean || 0).toFixed(0)}</div>
+                              <div className="h-1 mt-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-rose-500" style={{ width: `${((aggregated[aggregated.length - 1]?.urbanCount?.mean || 0) / (aggregated[aggregated.length - 1]?.providers?.mean || 1)) * 100}%` }}></div>
+                              </div>
+                            </div>
+                            <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                              <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Rural Miners (Resilient)</div>
+                              <div className="text-lg font-mono text-emerald-400">{(aggregated[aggregated.length - 1]?.ruralCount?.mean || 0).toFixed(0)}</div>
+                              <div className="h-1 mt-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500" style={{ width: `${((aggregated[aggregated.length - 1]?.ruralCount?.mean || 0) / (aggregated[aggregated.length - 1]?.providers?.mean || 1)) * 100}%` }}></div>
+                              </div>
+                            </div>
+                          </div>
+                          <BaseChartBox title="Miner Capitulation (Urban vs Rural)" icon={ShieldAlert} color="amber" source="Simulated Miner Churn by Tier" heightClass="h-[300px]">
+                            <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="urbanGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="ruralGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <XAxis dataKey="t" fontSize={9} />
+                              <YAxis fontSize={9} tickFormatter={formatCompact} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }}
+                                itemStyle={{ fontSize: '12px' }}
+                                labelStyle={{ color: '#94a3b8', marginBottom: '0.5rem' }}
+                              />
+                              <Area type="monotone" dataKey="ruralCount.mean" name="Rural (Resilient)" stackId="1" stroke="#10b981" fill="url(#ruralGradient)" strokeWidth={2} />
+                              <Area type="monotone" dataKey="urbanCount.mean" name="Urban (Fragile)" stackId="1" stroke="#f43f5e" fill="url(#urbanGradient)" strokeWidth={2} />
+                            </AreaChart>
+                          </BaseChartBox>
+                        </div>
+                      </SectionLayout>
+
+                      {/* Module 3: Liquidity Shock */}
+                      <SectionLayout
+                        id="module-3"
+                        title="The Liquidity Shock"
+                        subtitle="Module 03 // Depth"
+                        description={
+                          <div className="space-y-6">
+                            <p>
+                              A stress test of the market's ability to absorb sell pressure.
+                              We simulate a <strong>Liquid Investor Vesting Event</strong> where a percentage of supply is sold into the pool.
+                            </p>
+                            <p>
+                              If the price crash is severe enough, it triggers the "Death Spiral": Price Crash → Miner Churn → Network Utility Drop → Further Price Crash.
+                            </p>
+                          </div>
+                        }
+                      >
+                        <div className="space-y-8">
+                          {/* Controls */}
+                          <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800">
+                            <div className="grid grid-cols-2 gap-8">
+                              <div className="space-y-3">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                                  <span>Liquidity Depth</span>
+                                  <span className="text-purple-400">${formatCompact(params.initialLiquidity)}</span>
+                                </div>
+                                <input
+                                  type="range" min="10000" max="1000000" step="10000"
+                                  value={params.initialLiquidity}
+                                  onChange={(e) => setParams({ ...params, initialLiquidity: parseFloat(e.target.value) })}
+                                  className="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+                              <div className="space-y-3">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                                  <span>Sell Pressure (Dump)</span>
+                                  <span className="text-rose-400">{(params.investorSellPct * 100).toFixed(0)}%</span>
+                                </div>
+                                <input
+                                  type="range" min="0.01" max="0.30" step="0.01"
+                                  value={params.investorSellPct}
+                                  onChange={(e) => setParams({ ...params, investorSellPct: parseFloat(e.target.value) })}
+                                  className="w-full accent-rose-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Warning Logic */}
+                          {(() => {
+                            const crashPct = (1 - (params.initialLiquidity / (params.initialLiquidity + (params.initialSupply * params.investorSellPct * params.initialPrice))));
+                            if (crashPct > 0.4) {
                               return (
-                                <div key={p.metadata.id} className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded">
-                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
-                                  <span className="text-[9px] text-slate-400 font-bold">{p.metadata.name}:</span>
-                                  <span className="text-[10px] font-mono text-white">{Math.round(finalValue)}</span>
-                                  <span className={`text-[9px] font-bold ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                    ({change >= 0 ? '+' : ''}{change.toFixed(0)}%)
-                                  </span>
+                                <div className="p-4 bg-rose-950/20 border border-rose-500/30 rounded-xl flex items-center gap-4 animate-pulse">
+                                  <AlertTriangle className="text-rose-500 shrink-0" size={20} />
+                                  <div>
+                                    <h4 className="text-rose-400 text-xs font-black uppercase tracking-widest">Warning: Recursive Feedback Loop Active</h4>
+                                    <p className="text-[10px] text-rose-300/70 mt-1">Price impact {'>'} 40% triggers stochastic miner capitulation.</p>
+                                  </div>
                                 </div>
                               );
-                            })}
+                            }
+                            return null;
+                          })()}
+
+                          <BaseChartBox title="Liquidity Shock Impact" icon={TrendingDown} color="purple" source="Token Price ($) vs Time" heightClass="h-[300px]">
+                            <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <XAxis dataKey="t" fontSize={9} tickFormatter={(val) => val === params.investorUnlockWeek ? `⚡ W${val}` : val} label={{ value: 'Time', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                              <YAxis fontSize={9} tickFormatter={(val) => `$${val.toFixed(2)}`} label={{ value: 'Price ($)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                              <Tooltip />
+                              <ReferenceLine x={params.investorUnlockWeek} stroke="#f43f5e" strokeDasharray="3 3" />
+                              <Area type="monotone" dataKey="price.mean" name="Price" stroke="#a855f7" fill="url(#priceGradient)" strokeWidth={2} />
+                            </AreaChart>
+                          </BaseChartBox>
+                        </div>
+                      </SectionLayout>
+
+                      {/* Module 4: Competitive Resilience (Risk Engine) */}
+                      <SectionLayout
+                        id="module-4"
+                        title="The Vampire & Reserve Test"
+                        subtitle="Module 04 // Competitive Moat"
+                        description={
+                          <div className="space-y-6">
+                            <p>
+                              <strong>The Competitor's Dilemma.</strong> What happens when a rival protocol
+                              offers 150% of your yield? The "Vampire Attack" drains nodes regardless of
+                              your token price stability.
+                            </p>
+                            <p>
+                              This module also tests <strong>Sinking Fund</strong> resilience vs <strong>Buy & Burn</strong>
+                              strategies during market stress. Research shows protocols with reserves survive 50% longer.
+                            </p>
+                          </div>
+                        }
+                      >
+                        <div className="space-y-6">
+                          {/* Status Indicators */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                              <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Competitor Threat</div>
+                              <div className={`text-lg font-mono ${params.competitorYield > 0.5 ? 'text-rose-400' : params.competitorYield > 0.2 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {params.competitorYield > 0.5 ? 'CRITICAL' : params.competitorYield > 0.2 ? 'MODERATE' : 'LOW'}
+                              </div>
+                              <div className="text-[9px] text-slate-500 mt-1">+{(params.competitorYield * 100).toFixed(0)}% yield advantage</div>
+                            </div>
+                            <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                              <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Revenue Strategy</div>
+                              <div className={`text-lg font-mono ${params.revenueStrategy === 'reserve' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {params.revenueStrategy === 'reserve' ? 'SINKING FUND' : 'BUY & BURN'}
+                              </div>
+                              <div className="text-[9px] text-slate-500 mt-1">{params.revenueStrategy === 'reserve' ? 'Building reserves' : 'Burning tokens'}</div>
+                            </div>
+                            <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                              <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Emission Model</div>
+                              <div className={`text-lg font-mono ${params.emissionModel === 'kpi' ? 'text-emerald-400' : 'text-blue-400'}`}>
+                                {params.emissionModel === 'kpi' ? 'KPI-BASED' : 'FIXED'}
+                              </div>
+                              <div className="text-[9px] text-slate-500 mt-1">{params.emissionModel === 'kpi' ? 'Demand-responsive' : 'Fixed schedule'}</div>
+                            </div>
+                            <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                              <div className="text-[9px] text-slate-500 font-bold uppercase mb-1">Treasury Balance</div>
+                              <div className={`text-lg font-mono ${params.revenueStrategy === 'reserve' ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                ${formatCompact(aggregated[aggregated.length - 1]?.treasuryBalance?.mean || 0)}
+                              </div>
+                              <div className="text-[9px] text-slate-500 mt-1">{params.revenueStrategy === 'reserve' ? 'Accumulated' : 'No reserves'}</div>
+                            </div>
+                          </div>
+
+                          {/* Vampire Attack Warning */}
+                          {params.competitorYield > 0.5 && (
+                            <div className="p-4 bg-rose-950/20 border border-rose-500/30 rounded-xl flex items-center gap-4 animate-pulse">
+                              <AlertTriangle className="text-rose-500 shrink-0" size={20} />
+                              <div>
+                                <h4 className="text-rose-400 text-xs font-black uppercase tracking-widest">Warning: Vampire Attack Active</h4>
+                                <p className="text-[10px] text-rose-300/70 mt-1">Competitor offering +{(params.competitorYield * 100).toFixed(0)}% yield. Expect accelerated node churn.</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Treasury Health Chart */}
+                          <BaseChartBox
+                            title="Treasury Health & Vampire Churn"
+                            icon={Wallet}
+                            color="emerald"
+                            source={params.revenueStrategy === 'reserve' ? 'Accumulated Reserves ($)' : 'No reserves (Burn mode)'}
+                            heightClass="h-[300px]"
+                          >
+                            <ComposedChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="treasuryGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                              <YAxis yAxisId="left" fontSize={9} tickFormatter={formatCompact} label={{ value: 'Treasury ($)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                              <YAxis yAxisId="right" orientation="right" fontSize={9} label={{ value: 'Vampire Churn', angle: 90, position: 'insideRight', fill: '#64748b', fontSize: 9 }} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }}
+                                formatter={(val: number, name: string) => [
+                                  name === 'Treasury' ? `$${formatCompact(val)}` : val.toFixed(1),
+                                  name
+                                ]}
+                              />
+                              <Area
+                                yAxisId="left"
+                                type="monotone"
+                                dataKey="treasuryBalance.mean"
+                                name="Treasury"
+                                stroke="#10b981"
+                                fill="url(#treasuryGradient)"
+                                strokeWidth={2}
+                              />
+                              <Line
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="vampireChurn.mean"
+                                name="Vampire Churn"
+                                stroke="#f43f5e"
+                                strokeWidth={2}
+                                dot={false}
+                                strokeDasharray="5 5"
+                              />
+                            </ComposedChart>
+                          </BaseChartBox>
+
+                          {/* Strategy Comparison Insight */}
+                          <div className={`p-4 rounded-xl border ${params.revenueStrategy === 'reserve' ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'}`}>
+                            <h4 className={`text-xs font-black uppercase tracking-widest mb-2 ${params.revenueStrategy === 'reserve' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {params.revenueStrategy === 'reserve' ? '💰 Sinking Fund Active' : '🔥 Buy & Burn Active'}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              {params.revenueStrategy === 'reserve'
+                                ? 'Protocol is accumulating reserves. Price drops are dampened by 50%. This strategy provides a safety net during bear markets, as shown in the GEODNET thesis model.'
+                                : 'Protocol is burning tokens immediately. Short-term price support, but no reserves for downturns. This strategy is fragile during extended bear markets.'}
+                            </p>
+                          </div>
+                        </div>
+                      </SectionLayout>
+                      {showAuditPanel && (
+                        <div className="p-6 bg-slate-900 border border-indigo-500/30 rounded-3xl animate-in zoom-in-95 duration-200 shadow-2xl">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <Calculator className="text-indigo-400" size={18} />
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-white">System Calibration Audit (T={params.T})</h4>
+                            </div>
+                            <button onClick={() => setShowAuditPanel(false)} className="text-slate-600 hover:text-white transition-colors"><X size={14} /></button>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+                            <div className="space-y-1 group">
+                              <span className="text-[8px] font-bold text-slate-500 uppercase flex items-center gap-1.5">Provider ROI (Incentive) <Info size={10} className="opacity-30" /></span>
+                              <div className="text-sm font-mono text-emerald-400 bg-emerald-400/5 px-2 py-1 rounded border border-emerald-400/20">{((aggregated[aggregated.length - 1]?.incentive?.mean || 0) * 100).toFixed(1)}%</div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-bold text-slate-500 uppercase">System Scarcity</span>
+                              <div className="text-sm font-mono text-amber-400 bg-amber-400/5 px-2 py-1 rounded border border-amber-400/20">{((aggregated[aggregated.length - 1]?.scarcity?.mean || 0) * 100).toFixed(1)}%</div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-bold text-slate-500 uppercase">Weekly Emission Ratio</span>
+                              <div className="text-sm font-mono text-indigo-400 bg-indigo-400/5 px-2 py-1 rounded border border-indigo-400/20">{((aggregated[aggregated.length - 1]?.minted?.mean || 0) / (params.initialSupply) * 100).toFixed(4)}%</div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-bold text-slate-500 uppercase">Realized OpEx</span>
+                              <div className="text-sm font-mono text-slate-300 bg-slate-300/5 px-2 py-1 rounded border border-slate-300/20">CHF {params.providerCostPerWeek.toFixed(2)} / unit</div>
+                            </div>
                           </div>
                         </div>
                       )}
-                    </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                        {/* Chart 1: Miner Payback Period (The Trigger) */}
+                        <BaseChartBox
+                          title="Miner Payback Period (Months)"
+                          icon={DollarSign}
+                          color="rose"
+                          onExpand={() => setFocusChart("Miner Payback Period (Months)")}
+                          isDriver={incentiveRegime.drivers.includes('Service Pricing Proxy')}
+                          driverColor={incentiveRegime.color}
+                          source="Hardware Cost / Weekly Profit"
+                        >
+                          <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                            <YAxis
+                              fontSize={9}
+                              domain={[0, 36]}
+                              allowDataOverflow={true}
+                              label={{ value: 'Months', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }}
+                            />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }}
+                              formatter={(val: number) => isFinite(val) ? `${val.toFixed(1)} mo` : 'Never'}
+                              labelFormatter={(label) => `Week ${label}`}
+                            />
+
+                            {/* Reference Zones: Explicit Backgrounds for Readability */}
+                            <ReferenceArea y1={0} y2={12} fill="#10b981" fillOpacity={0.05} />
+                            <ReferenceArea y1={24} y2={36} fill="#f43f5e" fillOpacity={0.05} />
+
+                            <Line
+                              type="monotone"
+                              dataKey={(d: any) => {
+                                const weeklyRevenue = (d.minted.mean / d.providers.mean) * d.price.mean;
+                                const profit = weeklyRevenue - params.providerCostPerWeek;
+                                if (profit <= 0) return 36; // Capped at Max logic
+                                const payback = (params.hardwareCost / profit) / 4.33;
+                                return Math.min(payback, 36); // HARD CLAMP to prevent overflow
+                              }}
+                              stroke="#f43f5e"
+                              strokeWidth={2}
+                              dot={false}
+                              name="Payback Period"
+                            />
+                            <ReferenceLine y={12} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Healthy (<12m)', fill: '#10b981', fontSize: 9, position: 'insideBottomRight' }} />
+                            <ReferenceLine y={24} stroke="#fbbf24" strokeDasharray="3 3" label={{ value: 'Risk (>24m)', fill: '#fbbf24', fontSize: 9, position: 'insideTopRight' }} />
+                          </LineChart>
+                        </BaseChartBox>
+
+                        {/* Chart 2: The Solvency Ratio (Protocol Health) */}
+                        <BaseChartBox
+                          title="The Solvency Ratio"
+                          icon={Scale}
+                          color="amber"
+                          onExpand={() => setFocusChart("The Solvency Ratio")}
+                          isDriver={incentiveRegime.drivers.includes('Burn vs Emissions')}
+                          driverColor={incentiveRegime.color}
+                          source="Value Burned / Value Minted"
+                        >
+                          <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                            <YAxis fontSize={9} domain={[0, 5]} allowDataOverflow={true} label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }}
+                            />
+
+                            {/* Reference Zones */}
+                            <ReferenceArea y1={0} y2={1} fill="#f43f5e" fillOpacity={0.1} /> {/* Dilutive Zone */}
+                            <ReferenceArea y1={1} y2={5} fill="#10b981" fillOpacity={0.05} /> {/* Deflationary Zone */}
+
+                            <Line
+                              type="monotone"
+                              dataKey={(d: any) => Math.min(d?.solvencyScore?.mean || 0, 5)} // CLAMP to 5.0
+                              stroke="#fbbf24"
+                              strokeWidth={2}
+                              dot={false}
+                              name="Solvency Ratio"
+                            />
+                            <ReferenceLine y={1} stroke="#10b981" strokeDasharray="5 5" strokeWidth={1.5} label={{ value: 'Deflationary (>1.0)', fill: '#10b981', fontSize: 9, position: 'insideTopLeft' }} />
+                          </ComposedChart>
+                        </BaseChartBox>
+
+                        {/* Chart 3: The Capitulation Stack (Physical Consequence) */}
+                        <BaseChartBox
+                          title="The Capitulation Stack"
+                          icon={ShieldAlert}
+                          color="emerald"
+                          onExpand={() => setFocusChart("The Capitulation Stack")}
+                          isDriver={incentiveRegime.drivers.includes('Provider Count')}
+                          driverColor={incentiveRegime.color}
+                          source="Network Composition (Urban vs Rural)"
+                        >
+                          <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="urbanGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1} />
+                              </linearGradient>
+                              <linearGradient id="ruralGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                            <YAxis fontSize={9} label={{ value: 'Nodes', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }}
+                            />
+                            {/* Rural (Bottom Layer - Resilient) */}
+                            <Area
+                              type="monotone"
+                              dataKey="ruralCount.mean"
+                              stackId="1"
+                              stroke="#10b981"
+                              fill="url(#ruralGradient)"
+                              name="Rural (Utility)"
+                            />
+                            {/* Urban (Top Layer - Speculative) */}
+                            <Area
+                              type="monotone"
+                              dataKey="urbanCount.mean"
+                              stackId="1"
+                              stroke="#ef4444"
+                              fill="url(#urbanGradient)"
+                              name="Urban (Speculator)"
+                            />
+                          </AreaChart>
+                        </BaseChartBox>
+
+                        {/* Chart 4: Effective Coverage Map (Placeholder for Heatmap/Coverage) */}
+                        {/* Reusing Capacity vs Demand as a proxy for 'Effective Service' */}
+                        <BaseChartBox
+                          title="Effective Service Capacity"
+                          icon={Activity}
+                          color="indigo"
+                          onExpand={() => setFocusChart("Effective Service Capacity")}
+                          isDriver={incentiveRegime.drivers.includes('Capacity vs Demand')}
+                          driverColor={incentiveRegime.color}
+                          source="Serviceable Demand vs Total Capacity"
+                        >
+                          <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                            <YAxis fontSize={9} tickFormatter={formatCompact} label={{ value: 'Units', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                            <Area type="monotone" dataKey={(d: any) => d?.capacity?.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} name="Total Capacity" />
+                            <Line type="monotone" dataKey={(d: any) => d?.demand_served?.mean} stroke="#fbbf24" strokeWidth={2} dot={false} name="Served Demand" />
+                          </ComposedChart>
+                        </BaseChartBox>
+
+                        {/* Chart 5: Supply Trajectory (Kept as context) */}
+                        <BaseChartBox title="Supply Trajectory" icon={Database} color="violet" onExpand={() => setFocusChart("Supply Trajectory")} isDriver={incentiveRegime.drivers.includes('Supply Trajectory')} driverColor={incentiveRegime.color} source="Protocol Parameters">
+                          <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                            <YAxis fontSize={9} tickFormatter={formatCompact} label={{ value: 'Supply', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                            <Line type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </BaseChartBox>
+
+                        {/* Chart 6: Network Utilization (Kept as derived metric) */}
+                        <BaseChartBox title="Network Utilization (%)" icon={BarChart3} color="rose" onExpand={() => setFocusChart("Network Utilization (%)")} isDriver={incentiveRegime.drivers.includes('Network Utilization (%)')} driverColor={incentiveRegime.color} source="Derived Metric">
+                          <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                            <YAxis domain={[0, 100]} fontSize={9} label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                            <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
+                          </AreaChart>
+                        </BaseChartBox>
+                      </div>
+                    </div >
+                  ) : (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                      <div className="flex items-center justify-between p-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl"><Lock size={18} /></div>
+                          <div>
+                            <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Comparative Control Method</h3>
+                            <p className="text-[10px] text-slate-500 font-medium italic">Locked stress parameters for structural comparability across all archetypes.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] text-slate-500 font-bold">{selectedProtocolIds.length} of {PROTOCOL_PROFILES.length} selected</span>
+                          <button
+                            onClick={() => setSelectedProtocolIds(PROTOCOL_PROFILES.map(p => p.metadata.id))}
+                            className="px-3 py-1.5 bg-indigo-600/20 text-indigo-400 text-[10px] font-bold rounded-lg hover:bg-indigo-600/30 transition-colors"
+                          >
+                            Select All
+                          </button>
+                        </div>
+                      </div>
 
 
-                    <div className="overflow-x-auto custom-scrollbar pb-4">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="text-left">
-                            <th className="p-4 bg-slate-950 sticky left-0 z-10 w-48">
-                              <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Metric</span>
-                            </th>
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                              <th key={p.metadata.id} className="p-4 min-w-[280px]">
-                                <div className="flex flex-col gap-1">
-                                  <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">{p.metadata.name}</span>
-                                  <span className="text-[9px] text-slate-500 font-bold uppercase">{p.metadata.mechanism}</span>
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/50">
+                      {Object.keys(liveData).length > 0 && (
+                        <div className="p-4 bg-emerald-900/20 border border-emerald-500/30 rounded-2xl">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                <Activity size={16} className="text-emerald-400" />
+                              </div>
+                              <div>
+                                <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider">Live Market Data</h3>
+                                <p className="text-[9px] text-emerald-400/70">
+                                  From CoinGecko • Updated {lastLiveDataFetch?.toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={fetchLiveData}
+                              disabled={liveDataLoading}
+                              className="text-[9px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                            >
+                              <RefreshCw size={12} className={liveDataLoading ? 'animate-spin' : ''} /> Refresh
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
-                          <tr className="hover:bg-slate-900/30 transition-colors">
-                            <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                <ShieldQuestion size={14} /> Regime
+
+                      {selectedProtocolIds.length > 0 && (() => {
+                        // Calculate metrics for all selected protocols
+                        const protocolMetrics = PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
+                          const data = multiAggregated[p.metadata.id] || [];
+                          const last = data[data.length - 1];
+                          const first = data[0];
+                          const live = liveData[p.metadata.id];
+
+                          // Price & Token metrics
+                          // Note: price comes from sim params or live data, not protocol profile
+                          const livePrice = live?.currentPrice || 0;
+                          const defaultPrice = livePrice > 0 ? livePrice : params.initialPrice;
+                          const finalPrice = last?.price?.mean || defaultPrice;
+                          const initialPrice = first?.price?.mean || defaultPrice;
+                          const priceChange = initialPrice > 0 ? ((finalPrice - initialPrice) / initialPrice) * 100 : 0;
+
+                          // Calculate max drawdown
+                          let peak = initialPrice;
+                          let maxDrawdown = 0;
+                          data.forEach(d => {
+                            const price = d?.price?.mean || 0;
+                            if (price > peak) peak = price;
+                            const dd = peak > 0 ? ((peak - price) / peak) * 100 : 0;
+                            if (dd > maxDrawdown) maxDrawdown = dd;
+                          });
+
+                          // Supply & Inflation
+                          const defaultSupply = p.parameters?.supply?.value || 100_000_000;
+                          const finalSupply = last?.supply?.mean || defaultSupply;
+                          const initialSupply = first?.supply?.mean || defaultSupply;
+                          const supplyChange = initialSupply > 0 ? ((finalSupply - initialSupply) / initialSupply) * 100 : 0;
+                          const annualisedInflation = data.length > 0 ? supplyChange * (52 / data.length) : 0;
+
+                          // Net emissions
+                          const totalMinted = data.reduce((sum, d) => sum + (d?.minted?.mean || 0), 0);
+                          const totalBurned = data.reduce((sum, d) => sum + (d?.burned?.mean || 0), 0);
+                          const netEmissions = totalMinted - totalBurned;
+
+                          // Provider metrics
+                          const finalProviders = last?.providers?.mean || 30;
+                          const initialProviders = first?.providers?.mean || 30;
+                          const providerGrowth = initialProviders > 0 ? ((finalProviders - initialProviders) / initialProviders) * 100 : 0;
+                          const totalChurn = data.reduce((sum, d) => sum + (d?.churnCount?.mean || 0), 0);
+                          const totalJoins = data.reduce((sum, d) => sum + (d?.joinCount?.mean || 0), 0);
+                          const churnRate = totalJoins > 0 ? (totalChurn / totalJoins) * 100 : 0;
+
+                          // Utilisation
+                          const avgUtilisation = data.length > 0
+                            ? data.reduce((sum, d) => sum + (d?.utilization?.mean || 0), 0) / data.length
+                            : 0;
+
+                          // Unit Economics
+                          const weeklyOpEx = p.parameters?.provider_economics?.opex_weekly?.value || 26;
+                          const avgWeeklyReward = data.length > 0 && finalProviders > 0
+                            ? (totalMinted / data.length) / finalProviders
+                            : 0;
+                          const avgRewardValue = avgWeeklyReward * finalPrice;
+                          const weeklyProfit = avgRewardValue - weeklyOpEx;
+                          const monthlyEarnings = weeklyProfit * 4.33;
+                          const hardwareCost = p.metadata.id === 'ono_v3_calibrated' ? 650 :
+                            p.metadata.id === 'helium_bme_v1' ? 500 :
+                              p.metadata.id === 'hivemapper_map_v1' ? 549 :
+                                p.metadata.id === 'dimo_vehicle_v1' ? 350 : 1000;
+                          const paybackWeeks = weeklyProfit > 0 ? hardwareCost / weeklyProfit : Infinity;
+                          const breakEvenPrice = avgWeeklyReward > 0 ? weeklyOpEx / avgWeeklyReward : 0;
+
+                          // Risk metrics
+                          const regime = calculateRegime(data, p);
+                          const deathSpiralRisk = maxDrawdown > 80 ? 'HIGH' : maxDrawdown > 50 ? 'MEDIUM' : 'LOW';
+
+                          // Sustainability ratio (real revenue vs emissions)
+                          const totalRevenue = data.reduce((sum, d) => {
+                            const served = d?.demandServed?.mean || 0;
+                            const svcPrice = d?.servicePrice?.mean || 0;
+                            return sum + (served * svcPrice);
+                          }, 0);
+                          const emissionValue = totalMinted * finalPrice;
+                          const sustainabilityRatio = emissionValue > 0 ? (totalRevenue / emissionValue) * 100 : 0;
+
+                          return {
+                            protocol: p,
+                            live,
+                            regime,
+                            // Token Performance
+                            finalPrice,
+                            priceChange,
+                            annualisedInflation,
+                            maxDrawdown,
+                            // Network Health
+                            finalProviders,
+                            providerGrowth,
+                            avgUtilisation,
+                            churnRate,
+                            netEmissions,
+                            // Unit Economics
+                            hardwareCost,
+                            monthlyEarnings,
+                            paybackWeeks,
+                            breakEvenPrice,
+                            weeklyProfit,
+                            // Risk
+                            deathSpiralRisk,
+                            sustainabilityRatio,
+                            finalSupply,
+                          };
+                        });
+
+                        const baseline = protocolMetrics[0];
+
+                        // Metric row component
+                        const MetricRow = ({
+                          icon,
+                          iconColor,
+                          label,
+                          getValue,
+                          format,
+                          goodDirection,
+                          getDelta,
+                          hint
+                        }: {
+                          icon: React.ReactNode;
+                          iconColor: string;
+                          label: string;
+                          getValue: (m: typeof protocolMetrics[0]) => number;
+                          format: (v: number) => string;
+                          goodDirection: 'up' | 'down' | 'neutral';
+                          getDelta?: (m: typeof protocolMetrics[0], baseline: typeof protocolMetrics[0]) => number | null;
+                          hint?: string;
+                        }) => (
+                          <tr className="border-b border-slate-800/30 hover:bg-slate-800/20 transition-colors group">
+                            <td className="p-3 text-[10px] font-bold text-slate-400 bg-slate-950/30 sticky left-0 z-10">
+                              <div className="flex items-center gap-2">
+                                <span className={iconColor}>{icon}</span>
+                                <span>{label}</span>
+                                {hint && (
+                                  <span className="opacity-0 group-hover:opacity-100 text-[8px] text-slate-600 transition-opacity">
+                                    {hint}
+                                  </span>
+                                )}
                               </div>
                             </td>
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
-                              const regime = calculateRegime(multiAggregated[p.metadata.id] || [], p);
+                            {protocolMetrics.map((m, idx) => {
+                              const value = getValue(m);
+                              const delta = getDelta && idx > 0 ? getDelta(m, baseline) : null;
+                              const isGood = goodDirection === 'up' ? value > 0 :
+                                goodDirection === 'down' ? value < 0 : true;
+
                               return (
-                                <td key={p.metadata.id} className="p-5">
-                                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-${regime.color}-500/10 border border-${regime.color}-500/20`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full bg-${regime.color}-500 animate-pulse`} />
-                                    <span className={`text-[10px] font-black text-${regime.color}-400 uppercase tracking-widest`}>{regime.regime}</span>
+                                <td key={m.protocol.metadata.id} className="p-3 text-center">
+                                  <div className={`text-sm font-mono font-bold ${goodDirection === 'neutral' ? 'text-white' :
+                                    isGood ? 'text-emerald-400' : 'text-rose-400'
+                                    }`}>
+                                    {format(value)}
                                   </div>
+                                  {delta !== null && (
+                                    <div className={`text-[9px] mt-0.5 font-bold ${goodDirection === 'up' ? (delta >= 0 ? 'text-emerald-400' : 'text-rose-400') :
+                                      goodDirection === 'down' ? (delta <= 0 ? 'text-emerald-400' : 'text-rose-400') :
+                                        'text-slate-500'
+                                      }`}>
+                                      {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+                                    </div>
+                                  )}
                                 </td>
                               );
                             })}
                           </tr>
+                        );
 
-
-                          <tr className="hover:bg-slate-900/30 transition-colors">
-                            <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                <Database size={14} /> Supply
+                        // Section header component
+                        const SectionHeader = ({ icon, iconColor, title, hint }: { icon: React.ReactNode; iconColor: string; title: string; hint: string }) => (
+                          <tr className="bg-slate-950/80">
+                            <td colSpan={protocolMetrics.length + 1} className="p-3">
+                              <div className="flex items-center gap-2">
+                                <span className={iconColor}>{icon}</span>
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{title}</span>
+                                <span className="text-[9px] text-slate-500 ml-2">{hint}</span>
                               </div>
                             </td>
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                              <td key={p.metadata.id} className="p-5 h-28">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                    <defs>
-                                      <linearGradient id={`supply-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                      </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" fill={`url(#supply-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
-                                  </AreaChart>
-                                </ResponsiveContainer>
-                              </td>
-                            ))}
                           </tr>
+                        );
 
-
-                          <tr className="hover:bg-slate-900/30 transition-colors">
-                            <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                <Users size={14} /> Providers
+                        return (
+                          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+                            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <BarChart3 size={16} className="text-indigo-400" />
+                                <h3 className="text-xs font-black text-white uppercase tracking-widest">DePIN Protocol Scorecard</h3>
                               </div>
-                            </td>
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                              <td key={p.metadata.id} className="p-5 h-28">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                    <defs>
-                                      <linearGradient id={`providers-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                      </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey={(d: any) => d?.providers?.mean} stroke="#10b981" fill={`url(#providers-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
-                                  </AreaChart>
-                                </ResponsiveContainer>
-                              </td>
-                            ))}
-                          </tr>
-
-
-                          <tr className="hover:bg-slate-900/30 transition-colors">
-                            <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                <Activity size={14} /> Utilization
+                              <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 text-[9px]">
+                                  <span className="text-emerald-400">● Good</span>
+                                  <span className="text-rose-400">● Caution</span>
+                                </div>
+                                <div className="text-[9px] text-slate-500">
+                                  Baseline: <span className="text-indigo-400 font-bold">{baseline?.protocol.metadata.name}</span>
+                                </div>
                               </div>
-                            </td>
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                              <td key={p.metadata.id} className="p-5 h-28">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                    <defs>
-                                      <linearGradient id={`util-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                                      </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f59e0b" fill={`url(#util-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
-                                  </AreaChart>
-                                </ResponsiveContainer>
-                              </td>
-                            ))}
-                          </tr>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="border-b border-slate-800/50">
+                                    <th className="p-3 text-left text-[9px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/30 sticky left-0 z-10 min-w-[160px]">
+                                      Metric
+                                    </th>
+                                    {protocolMetrics.map((m, idx) => (
+                                      <th key={m.protocol.metadata.id} className="p-3 text-center text-[9px] font-bold uppercase tracking-wider min-w-[120px]">
+                                        <div className="flex flex-col items-center gap-1">
+                                          <span className={idx === 0 ? 'text-indigo-400' : 'text-slate-400'}>{m.protocol.metadata.name}</span>
+                                          {m.live && (
+                                            <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">LIVE</span>
+                                          )}
+                                        </div>
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+
+                                  <SectionHeader
+                                    icon={<DollarSign size={12} />}
+                                    iconColor="text-emerald-500"
+                                    title="Unit Economics"
+                                    hint="🔧 For hardware operators"
+                                  />
+                                  <MetricRow
+                                    icon={<Box size={12} />}
+                                    iconColor="text-emerald-500"
+                                    label="Hardware Cost"
+                                    getValue={m => m.hardwareCost}
+                                    format={v => `$${v.toLocaleString()}`}
+                                    goodDirection="down"
+                                    getDelta={(m, b) => b.hardwareCost > 0 ? ((m.hardwareCost - b.hardwareCost) / b.hardwareCost) * 100 : null}
+                                  />
+                                  <MetricRow
+                                    icon={<Wallet size={12} />}
+                                    iconColor="text-emerald-500"
+                                    label="Monthly Earnings"
+                                    getValue={m => m.monthlyEarnings}
+                                    format={v => v > 0 ? `$${v.toFixed(0)}/mo` : `-$${Math.abs(v).toFixed(0)}/mo`}
+                                    goodDirection="up"
+                                    getDelta={(m, b) => Math.abs(b.monthlyEarnings) > 0 ? ((m.monthlyEarnings - b.monthlyEarnings) / Math.abs(b.monthlyEarnings)) * 100 : null}
+                                  />
+                                  <MetricRow
+                                    icon={<Clock size={12} />}
+                                    iconColor="text-emerald-500"
+                                    label="Payback Period"
+                                    getValue={m => m.paybackWeeks}
+                                    format={v => v === Infinity ? '∞' : v > 52 ? `${(v / 52).toFixed(1)}yr` : `${v.toFixed(0)}wk`}
+                                    goodDirection="down"
+                                    hint="Shorter = better"
+                                  />
+                                  <MetricRow
+                                    icon={<Target size={12} />}
+                                    iconColor="text-emerald-500"
+                                    label="Break-even Price"
+                                    getValue={m => m.breakEvenPrice}
+                                    format={v => v < 0.001 ? `$${v.toFixed(6)}` : `$${v.toFixed(4)}`}
+                                    goodDirection="down"
+                                    hint="Token floor to cover costs"
+                                  />
 
 
-                          <tr className="hover:bg-slate-900/30 transition-colors">
-                            <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                <Flame size={14} /> Burn/Mint
-                              </div>
-                            </td>
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                              <td key={p.metadata.id} className="p-5 h-28">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                    <Area type="monotone" dataKey={(d: any) => d?.minted?.mean} stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={1.5} isAnimationActive={false} />
-                                    <Area type="monotone" dataKey={(d: any) => d?.burned?.mean} stroke="#22c55e" fill="#22c55e" fillOpacity={0.1} strokeWidth={1.5} isAnimationActive={false} />
-                                  </AreaChart>
-                                </ResponsiveContainer>
-                              </td>
-                            ))}
-                          </tr>
+                                  <SectionHeader
+                                    icon={<TrendingUp size={12} />}
+                                    iconColor="text-blue-500"
+                                    title="Token Performance"
+                                    hint="💰 For investors"
+                                  />
+                                  <MetricRow
+                                    icon={<DollarSign size={12} />}
+                                    iconColor="text-blue-500"
+                                    label="Final Price"
+                                    getValue={m => m.finalPrice}
+                                    format={v => v < 0.01 ? `$${v.toFixed(6)}` : `$${v.toFixed(4)}`}
+                                    goodDirection="neutral"
+                                    getDelta={(m, b) => b.finalPrice > 0 ? ((m.finalPrice - b.finalPrice) / b.finalPrice) * 100 : null}
+                                  />
+                                  <MetricRow
+                                    icon={<Trending size={12} />}
+                                    iconColor="text-blue-500"
+                                    label="Price Change"
+                                    getValue={m => m.priceChange}
+                                    format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`}
+                                    goodDirection="up"
+                                  />
+                                  <MetricRow
+                                    icon={<Layers size={12} />}
+                                    iconColor="text-blue-500"
+                                    label="Inflation Rate"
+                                    getValue={m => m.annualisedInflation}
+                                    format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%/yr`}
+                                    goodDirection="down"
+                                    hint="Lower = less dilution"
+                                  />
+                                  <MetricRow
+                                    icon={<TrendingDown size={12} />}
+                                    iconColor="text-blue-500"
+                                    label="Max Drawdown"
+                                    getValue={m => m.maxDrawdown}
+                                    format={v => `-${v.toFixed(1)}%`}
+                                    goodDirection="down"
+                                    hint="Peak-to-trough loss"
+                                  />
 
 
-                          <tr className="hover:bg-slate-900/30 transition-colors">
-                            <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                <Settings2 size={14} /> Parameters
-                              </div>
-                            </td>
-                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                              <td key={p.metadata.id} className="p-5">
-                                <div className="grid grid-cols-2 gap-3 text-[9px]">
-                                  <div className="flex justify-between">
-                                    <span className="text-slate-500">Supply:</span>
-                                    <span className="text-white font-mono">{formatCompact(p.parameters.supply.value)}</span>
+                                  <SectionHeader
+                                    icon={<Zap size={12} />}
+                                    iconColor="text-amber-500"
+                                    title="Network Health"
+                                    hint="⚙️ For protocol designers"
+                                  />
+                                  <MetricRow
+                                    icon={<Users size={12} />}
+                                    iconColor="text-amber-500"
+                                    label="Final Providers"
+                                    getValue={m => m.finalProviders}
+                                    format={v => formatCompact(v)}
+                                    goodDirection="up"
+                                    getDelta={(m, b) => b.finalProviders > 0 ? ((m.finalProviders - b.finalProviders) / b.finalProviders) * 100 : null}
+                                  />
+                                  <MetricRow
+                                    icon={<Gauge size={12} />}
+                                    iconColor="text-amber-500"
+                                    label="Avg Utilisation"
+                                    getValue={m => m.avgUtilisation}
+                                    format={v => `${v.toFixed(1)}%`}
+                                    goodDirection="up"
+                                  />
+                                  <MetricRow
+                                    icon={<UserMinus size={12} />}
+                                    iconColor="text-amber-500"
+                                    label="Churn Rate"
+                                    getValue={m => m.churnRate}
+                                    format={v => `${v.toFixed(1)}%`}
+                                    goodDirection="down"
+                                    hint="Providers leaving"
+                                  />
+                                  <MetricRow
+                                    icon={<Flame size={12} />}
+                                    iconColor="text-amber-500"
+                                    label="Net Emissions"
+                                    getValue={m => m.netEmissions}
+                                    format={v => `${v >= 0 ? '+' : ''}${formatCompact(v)}`}
+                                    goodDirection="down"
+                                    hint="Minted - Burned"
+                                  />
+
+
+                                  <SectionHeader
+                                    icon={<AlertTriangle size={12} />}
+                                    iconColor="text-rose-500"
+                                    title="Risk Indicators"
+                                    hint="🎓 For researchers & VCs"
+                                  />
+                                  <MetricRow
+                                    icon={<ShieldQuestion size={12} />}
+                                    iconColor="text-rose-500"
+                                    label="Death Spiral Risk"
+                                    getValue={m => m.deathSpiralRisk === 'HIGH' ? 100 : m.deathSpiralRisk === 'MEDIUM' ? 50 : 10}
+                                    format={v => v >= 100 ? '⚠️ HIGH' : v >= 50 ? '⚡ MEDIUM' : '✓ LOW'}
+                                    goodDirection="down"
+                                  />
+                                  <MetricRow
+                                    icon={<BarChart3 size={12} />}
+                                    iconColor="text-rose-500"
+                                    label="Sustainability"
+                                    getValue={m => m.sustainabilityRatio}
+                                    format={v => `${v.toFixed(0)}%`}
+                                    goodDirection="up"
+                                    hint="Revenue vs emissions"
+                                  />
+
+
+                                  <tr className="bg-slate-950/50 hover:bg-slate-800/20 transition-colors">
+                                    <td className="p-3 text-[10px] font-bold text-white bg-slate-950/50 sticky left-0 z-10">
+                                      <div className="flex items-center gap-2">
+                                        <Activity size={12} className="text-violet-500" />
+                                        <span>Overall Regime</span>
+                                      </div>
+                                    </td>
+                                    {protocolMetrics.map(m => (
+                                      <td key={m.protocol.metadata.id} className="p-3 text-center">
+                                        <span className={`inline-block px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide
+                                    ${m.regime.color === 'emerald' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                            m.regime.color === 'amber' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                              m.regime.color === 'rose' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                                                'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                                          }`}>
+                                          {m.regime.regime.split(' ').slice(0, 2).join(' ')}
+                                        </span>
+                                      </td>
+                                    ))}
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
+                          const data = multiAggregated[p.metadata.id] || [];
+                          const last = data[data.length - 1];
+                          const regime = calculateRegime(data, p);
+                          const finalSupply = last?.supply?.mean || p.parameters.supply.value;
+                          const finalProviders = last?.providers?.mean || 30;
+                          const avgUtilization = data.length > 0
+                            ? data.reduce((sum, d) => sum + (d?.utilization?.mean || 0), 0) / data.length
+                            : 0;
+
+                          // Get live data for this protocol
+                          const live = liveData[p.metadata.id];
+
+                          return (
+                            <div key={p.metadata.id} className={`p-5 bg-slate-900/80 border rounded-2xl ${selectedProtocolIds[0] === p.metadata.id ? 'border-indigo-500/50' : 'border-slate-800'}`}>
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="text-xs font-black text-white uppercase tracking-wider">{p.metadata.name}</h4>
+                                    {live && (
+                                      <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">
+                                        LIVE
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-slate-500">Max Mint:</span>
-                                    <span className="text-white font-mono">{formatCompact(p.parameters.emissions.value)}/wk</span>
+                                  <p className="text-[9px] text-slate-500">{p.metadata.mechanism}</p>
+                                </div>
+                                <div className={`px-2 py-1 rounded-md bg-${regime.color}-500/10 border border-${regime.color}-500/20`}>
+                                  <span className={`text-[8px] font-black text-${regime.color}-400 uppercase`}>{regime.regime.split(' ')[0]}</span>
+                                </div>
+                              </div>
+
+
+                              {live && (
+                                <div className="mb-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[9px] text-slate-500 uppercase">Live Price</span>
+                                    <span className={`text-[9px] font-bold ${live.priceChangePercentage24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                      {live.priceChangePercentage24h >= 0 ? '↑' : '↓'} {Math.abs(live.priceChangePercentage24h).toFixed(2)}%
+                                    </span>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-slate-500">Burn %:</span>
-                                    <span className="text-white font-mono">{(p.parameters.burn_fraction.value * 100).toFixed(0)}%</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-slate-500">OpEx:</span>
-                                    <span className="text-white font-mono">${p.parameters.provider_economics.opex_weekly.value}/wk</span>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-lg font-bold text-white font-mono">
+                                      ${live.currentPrice < 0.01 ? live.currentPrice.toFixed(6) : live.currentPrice.toFixed(4)}
+                                    </span>
+                                    <span className="text-[9px] text-slate-500">
+                                      MCap: {formatCompact(live.marketCap)}
+                                    </span>
                                   </div>
                                 </div>
-                              </td>
-                            ))}
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div >
+                              )}
 
-
-              {renderFocusChart()}
-
-
-              {
-                showSpecModal && (
-                  <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col h-[80vh] overflow-hidden">
-                      <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-                        <div className="flex items-center gap-3">
-                          <Binary size={20} className="text-indigo-400" />
-                          <div>
-                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Mathematical Specification</h3>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Logic V1.1 Verification</p>
-                          </div>
-                        </div>
-                        <button onClick={() => setShowSpecModal(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+                              <div className="grid grid-cols-3 gap-3">
+                                <div className="text-center">
+                                  <p className="text-[9px] text-slate-500 uppercase mb-1">
+                                    {live ? 'Real Supply' : 'Sim Supply'}
+                                  </p>
+                                  <p className="text-sm font-mono font-bold text-emerald-400">
+                                    {formatCompact(live ? live.circulatingSupply : finalSupply)}
+                                  </p>
+                                  {live && data.length > 0 && (
+                                    <p className="text-[8px] text-slate-600 mt-0.5">
+                                      Sim: {formatCompact(finalSupply)}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-[9px] text-slate-500 uppercase mb-1">Providers</p>
+                                  <p className="text-sm font-mono font-bold text-blue-400">{Math.round(finalProviders)}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-[9px] text-slate-500 uppercase mb-1">Util.</p>
+                                  <p className="text-sm font-mono font-bold text-amber-400">{avgUtilization.toFixed(0)}%</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                          <div className="space-y-6">
-                            <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Core Mechanics</h4>
-                            <FormulaDisplay label="Market Clearing" formula="Utility_Served = min(Demand, Total_Capacity)" />
-                            <FormulaDisplay label="System Capacity" formula="Capacity = Providers * Unit_Capability" />
-                            <FormulaDisplay label="Capital Efficiency" formula="Utilization = (Served / Capacity) * 100" />
-                            <FormulaDisplay label="Pricing Equilibrium" formula="Service_Price_{t+1} = Service_Price_t * (1 + 0.6 * Scarcity)" />
-                          </div>
-                          <div className="space-y-6">
-                            <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Tokenomics</h4>
-                            <FormulaDisplay label="Utility Value Burn" formula="Burn = (Served * Service_Price) / Token_Price" />
-                            <FormulaDisplay label="Dynamic Emissions" formula="Mint = Max_Mint * (0.6 + 0.4 * tanh(Demand / 15000))" />
-                            <FormulaDisplay label="Supply Conservation" formula="Supply_{t+1} = Supply_t + Mint_t - Burn_t" />
-                          </div>
-                        </div>
-                        <div className="bg-slate-950/50 p-8 rounded-2xl border border-slate-800 space-y-4">
-                          <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2"><Variable size={14} /> Feedback Sensitivity</h4>
-                          <p className="text-[11px] text-slate-400 leading-relaxed italic">"Provider behavior follows a Proportional-Derivative growth model. Delta Providers is proportional to the ROI over OpEx, dampened by a 15% weekly growth ceiling to simulate physical hardware lead times."</p>
-                          <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                            <code className="text-xs text-indigo-400 font-mono">Delta_N = min(N * 0.15, (ROI * sensitivity * churn_capitulation))</code>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
-                        <button onClick={() => setShowSpecModal(false)} className="px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Verified & Understood</button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              }
-
-              <div className={`fixed inset-y-0 right-0 w-[450px] bg-slate-900 border-l border-slate-800 shadow-2xl z-[500] transform transition-transform duration-500 ease-in-out ${showKnowledgeLayer ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="h-full flex flex-col p-6 space-y-8 overflow-y-auto custom-scrollbar">
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-6">
-                    <div className="flex items-center gap-3">
-                      <Library className="text-indigo-400" size={20} />
-                      <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Regime Taxonomy</h3>
-                    </div>
-                    <button onClick={() => setShowKnowledgeLayer(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
-                  </div>
-                  {Object.entries(REGIME_KNOWLEDGE).map(([key, data]) => (
-                    <section key={key} className={`p-6 rounded-2xl border ${incentiveRegime.id === key ? `bg-${data.color}-500/5 border-${data.color}-500/30` : 'bg-slate-950/40 border-slate-800'}`}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <data.icon size={18} className={`text-${data.color}-400`} />
-                        <h4 className={`text-xs font-black uppercase tracking-widest text-${data.color}-400`}>{data.title}</h4>
-                      </div>
-                      <p className="text-[11px] text-slate-200 leading-relaxed font-medium">{data.definition}</p>
-                    </section>
-                  ))}
-                </div>
-              </div>
 
 
-              {
-                showExportPanel && (
-                  <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
-                      <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-                        <div className="flex items-center gap-3">
-                          <Download size={20} className="text-emerald-400" />
-                          <h3 className="text-lg font-black text-white uppercase tracking-tight">Export Data</h3>
-                        </div>
-                        <button onClick={() => setShowExportPanel(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
-                      </div>
-                      <div className="p-8 space-y-6">
+                      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <TrendingUp size={16} className="text-indigo-400" />
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest">Provider Count Overlay</h3>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            onClick={() => {
-                              exportToCSV(aggregated as unknown as NewAggregateResult[]);
-                              setShowExportPanel(false);
-                            }}
-                            className="p-6 bg-slate-950 border border-slate-800 rounded-2xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group"
-                          >
-                            <FileDown size={32} className="text-slate-500 group-hover:text-emerald-400 mb-3 transition-colors" />
-                            <h4 className="text-sm font-bold text-white mb-1">Export CSV</h4>
-                            <p className="text-[10px] text-slate-500">Time series data for analysis</p>
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (derivedMetrics) {
-                                exportToJSON(aggregated as unknown as NewAggregateResult[], params as unknown as NewSimulationParams, derivedMetrics);
-                              }
-                              setShowExportPanel(false);
-                            }}
-                            className="p-6 bg-slate-950 border border-slate-800 rounded-2xl hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group"
-                          >
-                            <FileJson size={32} className="text-slate-500 group-hover:text-indigo-400 mb-3 transition-colors" />
-                            <h4 className="text-sm font-bold text-white mb-1">Export JSON</h4>
-                            <p className="text-[10px] text-slate-500">Full data with parameters</p>
-                          </button>
-                        </div>
-
-
-                        <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
-                          <div className="flex items-center gap-3 mb-3">
-                            <Share2 size={16} className="text-slate-500" />
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Shareable Link</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              readOnly
-                              value={generateShareableURL(params as unknown as NewSimulationParams)}
-                              className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] font-mono text-slate-400 truncate"
-                            />
                             <button
-                              onClick={() => copyToClipboard(generateShareableURL(params as unknown as NewSimulationParams))}
-                              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-colors"
+                              onClick={() => setNormalizeCharts(!normalizeCharts)}
+                              className={`ml-2 px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all border ${normalizeCharts
+                                ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
+                                : 'text-slate-500 border-slate-700 hover:border-slate-600'
+                                }`}
+                              title="Normalize all lines to start at 100 for shape comparison"
                             >
-                              Copy
+                              {normalizeCharts ? '📊 Indexed (100)' : '📈 Absolute'}
                             </button>
                           </div>
+
+                          <div className="flex items-center gap-3">
+                            {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map((p, i) => {
+                              const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+                              const isHidden = hiddenProtocols.has(p.metadata.id);
+                              return (
+                                <button
+                                  key={p.metadata.id}
+                                  onClick={() => toggleProtocolVisibility(p.metadata.id)}
+                                  className={`flex items-center gap-2 px-2 py-1 rounded transition-all ${isHidden ? 'opacity-40 hover:opacity-60' : 'hover:bg-slate-800/50'
+                                    }`}
+                                  title={isHidden ? `Show ${p.metadata.name}` : `Hide ${p.metadata.name}`}
+                                >
+                                  <div
+                                    className={`w-3 h-0.5 rounded transition-all ${isHidden ? 'bg-slate-600' : ''}`}
+                                    style={{ backgroundColor: isHidden ? undefined : colors[i % colors.length] }}
+                                  />
+                                  <span className={`text-[9px] font-bold uppercase ${isHidden ? 'text-slate-600 line-through' : 'text-slate-400'}`}>
+                                    {p.metadata.name}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
 
-                        {derivedMetrics && (
-                          <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
-                            <div className="flex items-center gap-3 mb-4">
-                              <Gauge size={16} className="text-amber-500" />
-                              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Risk Metrics (V2 Model)</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-[10px]">
-                              <div>
-                                <span className="text-slate-500 block mb-1">Max Drawdown</span>
-                                <span className={`font-bold ${derivedMetrics.maxDrawdown > 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                  {derivedMetrics.maxDrawdown.toFixed(1)}%
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-slate-500 block mb-1">Death Spiral Risk</span>
-                                <span className={`font-bold ${derivedMetrics.deathSpiralProbability > 20 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                  {derivedMetrics.deathSpiralProbability.toFixed(1)}%
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-slate-500 block mb-1">Sharpe Ratio</span>
-                                <span className={`font-bold ${derivedMetrics.sharpeRatio < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                  {derivedMetrics.sharpeRatio.toFixed(2)}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-slate-500 block mb-1">Provider Retention</span>
-                                <span className={`font-bold ${derivedMetrics.retentionRate < 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                  {derivedMetrics.retentionRate.toFixed(1)}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
-                        <button onClick={() => setShowExportPanel(false)} className="px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Close</button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              }
-
-
-              {
-                showDePINBrowser && (
-                  <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-                      <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-                        <div className="flex items-center gap-3">
-                          <Layers size={20} className="text-indigo-400" />
-                          <div>
-                            <h3 className="text-lg font-black text-white uppercase tracking-tight">DePIN Token Browser</h3>
-                            <p className="text-[10px] text-slate-500">
-                              {Object.keys(allDePINData).length} tokens tracked •
-                              {lastLiveDataFetch ? ` Updated ${lastLiveDataFetch.toLocaleTimeString()}` : ' Click Fetch Live to load data'}
+                        {normalizeCharts && (
+                          <div className="mb-3 px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+                            <p className="text-[9px] text-indigo-400">
+                              <strong>Indexed view:</strong> All protocols start at 100 (week 0). Compare <em>shapes</em> and <em>trends</em>, not absolute values. Hover for actual numbers.
                             </p>
                           </div>
-                        </div>
-                        <button onClick={() => setShowDePINBrowser(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
-                      </div>
+                        )}
 
-                      <div className="flex-1 overflow-auto p-6 custom-scrollbar">
-                        {Object.keys(allDePINData).length === 0 ? (
-                          <div className="text-center py-12">
-                            <Layers size={48} className="text-slate-700 mx-auto mb-4" />
-                            <p className="text-slate-500 mb-4">No live data loaded yet</p>
-                            <button
-                              onClick={fetchLiveData}
-                              disabled={liveDataLoading}
-                              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all"
-                            >
-                              {liveDataLoading ? 'Fetching...' : 'Fetch Live Data'}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-6">
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart margin={{ left: 0, right: 20, top: 10, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <XAxis
+                                dataKey="t"
+                                fontSize={9}
+                                tick={{ fill: '#64748b' }}
+                                allowDuplicatedCategory={false}
+                              />
+                              <YAxis
+                                fontSize={9}
+                                tick={{ fill: '#64748b' }}
+                                domain={normalizeCharts ? [0, 'auto'] : ['auto', 'auto']}
+                                tickFormatter={(val) => normalizeCharts ? `${val}` : val}
+                              />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
+                                labelStyle={{ color: '#94a3b8', fontSize: 10 }}
+                                formatter={(value: number, name: string, props: any) => {
+                                  if (normalizeCharts) {
+                                    // Find actual value from original data
+                                    const protocolId = PROTOCOL_PROFILES.find(p => p.metadata.name === name)?.metadata.id;
+                                    const data = protocolId ? multiAggregated[protocolId] : [];
+                                    const point = data.find((d: any) => d.t === props.payload?.t);
+                                    const actual = point?.providers?.mean || 0;
+                                    return [`Index: ${value.toFixed(1)} | Actual: ${Math.round(actual)}`, name];
+                                  }
+                                  return [Math.round(value as number), name];
+                                }}
+                              />
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id) && !hiddenProtocols.has(p.metadata.id)).map((p, i) => {
+                                const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+                                const data = multiAggregated[p.metadata.id] || [];
+                                const baselineValue = data[0]?.providers?.mean || 1;
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {Object.entries(DEPIN_TOKENS).map(([tokenId, info]) => {
-                                const data = allDePINData[tokenId];
-                                if (!data) return null;
+                                // Normalize data if toggle is on
+                                const chartData = normalizeCharts
+                                  ? data.map((d: any) => ({
+                                    ...d,
+                                    normalizedProviders: ((d?.providers?.mean || 0) / baselineValue) * 100
+                                  }))
+                                  : data;
 
                                 return (
-                                  <div key={tokenId} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-indigo-500/30 transition-all">
-                                    <div className="flex items-center justify-between mb-3">
-                                      <div>
-                                        <h4 className="text-sm font-bold text-white">{info.name}</h4>
-                                        <p className="text-[9px] text-indigo-400 uppercase">{info.category}</p>
-                                      </div>
-                                      <span className="text-[9px] font-mono text-slate-500">{info.symbol}</span>
-                                    </div>
-
-                                    <div className="flex items-baseline justify-between mb-3">
-                                      <span className="text-lg font-bold text-white font-mono">
-                                        ${data.currentPrice < 0.01 ? data.currentPrice.toFixed(6) : data.currentPrice.toFixed(4)}
-                                      </span>
-                                      <span className={`text-[10px] font-bold ${data.priceChangePercentage24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                        {data.priceChangePercentage24h >= 0 ? '↑' : '↓'} {Math.abs(data.priceChangePercentage24h).toFixed(2)}%
-                                      </span>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-2 text-[9px]">
-                                      <div>
-                                        <span className="text-slate-500 block">Market Cap</span>
-                                        <span className="text-slate-300 font-mono">{formatCompact(data.marketCap)}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-slate-500 block">Supply</span>
-                                        <span className="text-slate-300 font-mono">{formatCompact(data.circulatingSupply)}</span>
-                                      </div>
-                                    </div>
+                                  <Line
+                                    key={p.metadata.id}
+                                    data={chartData}
+                                    type="monotone"
+                                    dataKey={normalizeCharts ? 'normalizedProviders' : (d: any) => d?.providers?.mean}
+                                    stroke={colors[i % colors.length]}
+                                    strokeWidth={2}
+                                    dot={false}
+                                    name={p.metadata.name}
+                                  />
+                                );
+                              })}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
 
 
-                                    {data.sparkline7d && data.sparkline7d.length > 0 && (
-                                      <div className="mt-3 h-8 flex items-end gap-px">
-                                        {data.sparkline7d.slice(-30).map((price, i, arr) => {
-                                          const min = Math.min(...arr);
-                                          const max = Math.max(...arr);
-                                          const height = max > min ? ((price - min) / (max - min)) * 100 : 50;
-                                          const isUp = i > 0 && price > arr[i - 1];
-                                          return (
-                                            <div
-                                              key={i}
-                                              className={`flex-1 rounded-t ${isUp ? 'bg-emerald-500/50' : 'bg-slate-700'}`}
-                                              style={{ height: `${Math.max(height, 5)}%` }}
-                                            />
-                                          );
-                                        })}
-                                      </div>
-                                    )}
+                        {normalizeCharts && (
+                          <div className="mt-4 pt-4 border-t border-slate-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-[9px] text-slate-500 uppercase font-bold">Absolute Values (Week {params.T}):</span>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id) && !hiddenProtocols.has(p.metadata.id)).map((p, i) => {
+                                const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+                                const data = multiAggregated[p.metadata.id] || [];
+                                const last = data[data.length - 1];
+                                const first = data[0];
+                                const finalValue = last?.providers?.mean || 0;
+                                const startValue = first?.providers?.mean || 1;
+                                const change = ((finalValue - startValue) / startValue) * 100;
+
+                                return (
+                                  <div key={p.metadata.id} className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded">
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
+                                    <span className="text-[9px] text-slate-400 font-bold">{p.metadata.name}:</span>
+                                    <span className="text-[10px] font-mono text-white">{Math.round(finalValue)}</span>
+                                    <span className={`text-[9px] font-bold ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                      ({change >= 0 ? '+' : ''}{change.toFixed(0)}%)
+                                    </span>
                                   </div>
                                 );
                               })}
                             </div>
-
-
-                            <div className="p-4 bg-slate-950 border border-amber-500/20 rounded-2xl">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                  <Database size={16} className="text-amber-400" />
-                                  <div>
-                                    <h4 className="text-sm font-bold text-white">On-Chain Analytics</h4>
-                                    <p className="text-[9px] text-slate-500">Powered by Dune Analytics (coming soon)</p>
-                                  </div>
-                                </div>
-                                <span className={`text-[9px] px-2 py-1 rounded ${isDuneConfigured() ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                  {isDuneConfigured() ? 'Connected' : 'Not Configured'}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 mb-3">
-                                {getDuneStatus().message}
-                              </p>
-                              {!isDuneConfigured() && (
-                                <div className="flex gap-2">
-                                  <input
-                                    type="password"
-                                    placeholder="Enter Dune API Key"
-                                    className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] text-slate-300"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        const input = e.target as HTMLInputElement;
-                                        if (input.value) {
-                                          saveDuneApiKey(input.value);
-                                          input.value = '';
-                                        }
-                                      }
-                                    }}
-                                  />
-                                  <button className="px-4 py-2 bg-amber-600/20 text-amber-400 rounded-lg text-[10px] font-bold hover:bg-amber-600/30 transition-colors">
-                                    Save
-                                  </button>
-                                </div>
-                              )}
-                            </div>
                           </div>
                         )}
                       </div>
 
-                      <div className="p-4 bg-slate-950/50 border-t border-slate-800 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={autoRefreshEnabled}
-                              onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
-                              className="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="text-[10px] text-slate-400">Auto-refresh every 5 min</span>
-                          </label>
-                          {autoRefreshEnabled && timeUntilRefresh && (
-                            <span className="text-[9px] text-emerald-400">Next: {timeUntilRefresh}</span>
-                          )}
-                        </div>
-                        <button onClick={() => setShowDePINBrowser(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-bold transition-all">Close</button>
+
+                      <div className="overflow-x-auto custom-scrollbar pb-4">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="text-left">
+                              <th className="p-4 bg-slate-950 sticky left-0 z-10 w-48">
+                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Metric</span>
+                              </th>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                <th key={p.metadata.id} className="p-4 min-w-[280px]">
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">{p.metadata.name}</span>
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase">{p.metadata.mechanism}</span>
+                                  </div>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/50">
+
+                            <tr className="hover:bg-slate-900/30 transition-colors">
+                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                  <ShieldQuestion size={14} /> Regime
+                                </div>
+                              </td>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
+                                const regime = calculateRegime(multiAggregated[p.metadata.id] || [], p);
+                                return (
+                                  <td key={p.metadata.id} className="p-5">
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-${regime.color}-500/10 border border-${regime.color}-500/20`}>
+                                      <div className={`w-1.5 h-1.5 rounded-full bg-${regime.color}-500 animate-pulse`} />
+                                      <span className={`text-[10px] font-black text-${regime.color}-400 uppercase tracking-widest`}>{regime.regime}</span>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+
+
+                            <tr className="hover:bg-slate-900/30 transition-colors">
+                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                  <Database size={14} /> Supply
+                                </div>
+                              </td>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                <td key={p.metadata.id} className="p-5 h-28">
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
+                                      <defs>
+                                        <linearGradient id={`supply-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                        </linearGradient>
+                                      </defs>
+                                      <Area type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" fill={`url(#supply-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
+                                    </AreaChart>
+                                  </ResponsiveContainer>
+                                </td>
+                              ))}
+                            </tr>
+
+
+                            <tr className="hover:bg-slate-900/30 transition-colors">
+                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                  <Users size={14} /> Providers
+                                </div>
+                              </td>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                <td key={p.metadata.id} className="p-5 h-28">
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
+                                      <defs>
+                                        <linearGradient id={`providers-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                      </defs>
+                                      <Area type="monotone" dataKey={(d: any) => d?.providers?.mean} stroke="#10b981" fill={`url(#providers-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
+                                    </AreaChart>
+                                  </ResponsiveContainer>
+                                </td>
+                              ))}
+                            </tr>
+
+
+                            <tr className="hover:bg-slate-900/30 transition-colors">
+                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                  <Activity size={14} /> Utilization
+                                </div>
+                              </td>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                <td key={p.metadata.id} className="p-5 h-28">
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
+                                      <defs>
+                                        <linearGradient id={`util-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                                        </linearGradient>
+                                      </defs>
+                                      <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f59e0b" fill={`url(#util-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
+                                    </AreaChart>
+                                  </ResponsiveContainer>
+                                </td>
+                              ))}
+                            </tr>
+
+
+                            <tr className="hover:bg-slate-900/30 transition-colors">
+                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                  <Flame size={14} /> Burn/Mint
+                                </div>
+                              </td>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                <td key={p.metadata.id} className="p-5 h-28">
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
+                                      <Area type="monotone" dataKey={(d: any) => d?.minted?.mean} stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={1.5} isAnimationActive={false} />
+                                      <Area type="monotone" dataKey={(d: any) => d?.burned?.mean} stroke="#22c55e" fill="#22c55e" fillOpacity={0.1} strokeWidth={1.5} isAnimationActive={false} />
+                                    </AreaChart>
+                                  </ResponsiveContainer>
+                                </td>
+                              ))}
+                            </tr>
+
+
+                            <tr className="hover:bg-slate-900/30 transition-colors">
+                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                  <Settings2 size={14} /> Parameters
+                                </div>
+                              </td>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                <td key={p.metadata.id} className="p-5">
+                                  <div className="grid grid-cols-2 gap-3 text-[9px]">
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-500">Supply:</span>
+                                      <span className="text-white font-mono">{formatCompact(p.parameters.supply.value)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-500">Max Mint:</span>
+                                      <span className="text-white font-mono">{formatCompact(p.parameters.emissions.value)}/wk</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-500">Burn %:</span>
+                                      <span className="text-white font-mono">{(p.parameters.burn_fraction.value * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-500">OpEx:</span>
+                                      <span className="text-white font-mono">${p.parameters.provider_economics.opex_weekly.value}/wk</span>
+                                    </div>
+                                  </div>
+                                </td>
+                              ))}
+                            </tr>
+
+                            {/* NEW: Financial/Payback Row */}
+                            <tr className="hover:bg-slate-900/30 transition-colors">
+                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                  <DollarSign size={14} /> Financials
+                                </div>
+                              </td>
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
+                                // Estimated Capex Map (in USD)
+                                const CAPEX_ESTIMATES: Record<string, number> = {
+                                  'grass_v1': 0, 'helium_bme_v1': 450, 'adaptive_elastic_v1': 1500,
+                                  'filecoin_v1': 2000, 'akash_v1': 1000, 'hivemapper_v1': 300,
+                                  'dimo_v1': 350, 'ono_v3_calibrated': 1000
+                                };
+                                const capex = CAPEX_ESTIMATES[p.metadata.id] || 500;
+
+                                // Calculate from last simulation step
+                                const data = multiAggregated[p.metadata.id] || [];
+                                const last = data[data.length - 1];
+
+                                let paybackText = "N/A";
+                                let textColor = "text-slate-500";
+
+                                if (last && last.providers.mean > 0) {
+                                  const weeklyRewardTokens = last.minted.mean / last.providers.mean;
+                                  const tokenPrice = last.price.mean;
+                                  const weeklyRevenue = weeklyRewardTokens * tokenPrice;
+                                  const weeklyOpEx = p.parameters.provider_economics.opex_weekly.value;
+                                  const weeklyProfit = weeklyRevenue - weeklyOpEx;
+
+                                  if (capex === 0) {
+                                    paybackText = "Instant (0 Capex)";
+                                    textColor = "text-emerald-400";
+                                  } else if (weeklyProfit <= 0) {
+                                    paybackText = "Never (Unprofitable)";
+                                    textColor = "text-rose-400";
+                                  } else {
+                                    const months = capex / (weeklyProfit * 4.3); // 4.3 weeks/month
+                                    if (months > 60) {
+                                      paybackText = ">5 Years";
+                                      textColor = "text-rose-400";
+                                    } else {
+                                      paybackText = `${months.toFixed(1)} Months`;
+                                      textColor = months < 12 ? "text-emerald-400" : "text-amber-400";
+                                    }
+                                  }
+                                }
+
+                                return (
+                                  <td key={p.metadata.id} className="p-5">
+                                    <div className="flex flex-col gap-1">
+                                      <span className="text-[9px] text-slate-500 uppercase font-bold">Est. Payback Period</span>
+                                      <span className={`text-xs font-mono font-bold ${textColor}`}>{paybackText}</span>
+                                      {capex > 0 && <span className="text-[8px] text-slate-600">Based on ${capex} hardware cost</span>}
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
                     </div>
+                  )}
+                </div >
+
+
+                {renderFocusChart()}
+
+
+                {
+                  showSpecModal && (
+                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+                      <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col h-[80vh] overflow-hidden">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                          <div className="flex items-center gap-3">
+                            <Binary size={20} className="text-indigo-400" />
+                            <div>
+                              <h3 className="text-lg font-black text-white uppercase tracking-tight">Mathematical Specification</h3>
+                              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Logic V1.1 Verification</p>
+                            </div>
+                          </div>
+                          <button onClick={() => setShowSpecModal(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div className="space-y-6">
+                              <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Core Mechanics</h4>
+                              <FormulaDisplay label="Market Clearing" formula="Utility_Served = min(Demand, Total_Capacity)" />
+                              <FormulaDisplay label="System Capacity" formula="Capacity = Providers * Unit_Capability" />
+                              <FormulaDisplay label="Capital Efficiency" formula="Utilization = (Served / Capacity) * 100" />
+                              <FormulaDisplay label="Pricing Equilibrium" formula="Service_Price_{t+1} = Service_Price_t * (1 + 0.6 * Scarcity)" />
+                            </div>
+                            <div className="space-y-6">
+                              <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Tokenomics</h4>
+                              <FormulaDisplay label="Utility Value Burn" formula="Burn = (Served * Service_Price) / Token_Price" />
+                              <FormulaDisplay label="Dynamic Emissions" formula="Mint = Max_Mint * (0.6 + 0.4 * tanh(Demand / 15000))" />
+                              <FormulaDisplay label="Supply Conservation" formula="Supply_{t+1} = Supply_t + Mint_t - Burn_t" />
+                            </div>
+                          </div>
+                          <div className="bg-slate-950/50 p-8 rounded-2xl border border-slate-800 space-y-4">
+                            <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2"><Variable size={14} /> Feedback Sensitivity</h4>
+                            <p className="text-[11px] text-slate-400 leading-relaxed italic">"Provider behavior follows a Proportional-Derivative growth model. Delta Providers is proportional to the ROI over OpEx, dampened by a 15% weekly growth ceiling to simulate physical hardware lead times."</p>
+                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                              <code className="text-xs text-indigo-400 font-mono">Delta_N = min(N * 0.15, (ROI * sensitivity * churn_capitulation))</code>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
+                          <button onClick={() => setShowSpecModal(false)} className="px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Verified & Understood</button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                <div className={`fixed inset-y-0 right-0 w-[450px] bg-slate-900 border-l border-slate-800 shadow-2xl z-[500] transform transition-transform duration-500 ease-in-out ${showKnowledgeLayer ? 'translate-x-0' : 'translate-x-full'}`}>
+                  <div className="h-full flex flex-col p-6 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-6">
+                      <div className="flex items-center gap-3">
+                        <Library className="text-indigo-400" size={20} />
+                        <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Regime Taxonomy</h3>
+                      </div>
+                      <button onClick={() => setShowKnowledgeLayer(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+                    </div>
+                    {Object.entries(REGIME_KNOWLEDGE).map(([key, data]) => (
+                      <section key={key} className={`p-6 rounded-2xl border ${incentiveRegime.id === key ? `bg-${data.color}-500/5 border-${data.color}-500/30` : 'bg-slate-950/40 border-slate-800'}`}>
+                        <div className="flex items-center gap-3 mb-4">
+                          <data.icon size={18} className={`text-${data.color}-400`} />
+                          <h4 className={`text-xs font-black uppercase tracking-widest text-${data.color}-400`}>{data.title}</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-200 leading-relaxed font-medium">{data.definition}</p>
+                      </section>
+                    ))}
                   </div>
-                )
-              }
-            </main >
-          </>
-        )}
-      </div >
+                </div>
+
+
+                {
+                  showExportPanel && (
+                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+                      <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                          <div className="flex items-center gap-3">
+                            <Download size={20} className="text-emerald-400" />
+                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Export Data</h3>
+                          </div>
+                          <button onClick={() => setShowExportPanel(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+                        </div>
+                        <div className="p-8 space-y-6">
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <button
+                              onClick={() => {
+                                exportToCSV(aggregated as unknown as NewAggregateResult[]);
+                                setShowExportPanel(false);
+                              }}
+                              className="p-6 bg-slate-950 border border-slate-800 rounded-2xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group"
+                            >
+                              <FileDown size={32} className="text-slate-500 group-hover:text-emerald-400 mb-3 transition-colors" />
+                              <h4 className="text-sm font-bold text-white mb-1">Export CSV</h4>
+                              <p className="text-[10px] text-slate-500">Time series data for analysis</p>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (derivedMetrics) {
+                                  exportToJSON(aggregated as unknown as NewAggregateResult[], params as unknown as NewSimulationParams, derivedMetrics);
+                                }
+                                setShowExportPanel(false);
+                              }}
+                              className="p-6 bg-slate-950 border border-slate-800 rounded-2xl hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group"
+                            >
+                              <FileJson size={32} className="text-slate-500 group-hover:text-indigo-400 mb-3 transition-colors" />
+                              <h4 className="text-sm font-bold text-white mb-1">Export JSON</h4>
+                              <p className="text-[10px] text-slate-500">Full data with parameters</p>
+                            </button>
+                          </div>
+
+
+                          <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
+                            <div className="flex items-center gap-3 mb-3">
+                              <Share2 size={16} className="text-slate-500" />
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Shareable Link</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                readOnly
+                                value={generateShareableURL(params as unknown as NewSimulationParams)}
+                                className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] font-mono text-slate-400 truncate"
+                              />
+                              <button
+                                onClick={() => copyToClipboard(generateShareableURL(params as unknown as NewSimulationParams))}
+                                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-colors"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+
+
+                          {derivedMetrics && (
+                            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
+                              <div className="flex items-center gap-3 mb-4">
+                                <Gauge size={16} className="text-amber-500" />
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Risk Metrics (V2 Model)</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 text-[10px]">
+                                <div>
+                                  <span className="text-slate-500 block mb-1">Max Drawdown</span>
+                                  <span className={`font-bold ${derivedMetrics.maxDrawdown > 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                    {derivedMetrics.maxDrawdown.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 block mb-1">Death Spiral Risk</span>
+                                  <span className={`font-bold ${derivedMetrics.deathSpiralProbability > 20 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                    {derivedMetrics.deathSpiralProbability.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 block mb-1">Sharpe Ratio</span>
+                                  <span className={`font-bold ${derivedMetrics.sharpeRatio < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                    {derivedMetrics.sharpeRatio.toFixed(2)}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 block mb-1">Provider Retention</span>
+                                  <span className={`font-bold ${derivedMetrics.retentionRate < 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                    {derivedMetrics.retentionRate.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
+                          <button onClick={() => setShowExportPanel(false)} className="px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+
+                {
+                  showDePINBrowser && (
+                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+                      <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                          <div className="flex items-center gap-3">
+                            <Layers size={20} className="text-indigo-400" />
+                            <div>
+                              <h3 className="text-lg font-black text-white uppercase tracking-tight">DePIN Token Browser</h3>
+                              <p className="text-[10px] text-slate-500">
+                                {Object.keys(allDePINData).length} tokens tracked •
+                                {lastLiveDataFetch ? ` Updated ${lastLiveDataFetch.toLocaleTimeString()}` : ' Click Fetch Live to load data'}
+                              </p>
+                            </div>
+                          </div>
+                          <button onClick={() => setShowDePINBrowser(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+                        </div>
+
+                        <div className="flex-1 overflow-auto p-6 custom-scrollbar">
+                          {Object.keys(allDePINData).length === 0 ? (
+                            <div className="text-center py-12">
+                              <Layers size={48} className="text-slate-700 mx-auto mb-4" />
+                              <p className="text-slate-500 mb-4">No live data loaded yet</p>
+                              <button
+                                onClick={fetchLiveData}
+                                disabled={liveDataLoading}
+                                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all"
+                              >
+                                {liveDataLoading ? 'Fetching...' : 'Fetch Live Data'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-6">
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {Object.entries(DEPIN_TOKENS).map(([tokenId, info]) => {
+                                  const data = allDePINData[tokenId];
+                                  if (!data) return null;
+
+                                  return (
+                                    <div key={tokenId} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-indigo-500/30 transition-all">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                          <h4 className="text-sm font-bold text-white">{info.name}</h4>
+                                          <p className="text-[9px] text-indigo-400 uppercase">{info.category}</p>
+                                        </div>
+                                        <span className="text-[9px] font-mono text-slate-500">{info.symbol}</span>
+                                      </div>
+
+                                      <div className="flex items-baseline justify-between mb-3">
+                                        <span className="text-lg font-bold text-white font-mono">
+                                          ${data.currentPrice < 0.01 ? data.currentPrice.toFixed(6) : data.currentPrice.toFixed(4)}
+                                        </span>
+                                        <span className={`text-[10px] font-bold ${data.priceChangePercentage24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                          {data.priceChangePercentage24h >= 0 ? '↑' : '↓'} {Math.abs(data.priceChangePercentage24h).toFixed(2)}%
+                                        </span>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 gap-2 text-[9px]">
+                                        <div>
+                                          <span className="text-slate-500 block">Market Cap</span>
+                                          <span className="text-slate-300 font-mono">{formatCompact(data.marketCap)}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-slate-500 block">Supply</span>
+                                          <span className="text-slate-300 font-mono">{formatCompact(data.circulatingSupply)}</span>
+                                        </div>
+                                      </div>
+
+
+                                      {data.sparkline7d && data.sparkline7d.length > 0 && (
+                                        <div className="mt-3 h-8 flex items-end gap-px">
+                                          {data.sparkline7d.slice(-30).map((price, i, arr) => {
+                                            const min = Math.min(...arr);
+                                            const max = Math.max(...arr);
+                                            const height = max > min ? ((price - min) / (max - min)) * 100 : 50;
+                                            const isUp = i > 0 && price > arr[i - 1];
+                                            return (
+                                              <div
+                                                key={i}
+                                                className={`flex-1 rounded-t ${isUp ? 'bg-emerald-500/50' : 'bg-slate-700'}`}
+                                                style={{ height: `${Math.max(height, 5)}%` }}
+                                              />
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+
+                              <div className="p-4 bg-slate-950 border border-amber-500/20 rounded-2xl">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <Database size={16} className="text-amber-400" />
+                                    <div>
+                                      <h4 className="text-sm font-bold text-white">On-Chain Analytics</h4>
+                                      <p className="text-[9px] text-slate-500">Powered by Dune Analytics (coming soon)</p>
+                                    </div>
+                                  </div>
+                                  <span className={`text-[9px] px-2 py-1 rounded ${isDuneConfigured() ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                    {isDuneConfigured() ? 'Connected' : 'Not Configured'}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mb-3">
+                                  {getDuneStatus().message}
+                                </p>
+                                {!isDuneConfigured() && (
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="password"
+                                      placeholder="Enter Dune API Key"
+                                      className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] text-slate-300"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const input = e.target as HTMLInputElement;
+                                          if (input.value) {
+                                            saveDuneApiKey(input.value);
+                                            input.value = '';
+                                          }
+                                        }
+                                      }}
+                                    />
+                                    <button className="px-4 py-2 bg-amber-600/20 text-amber-400 rounded-lg text-[10px] font-bold hover:bg-amber-600/30 transition-colors">
+                                      Save
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-4 bg-slate-950/50 border-t border-slate-800 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={autoRefreshEnabled}
+                                onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-[10px] text-slate-400">Auto-refresh every 5 min</span>
+                            </label>
+                            {autoRefreshEnabled && timeUntilRefresh && (
+                              <span className="text-[9px] text-emerald-400">Next: {timeUntilRefresh}</span>
+                            )}
+                          </div>
+                          <button onClick={() => setShowDePINBrowser(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-bold transition-all">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+              </main >
+            </>
+          )}
+        </div >
+      )}
 
       <style>{`
         :root {

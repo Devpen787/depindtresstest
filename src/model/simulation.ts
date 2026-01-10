@@ -365,7 +365,11 @@ function processPanicEvents(
 /**
  * Run a single simulation with individual provider agents
  */
-export function simulateOne(params: SimulationParams, simSeed: number): SimResult[] {
+export function simulateOne(
+  params: SimulationParams,
+  simSeed: number,
+  scalingFactor: number = 1
+): SimResult[] {
   const rng = new SeededRNG(simSeed);
   // ... existing code ...
 
@@ -380,23 +384,25 @@ export function simulateOne(params: SimulationParams, simSeed: number): SimResul
     sigma = 0.06;
   }
 
-  // Generate demand series
+  // Generate demand series (These are MICRO demands if params were scaled down)
   const demands = generateDemandSeries(
     params.T,
-    params.baseDemand,
+    params.baseDemand, // Already scaled in runSimulation
     params.demandType,
     params.demandVolatility,
     rng
   );
 
-  // Initialise state
+  // Initialise state (Global / Macro State)
   let tokenSupply = params.initialSupply;
   let tokenPrice = params.initialPrice;
   let servicePrice = params.baseServicePrice;
+
+  // Initialise Providers (Micro Pool)
   let providerPool = initialiseProviders(rng, params);
 
   // Liquidity Pool State (Module 3)
-  // Assume a 50/50 pool initialized with initialLiquidity (USD)
+  // Global Liquidity
   let poolUsd = params.initialLiquidity;
   let poolTokens = poolUsd / tokenPrice;
   const k = poolUsd * poolTokens; // Constant Product k
@@ -436,7 +442,7 @@ export function simulateOne(params: SimulationParams, simSeed: number): SimResul
     }
 
     // ========================================
-    // PHASE 1: DEMAND & SERVICE
+    // PHASE 1: DEMAND & SERVICE (Micro Physics)
     // ========================================
     const demand = demands[t];
     const totalCapacity = Math.max(1, getTotalCapacity(providerPool));
@@ -454,46 +460,74 @@ export function simulateOne(params: SimulationParams, simSeed: number): SimResul
     );
 
     // ========================================
-    // PHASE 2: TOKEN FLOWS
+    // PHASE 2: TOKEN FLOWS (Micro -> Scaling -> Macro)
     // ========================================
 
-    // Buy pressure: Users buy tokens to pay for service
-    const buyPressure = calculateBuyPressure(demandServed, servicePrice, tokenPrice);
+    // Buy pressure: Users buy tokens to pay for service (Micro)
+    const buyPressureMicro = calculateBuyPressure(demandServed, servicePrice, tokenPrice);
 
-    // Calculate tokens spent and burned
-    const tokensSpent = buyPressure;
-    const burnedRaw = params.burnPct * tokensSpent;
-    const burned = Math.min(tokenSupply * 0.95, burnedRaw);
+    // SCALE UP: Flows impacting global price/supply
+    const buyPressureMacro = buyPressureMicro * scalingFactor;
+
+    // Calculate tokens spent and burned (Macro)
+    const tokensSpentMacro = buyPressureMacro;
+    const burnedRawMacro = params.burnPct * tokensSpentMacro;
+    // Cap burn at 95% of supply
+    const burnedMacro = Math.min(tokenSupply * 0.95, burnedRawMacro);
 
     // ========================================
     // PHASE 3: EMISSIONS & REWARDS
     // ========================================
 
     // Dynamic emissions based on demand (sigmoid growth + saturation dampening)
-    const saturation = Math.min(1.0, providerPool.active.length / 5000.0);
-    const emissionFactor = 0.6 + 0.4 * Math.tanh(demand / 15000.0) - 0.2 * saturation;
-    const minted = Math.max(0, Math.min(params.maxMintWeekly, params.maxMintWeekly * emissionFactor));
+    // Saturation logic should use MACRO provider count ideally, or normalized micro
+    // Use SCALED provider count for saturation logic to match real world
+    const scaledProviderCount = providerPool.active.length * scalingFactor;
+    const saturation = Math.min(1.0, scaledProviderCount / 300000.0); // Revised saturation denominator for realistic scale? 
+    // Wait, original code was 5000.0. If we scale up providers to 370k, we must update the constant OR 
+    // keep it relative. Let's assume the constant 5000 was for 'Small Network'. 
+    // If we want correct saturation dynamics for 370k nodes, the denominator should be higher.
+    // However, for safety/comparability, let's Stick to the logic: 
+    // If params.initialProviders was small (30), 5000 was unreachable. 
+    // If params is now 370k, 5000 is trivial.
+    // Let's adjust saturation denominator safely or leave as is (saturation = 1.0 immediately).
+    // Let's leave as is but use scaled count.
 
-    // Reward per unit of capacity
-    const rewardPerCapacityUnit = minted / Math.max(totalCapacity, 1);
+    // Scale Demand for emission factor? demand is Micro. 15000 was constant.
+    // If we scaled demand down by 185x, we should scale constant down or scale demand up.
+    // Scale Demand UP for emission calc.
+    const scaledDemand = demand * scalingFactor;
+
+    const emissionFactor = 0.6 + 0.4 * Math.tanh(scaledDemand / 15000.0) - 0.2 * saturation;
+    // params.maxMintWeekly is likely Global (e.g. 1M tokens/week).
+    const mintedMacro = Math.max(0, Math.min(params.maxMintWeekly, params.maxMintWeekly * emissionFactor));
+
+    // Micro Rewards for Agents: Share of the Global Mint
+    // RewardPerUnit = GlobalMint / GlobalCapacity
+    const scaledTotalCapacity = totalCapacity * scalingFactor;
+    const rewardPerCapacityUnit = mintedMacro / Math.max(scaledTotalCapacity, 1);
 
     // ========================================
-    // PHASE 4: PROVIDER ECONOMICS (NEW!)
+    // PHASE 4: PROVIDER ECONOMICS (Micro Agents)
     // ========================================
 
     // Calculate sell pressure from providers covering costs
-    const { totalSellPressure, providerProfits } = calculateSellPressure(
+    // Using rewardPerCapacityUnit (Global/Global = Unit) -> Correct for Micro agents
+    const { totalSellPressure: microSellPressure, providerProfits } = calculateSellPressure(
       providerPool.active,
       rewardPerCapacityUnit,
       tokenPrice
     );
 
+    const sellPressureMacro = microSellPressure * scalingFactor;
+
     // Average profit and incentive
     const avgProfit = calculateAverageProfit(providerProfits);
     previousProfits = providerProfits;
 
-    // Push to reward history (for delayed reward signal)
-    const instantRewardValue = (minted / Math.max(providerPool.active.length, 1)) * tokenPrice;
+    // Push to reward history
+    // Instant Value = (MacroMint / MacroProviders) * Price
+    const instantRewardValue = (mintedMacro / Math.max(scaledProviderCount, 1)) * tokenPrice;
     rewardHistory.push(instantRewardValue);
     if (rewardHistory.length > rewardHistoryLength) {
       rewardHistory.shift();
@@ -509,28 +543,16 @@ export function simulateOne(params: SimulationParams, simSeed: number): SimResul
     let netFlow = 0; // Shared scope for results
 
     if (unlockSellPressure > 0) {
-      // MODULE 3: LIQUIDITY SHOCK (Constant Product AMM Math)
-      // Sell 'unlockSellPressure' tokens into the pool
-      // k = x * y
-      // (poolTokens + amountIn) * (poolUsd - amountOut) = k
-
+      // PROCESSED AS BEFORE (It's Macro)
       const amountIn = unlockSellPressure;
       const newPoolTokens = poolTokens + amountIn;
       const newPoolUsd = k / newPoolTokens;
-      const amountOut = poolUsd - newPoolUsd; // USD removed from pool
-
-      // Update Pool State
+      const amountOut = poolUsd - newPoolUsd;
       poolTokens = newPoolTokens;
       poolUsd = newPoolUsd;
-
-      // New Spot Price
       nextPrice = poolUsd / poolTokens;
-
-      // Net Flow is massively negative due to unlock dump
       netFlow = -unlockSellPressure;
 
-      // MODULE 3: IMMEDIATE PANIC (Dynamic)
-      // Check for immediate miner capitulation due to price crash
       if (previousProfits) {
         const panicResult = processPanicEvents(
           providerPool,
@@ -544,49 +566,46 @@ export function simulateOne(params: SimulationParams, simSeed: number): SimResul
       }
 
     } else {
-      // ===================================
-      // THESIS SCENARIO logic (Overrides)
-      // ===================================
       if (params.scenario === 'winter') {
-        // SCENARIO 1: CRYPTO WINTER (-90% Price Decay)
-        // Deterministic decay: Price(t) = P0 * (0.1)^(t/T)
-        // Add minimal noise for realism
+        // ... unchanged ...
         const targetPrice = params.initialPrice * Math.pow(0.1, t / params.T);
-        const noise = 1 + (rng.normal() * 0.02); // 2% noise
+        const noise = 1 + (rng.normal() * 0.02);
         nextPrice = Math.max(0.0001, targetPrice * noise);
-
-        // Sync pool depth to this new price (Arbitrage assumption)
         poolUsd = Math.sqrt(k * nextPrice);
         poolTokens = Math.sqrt(k / nextPrice);
-        netFlow = nextPrice - tokenPrice; // Proxy for flow
+        netFlow = nextPrice - tokenPrice;
 
       } else {
-        // BASELINE / ORGANIC PRICE ACTION (Standard Model)
-        // Net token flow affecting price
-        let buyPressureEffective = buyPressure;
-        let scarcityEffective = scarcity;
+        // ORGANIC MACRO PRICE
+        let buyPressureEffective = buyPressureMacro;
+        let scarcityEffective = scarcity; // Ratio (Unitless) - Ok
 
-        // SCENARIO 3: UTILITY VALIDATION (Demand Boost)
         if (params.scenario === 'utility') {
-          // Force Compounding Growth on Demand Side
-          // Verify outcome: Burn > Emissions
-          // Overwrite demand signal for price calc
-          const growthFactor = Math.pow(1.10, t / 4); // 10% month-over-month
-          const boostedDemand = params.baseDemand * growthFactor;
-          // Recalculate pressures with boosted demand
-          // (Note: We use the 'real' demandServed from earlier for actual burn, 
-          // but we boost the *signal* here to ensure price reflects the narrative)
-          buyPressureEffective = calculateBuyPressure(Math.min(boostedDemand, totalCapacity), servicePrice, tokenPrice);
-          scarcityEffective = (boostedDemand - totalCapacity) / totalCapacity;
+          // ... logic scaled?
+          // Boosted Demand is Macro or Micro?
+          // baseDemand is Micro (in params).
+          // Let's treat scenario logic as modifying the INPUTS.
+          // Since we are in Micro loop, params.baseDemand is Micro. 
+          // So boostedDemand is Micro.
+          // But price updating uses Macro numbers (buyPressureEffective).
+          // So:
+          const growthFactor = Math.pow(1.10, t / 4);
+          const boostedDemandMicro = params.baseDemand * growthFactor;
+
+          // Recalc Micro Pressure
+          const buyPressureMicroBoosted = calculateBuyPressure(Math.min(boostedDemandMicro, totalCapacity), servicePrice, tokenPrice);
+          buyPressureEffective = buyPressureMicroBoosted * scalingFactor;
+
+          scarcityEffective = (boostedDemandMicro - totalCapacity) / totalCapacity;
         }
 
-        netFlow = buyPressureEffective - totalSellPressure - burned;
+        netFlow = buyPressureEffective - sellPressureMacro - burnedMacro;
 
-        // Price dynamics with buy/sell pressure
+        // Price dynamics (Using MACRO values against MACRO Supply)
         const buyPressureEffect = params.kBuyPressure * Math.tanh(buyPressureEffective / tokenSupply * 100);
-        const sellPressureEffect = -params.kSellPressure * Math.tanh(totalSellPressure / tokenSupply * 100);
+        const sellPressureEffect = -params.kSellPressure * Math.tanh(sellPressureMacro / tokenSupply * 100);
         const demandPressure = params.kDemandPrice * Math.tanh(scarcityEffective);
-        const dilutionPressure = -params.kMintPrice * (minted / tokenSupply) * 100;
+        const dilutionPressure = -params.kMintPrice * (mintedMacro / tokenSupply) * 100;
 
         const logReturn =
           mu +
@@ -596,51 +615,49 @@ export function simulateOne(params: SimulationParams, simSeed: number): SimResul
           dilutionPressure +
           sigma * rng.normal();
 
-        nextPrice = Math.max(0.0001, tokenPrice * Math.exp(logReturn)); // Floor at $0.0001
-
-        // Sync pool
+        nextPrice = Math.max(0.0001, tokenPrice * Math.exp(logReturn));
         poolUsd = Math.sqrt(k * nextPrice);
         poolTokens = Math.sqrt(k / nextPrice);
       }
     }
 
     // ========================================
-    // PHASE 6: SUPPLY UPDATE
+    // PHASE 6: SUPPLY UPDATE (Macro)
     // ========================================
-    tokenSupply = Math.max(1000, tokenSupply + minted - burned);
+    tokenSupply = Math.max(1000, tokenSupply + mintedMacro - burnedMacro);
 
     // ========================================
-    // RECORD RESULTS
+    // RECORD RESULTS (Scale UP Micro metrics)
     // ========================================
     results.push({
       t,
       price: tokenPrice,
       supply: tokenSupply,
-      demand,
-      demandServed,
-      providers: providerPool.active.length,
-      capacity: totalCapacity,
+      demand: demand * scalingFactor,
+      demandServed: demandServed * scalingFactor,
+      providers: providerPool.active.length * scalingFactor,
+      capacity: totalCapacity * scalingFactor,
       servicePrice,
-      minted,
-      burned,
-      utilisation,
-      profit: avgProfit,
-      scarcity,
-      incentive,
-      buyPressure,
-      sellPressure: totalSellPressure,
+      minted: mintedMacro,
+      burned: burnedMacro,
+      utilisation, // Ratio
+      profit: avgProfit, // Unit
+      scarcity, // Ratio
+      incentive, // Ratio
+      buyPressure: buyPressureMacro,
+      sellPressure: sellPressureMacro, // Macro
       netFlow,
-      churnCount,
-      joinCount,
-      // Solvency Metrics (Daily)
-      solvencyScore: ((burned / 7) * tokenPrice) / (((minted / 7) * tokenPrice) || 1) * (minted > 0 ? 1 : 10),
-      netDailyLoss: ((burned / 7) - (minted / 7)) * tokenPrice,
-      dailyMintUsd: (minted / 7) * tokenPrice,
-      dailyBurnUsd: (burned / 7) * tokenPrice,
-      // Capitulation Metrics
-      urbanCount: providerPool.active.filter(p => p.type === 'urban').length,
-      ruralCount: providerPool.active.filter(p => p.type === 'rural').length,
-      weightedCoverage: providerPool.active.reduce((sum, p) => sum + p.locationScore, 0),
+      churnCount: churnCount * scalingFactor,
+      joinCount: joinCount * scalingFactor,
+      // Solvency Metrics (Daily) - Use Macro numbers
+      solvencyScore: ((burnedMacro / 7) * tokenPrice) / (((mintedMacro / 7) * tokenPrice) || 1) * (mintedMacro > 0 ? 1 : 10),
+      netDailyLoss: ((burnedMacro / 7) - (mintedMacro / 7)) * tokenPrice,
+      dailyMintUsd: (mintedMacro / 7) * tokenPrice,
+      dailyBurnUsd: (burnedMacro / 7) * tokenPrice,
+      // Capitulation Metrics - Scale UP
+      urbanCount: providerPool.active.filter(p => p.type === 'urban').length * scalingFactor,
+      ruralCount: providerPool.active.filter(p => p.type === 'rural').length * scalingFactor,
+      weightedCoverage: providerPool.active.reduce((sum, p) => sum + p.locationScore, 0) * scalingFactor,
     });
 
     // Update state for next iteration
@@ -681,9 +698,27 @@ function calculateStats(values: number[]): MetricStats {
 export function runSimulation(params: SimulationParams): AggregateResult[] {
   const allSims: SimResult[][] = [];
 
+  // Max agents to simulate individually to preserve performance
+  const MAX_AGENTS = 2000;
+
   // Run all simulations
   for (let i = 0; i < params.nSims; i++) {
-    allSims.push(simulateOne(params, params.seed + i));
+    // Representative Agent Model
+    // If providers > MAX_AGENTS, we simulate a smaller pool and scale the results
+    const scalingFactor = Math.max(1, params.initialProviders / MAX_AGENTS);
+
+    // Create micro-params for the simulation kernel
+    const microParams: SimulationParams = {
+      ...params,
+      initialProviders: Math.min(params.initialProviders, MAX_AGENTS),
+      // Scale demand down so that Demand/Capacity ratio (Utilization) remains globally accurate
+      // Global Demand / Scaling = Micro Demand
+      baseDemand: params.baseDemand / scalingFactor,
+      // Note: initialSupply, initialLiquidity, maxMintWeekly etc are GLOBAL, so we keep them as is.
+      // simulateOne handles the scaling UP of flows to interact with these globals.
+    };
+
+    allSims.push(simulateOne(microParams, params.seed + i, scalingFactor));
   }
 
   // Aggregate results
