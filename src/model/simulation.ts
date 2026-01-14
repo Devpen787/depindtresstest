@@ -178,7 +178,14 @@ function processProviderDecisions(
   if (params.scenario === 'saturation' && currentWeek === Math.floor(params.T / 3)) {
     // Massive spike: Insert 3x current supply
     potentialJoins = pool.active.length * 2.0;
-  } else if (avgProfit > params.profitThresholdToJoin) {
+  }
+  // MODULE 5: GROWTH SHOCK (State of DePIN Report)
+  // Replaces "Saturation" with a controllable parameter
+  else if (params.growthCallEventWeek !== undefined && currentWeek === params.growthCallEventWeek) {
+    const shockPct = params.growthCallEventPct || 0.5;
+    potentialJoins = Math.floor(pool.active.length * shockPct);
+  }
+  else if (avgProfit > params.profitThresholdToJoin) {
     // Standard growth
     const attractiveness = (avgProfit - params.profitThresholdToJoin) / params.profitThresholdToJoin;
     potentialJoins = Math.floor(
@@ -709,7 +716,7 @@ export function runSimulation(params: SimulationParams): AggregateResult[] {
   const allSims: SimResult[][] = [];
 
   // Max agents to simulate individually to preserve performance
-  const MAX_AGENTS = 2000;
+  const MAX_AGENTS = 1000;
 
   // Run all simulations
   for (let i = 0; i < params.nSims; i++) {

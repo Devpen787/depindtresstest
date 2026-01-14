@@ -107,6 +107,10 @@ export interface SimulationParams {
   emissionModel: 'fixed' | 'kpi';      // Fixed schedule vs demand-driven
   revenueStrategy: 'burn' | 'reserve'; // Buy & Burn vs Sinking Fund
   hardwareCost: number;                // New for payback calc
+
+  // Module 5: Report-Aligned Scenarios
+  growthCallEventWeek?: number;        // Week to trigger "Supply Shock"
+  growthCallEventPct?: number;         // Magnitude of shock (0.5 = +50%)
 }
 
 // ============================================================================

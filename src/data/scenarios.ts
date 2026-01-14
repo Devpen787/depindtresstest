@@ -45,10 +45,24 @@ export const SCENARIOS: SimulationScenario[] = [
         iconName: 'Swords',
         description: 'A competitor offers 200% higher yields.',
         thesisPoint: 'Aggressive competitor yields drain your supply. If your "Moat" (Retention) is low, you will lose maximum node density in weeks, destroying the network effect.',
+        focusChart: 'Treasury Health & Vampire Churn',
+        params: {
+            churnThreshold: 50, // Providers leave easily
+            competitorYield: 2.0, // 200% advantage
+            revenueStrategy: 'reserve' // Active treasury defense
+        }
+    },
+    {
+        id: 'growth_shock',
+        name: 'Aggressive Expansion',
+        iconName: 'Zap',
+        description: 'Viral marketing triggers +50% node growth in Week 20.',
+        thesisPoint: 'Tests "Supply is King" thesis. If demand is laggy, this massive supply shock will crash token price (oversupply) unless the "Burn" (Usage) ramps up efficiently.',
         focusChart: 'Provider Count',
         params: {
-            competitorYield: 2.0, // 200% advantage
-            churnThreshold: 50 // Providers leave easily
+            growthCallEventWeek: 20,
+            growthCallEventPct: 0.5, // +50% instant growth
+            demandType: 'growth' // Assume organic demand is growing, but maybe not fast enough
         }
     }
 ];

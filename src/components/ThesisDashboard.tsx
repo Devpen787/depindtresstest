@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -10,13 +10,25 @@ import {
     Title,
     Tooltip,
     Legend,
-    Filler,
-    ScatterController,
-    ScriptableContext
+    Filler
 } from 'chart.js';
-import { Line, Chart as ChartComponent, Scatter } from 'react-chartjs-2';
-import { Activity, ShieldAlert, TrendingDown, BookOpen, AlertCircle, CheckCircle2, ChevronRight, Play, Settings2, FolderGit2, Download } from 'lucide-react';
+import { Line, Bar } from 'react-chartjs-2';
+import {
+    Activity,
+    ShieldAlert,
+    TrendingDown,
+    Zap,
+    Wallet,
+    Users,
+    AlertTriangle,
+    CheckCircle2,
+    Settings2,
+    Server,
+    Hammer,
+    ChevronRight
+} from 'lucide-react';
 import type { ProtocolProfileV1 } from '../data/protocols';
+import { SCENARIOS, SimulationScenario } from '../data/scenarios';
 
 // Register ChartJS components
 ChartJS.register(
@@ -28,31 +40,8 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    Filler,
-    ScatterController
+    Filler
 );
-
-// --- STYLING CONSTANTS ---
-const COLORS = {
-    bg: '#0f172a',
-    card: '#1e293b',
-    text: '#f8fafc',
-    muted: '#94a3b8',
-    green: '#22c55e', // Green-500
-    greenDark: '#15803d', // Green-700
-    red: '#f43f5e',   // Rose-500
-    redDark: '#be123c', // Rose-700
-    blue: '#3b82f6',
-    yellow: '#fbbf24',
-    purple: '#a855f7'
-};
-
-const FONTS = "'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'";
-
-// Set Defaults
-ChartJS.defaults.color = COLORS.muted;
-ChartJS.defaults.font.family = FONTS;
-ChartJS.defaults.borderColor = '#334155';
 
 interface ThesisDashboardProps {
     activeProfile?: ProtocolProfileV1;
@@ -66,694 +55,594 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
     onSelectProtocol
 }) => {
     // --- STATE ---
-    const [price, setPrice] = useState(0.020);
-    const [capex, setCapex] = useState(800);
-    const [scenario, setScenario] = useState<'baseline' | 'bearish' | 'taper'>('baseline');
-    const [showCitations, setShowCitations] = useState(false);
+    // Risk Engine Inputs
+    const [marketStress, setMarketStress] = useState<number>(-20); // -90 to +20
+    const [competitorYield, setCompetitorYield] = useState<number>(0); // 0 to 200
+    const [emissionType, setEmissionType] = useState<'fixed' | 'demand'>('fixed');
+    const [revenueStrategy, setRevenueStrategy] = useState<'burn' | 'reserve'>('burn');
+
+    // Legacy Inputs (Restored)
+    const [capex, setCapex] = useState<number>(800); // Hardware Cost
+
+    // Sidebar State
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-    // Initial load effect to set sensible defaults based on profile if available
-    useEffect(() => {
-        if (activeProfile) {
-            // Rough heuristic for "current price" or sensible default
-            // If we had live data passed in, we'd use that. For now, reset to generic low default
-            // setPrice(0.020); // Keep user control or reset? Let's keep existing behavior for now.
+    // Scenario State
+    const [selectedScenarioId, setSelectedScenarioId] = useState<string>('baseline');
+
+    const handleScenarioChange = (scenarioId: string) => {
+        setSelectedScenarioId(scenarioId);
+        const scenario = SCENARIOS.find(s => s.id === scenarioId);
+        if (!scenario) return;
+
+        // map scenario params to dashboard inputs
+        if (scenario.id === 'death_spiral') {
+            setMarketStress(-50);
+            setCompetitorYield(0);
+        } else if (scenario.id === 'vampire_attack') {
+            setMarketStress(-10);
+            setCompetitorYield(200);
+        } else if (scenario.id === 'growth_shock') {
+            // New Scenario: Reset stress, focus on Supply Shock logic (which we will add)
+            setMarketStress(0);
+            setCompetitorYield(0);
+        } else {
+            // Reset
+            setMarketStress(-20);
+            setCompetitorYield(0);
         }
-    }, [activeProfile]);
+    };
 
-    // --- SIMULATION ENGINE ---
-    const simulationResult = useMemo(() => {
-        // DERIVE CONSTANTS FROM PROFILE
-        const profile = activeProfile?.parameters;
-
-        // Default fallbacks if no profile
-        const INITIAL_NODES = profile ? profile.initial_active_providers.value : 4500;
-        const EMISSIONS_WEEKLY = profile ? profile.emissions.value : 5_000_000;
-        const OPEX_COST = profile ? profile.provider_economics.opex_weekly.value / 7 : 5.00; // Daily OpEx
-        const ANNUAL_DECAY = 0.16; // Standard decay assumption
-
-        // Calculate implied average daily reward per node at start
-        const avgDailyRewards = (EMISSIONS_WEEKLY / 7) / Math.max(1, INITIAL_NODES);
-
+    // --- LOGIC ENGINE (MERGED) ---
+    const simulationData = useMemo(() => {
+        // Constants (Original + New)
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const urbanNodesArr: number[] = [];
-        const ruralNodesArr: number[] = [];
-        const solvencyArr: number[] = [];
-        const vanityCoverageArr: number[] = [];
-        const vanityMinersArr: number[] = [];
 
-        // Initial Distribution
+        // Use activeProfile parameters if available, else fallback to defaults
+        const basePrice = activeProfile?.parameters?.price?.initial?.value || 0.03;
+        const INITIAL_NODES = activeProfile?.parameters?.providers?.initial?.value || 10000;
+
+        let currentPrice = basePrice;
+        let currentNodes = INITIAL_NODES;
+        // Split Initial Nodes: 70% Urban (Speculative), 30% Rural (Utility)
         let currentUrban = INITIAL_NODES * 0.70;
         let currentRural = INITIAL_NODES * 0.30;
 
-        // Initial Coverage (km2) - simpler model: Urban adds little coverage (redundant), Rural adds lots
-        let currentCoverage = (currentUrban * 0.05) + (currentRural * 5);
+        let currentReserve = 0; // In USD
 
-        const monthlyDecay = 1 - (ANNUAL_DECAY / 12);
-        let currentReward = avgDailyRewards;
+        const priceData: number[] = [];
+        const nodeData: number[] = [];
+        const urbanData: number[] = [];
+        const ruralData: number[] = [];
+        const reserveData: number[] = [];
 
-        // Solvency Base (Burn/Mint) - starts > 1.0 (Deflationary)
-        let currentSolvency = 1.25;
-
+        // Loop over 12 months
         for (let i = 0; i < 12; i++) {
-            // 1. Decay Rewards
-            currentReward = currentReward * monthlyDecay;
+            // A. Price Dynamics (Risk Engine Logic)
+            let monthlyStress = (marketStress / 100) / 12;
 
-            // 2. Financials
-            const monthRevenue = (currentReward * 30) * price;
-            const netProfit = monthRevenue - OPEX_COST * 30; // Monthly
-
-            // 3. Agent Logic
-            let urbanChurn = 0;
-            let ruralChurn = 0;
-
-            // Scenario Modifiers
-            let macroStress = 0;
-            if (scenario === 'bearish') macroStress = 0.05; // Extra 5% churn pressure
-            if (scenario === 'taper') currentReward *= 0.95; // Extra emission cut
-
-            // Urban (Mercenary)
-            if (netProfit < 0) {
-                urbanChurn = 0.25 + macroStress;
-            } else {
-                const payback = capex / netProfit;
-                if (payback > 18) urbanChurn = 0.08 + macroStress;
-                else if (payback > 12) urbanChurn = 0.02;
-                else urbanChurn = -0.05; // Growth
+            // Dampener effect of Sinking Fund
+            if (revenueStrategy === 'reserve' && monthlyStress < 0) {
+                monthlyStress = monthlyStress * 0.5;
+            }
+            // Amplification of Burn (downside)
+            if (revenueStrategy === 'burn' && monthlyStress < 0) {
+                monthlyStress = monthlyStress * 1.1;
             }
 
-            // Rural (Utility)
-            if (netProfit < -OPEX_COST * 15) { // Tolerance threshold (more resilient)
-                ruralChurn = 0.10 + macroStress;
-            } else if (netProfit > 0) {
-                ruralChurn = -0.02; // Slow growth
+            // Apply Price Change with volatility
+            let randomVol = (Math.random() - 0.5) * 0.05;
+            currentPrice = currentPrice * (1 + monthlyStress + randomVol);
+            if (currentPrice < 0.001) currentPrice = 0.001;
+
+            // B. Emission & Financials
+            let monthlyEmissions = 1000000;
+            if (emissionType === 'demand') {
+                if (marketStress < 0) {
+                    monthlyEmissions = monthlyEmissions * 0.6;
+                    currentPrice = currentPrice * 1.02; // Price constraint support
+                }
             }
+
+            // [NEW] Growth Shock (Module 5)
+            if (selectedScenarioId === 'growth_shock' && i === 5) {
+                // Massive Marketing Spike in Month 5
+                currentNodes = currentNodes * 1.5; // +50% Shock
+                currentUrban = currentUrban * 1.6;
+                currentRural = currentRural * 1.3;
+            }
+
+            // C. Layered Churn Logic (Legacy + Risk Engine)
+            // 1. Calculate Revenue per Node
+            let minerRevenueUSD = (monthlyEmissions / (currentUrban + currentRural)) * currentPrice;
+            let profit = minerRevenueUSD - 5; // Assumed $5/mo OpEx
+            let paybackPeriod = profit > 0 ? capex / profit : 999;
+
+            // 2. Vampire Attack Factor
+            let vampirePressure = 0;
+            if (competitorYield > 20) {
+                let diff = (competitorYield / 100);
+                vampirePressure = (diff * 0.1); // Base pressure
+            }
+
+            // 3. Urban Logic (Speculators)
+            let urbanChurn = 0.02; // Natural baseline
+            if (profit < 0) urbanChurn += 0.15; // Unprofitable = fast exit
+            if (paybackPeriod > 18) urbanChurn += 0.05; // Slow ROI = exit
+            if (marketStress < -20) urbanChurn += 0.05; // Panic selling
+            urbanChurn += (vampirePressure * 1.5); // Speculators chase yield aggressively
+
+            // 4. Rural Logic (Utility/Resilient)
+            let ruralChurn = 0.01; // Low baseline
+            if (profit < -10) ruralChurn += 0.05; // Deep unprofitability only
+            ruralChurn += (vampirePressure * 0.2); // Stickier hardware
 
             // Apply Churn
             currentUrban = Math.max(0, currentUrban * (1 - urbanChurn));
             currentRural = Math.max(0, currentRural * (1 - ruralChurn));
+            currentNodes = currentUrban + currentRural;
 
-            // Solvency Decay Logic (Simulated)
-            // Fix: Use smoother sigmoid-like decay instead of linear hard crash at 0.05
-            // Price > 0.10: Health 1.0. Price -> 0: Health -> 0 smoothly.
-            const basePriceRef = 0.15; // Reference healthy price
-            const priceImpact = Math.pow(Math.min(1, price / basePriceRef), 1.5); // Smoother curve
-            const solvencyNoise = (Math.random() * 0.05) - 0.025;
-            currentSolvency = (currentSolvency * 0.98 * priceImpact) + solvencyNoise;
+            // D. Treasury Logic
+            if (revenueStrategy === 'reserve') {
+                currentReserve += (monthlyEmissions * currentPrice * 0.1);
+            } else {
+                currentPrice = currentPrice * 1.005;
+            }
 
-            // Vanity Metrics
-            const totalMiners = currentUrban + currentRural;
-            // Urban has high diminishing returns on coverage, Rural is linear
-            currentCoverage = (currentUrban * 0.05) + (currentRural * 5);
-
-            urbanNodesArr.push(Math.round(currentUrban));
-            ruralNodesArr.push(Math.round(currentRural));
-            solvencyArr.push(currentSolvency);
-            vanityCoverageArr.push(currentCoverage);
-            vanityMinersArr.push(Math.round(totalMiners));
+            priceData.push(currentPrice);
+            nodeData.push(Math.round(currentNodes));
+            urbanData.push(Math.round(currentUrban));
+            ruralData.push(Math.round(currentRural));
+            reserveData.push(currentReserve);
         }
 
-        // Metrics Calculation
-        const monthlyRevenue = (currentReward * 30) * price;
-        const netProfit = monthlyRevenue - (OPEX_COST * 30);
-        const paybackMonths = netProfit > 0 ? capex / netProfit : 999;
+        // Metrics for final state
+        const finalPrice = priceData[11];
+        const finalNodes = nodeData[11];
+        const finalReserve = reserveData[11];
 
-        const startNodes = INITIAL_NODES;
-        const endNodes = urbanNodesArr[11] + ruralNodesArr[11];
-        const survivalRate = Math.round((endNodes / startNodes) * 100);
+        // ROI Calculation for visualization
+        let monthlyEmissions = 1000000;
+        if (emissionType === 'demand' && marketStress < 0) monthlyEmissions *= 0.6;
+        let finalMonthlyRevenue = (monthlyEmissions / finalNodes) * finalPrice;
+        let finalPayback = finalMonthlyRevenue > 0 ? capex / finalMonthlyRevenue : 999;
+
+        // KPI Calcs
+        const retentionRate = Math.round((finalNodes / INITIAL_NODES) * 100);
+
+        let solvencyText = "Stable";
+        if (revenueStrategy === 'reserve') {
+            solvencyText = "$" + Math.round(finalReserve).toLocaleString();
+        } else {
+            solvencyText = "0 Mo";
+        }
+
+        let stabilityStatus = "High";
+        if (revenueStrategy === 'burn' && marketStress < -20) stabilityStatus = "Critical";
+        if (emissionType === 'demand' && revenueStrategy === 'reserve') stabilityStatus = "Optimal";
 
         return {
             months,
-            urbanNodes: urbanNodesArr,
-            ruralNodes: ruralNodesArr,
-            solvency: solvencyArr,
-            vanityCoverage: vanityCoverageArr,
-            vanityMiners: vanityMinersArr,
-            paybackMonths,
-            monthlyRevenue,
-            survivalRate,
-            opexMonthly: OPEX_COST * 30
+            priceData,
+            nodeData,
+            urbanData,
+            ruralData,
+            reserveData,
+            finalPrice,
+            finalNodes,
+            finalReserve,
+            finalMonthlyRevenue,
+            finalPayback,
+            retentionRate,
+            solvencyText,
+            stabilityStatus
         };
+    }, [marketStress, competitorYield, emissionType, revenueStrategy, capex, activeProfile, selectedScenarioId]);
 
-    }, [price, capex, scenario, activeProfile]);
-
-    // --- CHART DATA GENERATION ---
-    const stressData = {
-        labels: simulationResult.months,
-        datasets: [
-            {
-                label: 'Rural Utility (Resilient)',
-                data: simulationResult.ruralNodes,
-                borderColor: COLORS.green,
-                backgroundColor: 'rgba(34, 197, 94, 0.5)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0
-            },
-            {
-                label: 'Urban Speculators (High Risk)',
-                data: simulationResult.urbanNodes,
-                borderColor: COLORS.red,
-                backgroundColor: 'rgba(244, 63, 94, 0.5)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0
-            }
-        ]
-    };
-
-    const solvencyChartData = {
-        labels: simulationResult.months,
-        datasets: [
-            {
-                label: 'Burn-to-Mint Ratio',
-                data: simulationResult.solvency,
-                segment: {
-                    borderColor: (ctx: any) => ctx.p0.parsed.y < 1 ? COLORS.red : COLORS.green,
-                    backgroundColor: (ctx: any) => ctx.p0.parsed.y < 1 ? 'rgba(244, 63, 94, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                },
-                borderColor: COLORS.green,
-                fill: true,
-                tension: 0.4
-            }
-        ]
-    };
-
-    const vanityChartData = {
-        labels: simulationResult.months,
-        datasets: [
-            {
-                type: 'line' as const,
-                label: 'Effective Coverage (km²)',
-                data: simulationResult.vanityCoverage,
-                borderColor: COLORS.purple,
-                borderWidth: 3,
-                yAxisID: 'y1',
-                tension: 0.4
-            },
-            {
-                type: 'bar' as const,
-                label: 'Total Miners',
-                data: simulationResult.vanityMiners,
-                backgroundColor: 'rgba(148, 163, 184, 0.5)', // Slate-400
-                borderRadius: 4,
-                yAxisID: 'y'
-            }
-        ]
-    };
-
-    // --- GEOSPATIAL SCATTER ---
-    // Generate static points but color them based on survival logic?
-    // For simplicity, we keep the static scatter but update the legend/text based on state
-    const geoData = useMemo(() => {
-        const urbanPoints = Array.from({ length: 80 }, () => ({
-            x: Math.random() * 30 + 35,
-            y: Math.random() * 30 + 35
-        }));
-        const ruralPoints = Array.from({ length: 40 }, () => ({
-            x: Math.random() * 100,
-            y: Math.random() * 100
-        }));
-        return {
-            datasets: [
-                {
-                    label: 'Urban Cluster',
-                    data: urbanPoints,
-                    backgroundColor: simulationResult.paybackMonths > 18 ? COLORS.red : 'rgba(244, 63, 94, 0.3)',
-                    borderColor: COLORS.red,
-                    pointRadius: 4
-                },
-                {
-                    label: 'Rural Node',
-                    data: ruralPoints,
-                    backgroundColor: COLORS.green,
-                    borderColor: COLORS.green,
-                    pointRadius: 6,
-                    pointStyle: 'rectRot'
-                }
-            ]
-        };
-    }, [simulationResult.paybackMonths]);
-
-    // --- OPTIONS ---
+    // --- CHART OPTIONS ---
     const commonOptions = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { display: false },
+            legend: { labels: { color: '#94a3b8', font: { family: "'Space Grotesk', sans-serif" } } },
             tooltip: {
                 backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                titleColor: COLORS.text,
-                bodyColor: COLORS.muted,
+                titleColor: '#f8fafc',
+                bodyColor: '#cbd5e1',
                 borderColor: '#334155',
                 borderWidth: 1,
-                padding: 10,
-                displayColors: true
             }
         },
         scales: {
-            x: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } } },
-            y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } } }
+            x: { grid: { display: false }, ticks: { color: '#64748b' } },
+            y: { grid: { color: '#334155' }, ticks: { color: '#64748b' } }
         }
     };
 
-    // --- EXPORT LOGIC ---
-    const handleDownload = () => {
-        if (!activeProfile) return;
-
-        const date = new Date().toISOString().split('T')[0];
-        const verdict = simulationResult.paybackMonths > 18
-            ? "CAPITULATION RISK: Urban miners likely to exit as payback period exceeds 18 months."
-            : "HEALTHY GROWTH: Network is profitable for both Urban and Rural layers.";
-
-        const content = `
-# CAS Thesis Simulation Report
-**Protocol:** ${activeProfile.metadata.name}
-**Date:** ${date}
-**Mechanism:** ${activeProfile.metadata.mechanism}
-
-## Simulation Parameters
-- **Token Price:** $${price.toFixed(3)}
-- **Hardware Cost (Capex):** $${capex}
-- **Macro Scenario:** ${scenario.toUpperCase()}
-
-## Key Results
-| Metric | Value | Status |
-| :--- | :--- | :--- |
-| **Survival Rate** | ${simulationResult.survivalRate}% | ${simulationResult.survivalRate > 50 ? 'Stable' : 'Critical'} |
-| **Payback Period** | ${simulationResult.paybackMonths > 60 ? '>5 Years' : simulationResult.paybackMonths.toFixed(1) + ' Months'} | ${simulationResult.paybackMonths < 18 ? 'Healthy' : 'Risk'} |
-| **Monthly Revenue** | $${simulationResult.monthlyRevenue.toFixed(2)} | - |
-| **Monthly OpEx** | $${simulationResult.opexMonthly.toFixed(2)} | - |
-
-## Thesis Verdict
-${verdict}
-
----
-*Generated by DePIN Stress Test Simulator v1.2*
-        `.trim();
-
-        const blob = new Blob([content], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${activeProfile.metadata.id}_thesis_report_${date}.md`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+    // Chart 1: Stability (Price vs Total Nodes)
+    const stabilityData = {
+        labels: simulationData.months,
+        datasets: [
+            {
+                label: 'Token Price ($)',
+                data: simulationData.priceData,
+                borderColor: '#6366f1', // Indigo-500
+                backgroundColor: '#6366f1',
+                yAxisID: 'y',
+                tension: 0.4
+            },
+            {
+                label: 'Total Active Nodes',
+                data: simulationData.nodeData,
+                borderColor: '#cbd5e1',
+                backgroundColor: '#cbd5e1',
+                yAxisID: 'y1',
+                tension: 0.4,
+                borderDash: [5, 5]
+            }
+        ]
     };
 
-    // --- RENDER HELPERS ---
-    const Citation: React.FC<{ tag: string }> = ({ tag }) => (
-        <span className={`align-super text-[10px] text-indigo-400 font-serif ml-1 tracking-wide ${showCitations ? 'inline' : 'hidden'}`}>
-            {tag}
-        </span>
-    );
+    // Chart 2: Network Composition (Urban vs Rural) - RESTORED
+    const compositionData = {
+        labels: simulationData.months,
+        datasets: [
+            {
+                label: 'Rural Utility (Resilient)',
+                data: simulationData.ruralData,
+                borderColor: '#10b981', // Emerald-500
+                backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: 'Urban Speculators (High Risk)',
+                data: simulationData.urbanData,
+                borderColor: '#f43f5e', // Rose-500
+                backgroundColor: 'rgba(244, 63, 94, 0.5)',
+                fill: true,
+                tension: 0.4
+            }
+        ]
+    };
+
+    // Chart 3: Treasury
+    const treasuryData = {
+        labels: simulationData.months,
+        datasets: [{
+            label: revenueStrategy === 'reserve' ? 'Treasury Value ($)' : 'Value Burned (Theoretical)',
+            data: revenueStrategy === 'reserve'
+                ? simulationData.reserveData
+                : simulationData.reserveData.map((_, i) => (i + 1) * 1000),
+            backgroundColor: revenueStrategy === 'reserve' ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+            borderColor: revenueStrategy === 'reserve' ? '#10b981' : '#ef4444',
+            borderWidth: 1
+        }]
+    };
+
+    const sidebarProtocols = protocols || [];
 
     return (
-        <div className="flex min-h-screen bg-[#0f172a] text-[#f8fafc] font-sans selection:bg-indigo-500/30 overflow-hidden">
+        <div className="flex h-full bg-slate-950 text-[#f8fafc] font-sans overflow-hidden">
 
-            {/* SIDEBAR CONTROL CENTER */}
-            <aside className={`bg-[#0f172a] border-r border-slate-800 transition-all duration-300 flex flex-col fixed inset-y-0 left-0 z-40 lg:relative ${sidebarCollapsed ? 'w-16' : 'w-80'} mt-16 lg:mt-0`}>
-
-                {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-[#0f172a]">
-                    {!sidebarCollapsed && (
-                        <div>
-                            <h2 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                                <Settings2 size={16} className="text-indigo-400" /> Control Center
-                            </h2>
-                            <p className="text-[10px] text-slate-500 mt-1">Adjust Simulation Parameters</p>
-                        </div>
-                    )}
+            {/* SIDEBAR NAVIGATION */}
+            <aside className={`${sidebarCollapsed ? 'w-16' : 'w-72'} bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 z-20 fixed inset-y-0 left-0 lg:relative lg:translate-x-0 ${!sidebarCollapsed ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                    {!sidebarCollapsed && <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Protocols</span>}
                     <button
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors"
+                        className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
                     >
-                        {sidebarCollapsed ? <Settings2 size={20} /> : <ChevronRight size={20} className="rotate-180" />}
+                        {sidebarCollapsed ? <ChevronRight size={16} /> : <div className="flex items-center gap-2"><div className="w-1 h-1 bg-slate-500 rounded-full" /><div className="w-1 h-1 bg-slate-500 rounded-full" /></div>}
                     </button>
                 </div>
 
-                {/* Controls - Hide if collapsed */}
-                {!sidebarCollapsed && (
-                    <div className="p-6 space-y-8 overflow-y-auto flex-1">
-
-                        {/* Protocol Selector */}
-                        {protocols && onSelectProtocol && activeProfile && (
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                                    Simulated Protocol
-                                </label>
-                                <div className="space-y-1">
-                                    <div className="relative">
-                                        <select
-                                            value={activeProfile.metadata.id}
-                                            onChange={(e) => {
-                                                const p = protocols.find(p => p.metadata.id === e.target.value);
-                                                if (p) onSelectProtocol(p);
-                                            }}
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2.5 text-xs text-white mobile:text-sm focus:border-indigo-500 outline-none transition-colors appearance-none font-bold"
-                                        >
-                                            {protocols.map(p => (
-                                                <option key={p.metadata.id} value={p.metadata.id}>{p.metadata.name}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute left-3 top-2.5 pointer-events-none text-indigo-400">
-                                            <FolderGit2 size={14} />
-                                        </div>
-                                        <div className="absolute right-3 top-2.5 pointer-events-none text-slate-500">
-                                            <ChevronRight size={14} className="rotate-90" />
-                                        </div>
-                                    </div>
-                                    <p className="text-[9px] text-slate-500 px-1 mt-1 flex items-center justify-between">
-                                        <span>Uses calibrated {activeProfile.metadata.name} parameters.</span>
-                                        {activeProfile.metadata.chain && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${activeProfile.metadata.chain === 'solana' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' :
-                                                activeProfile.metadata.chain === 'ethereum' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
-                                                    activeProfile.metadata.chain === 'polygon' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
-                                                        'bg-slate-500/20 text-slate-300 border-slate-500/30'
-                                                }`}>
-                                                {activeProfile.metadata.chain}
-                                            </span>
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        <hr className="border-slate-800" />
-
-                        {/* Price Slider */}
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-end">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    Token Price <Citation tag="[Eq 2.1]" />
-                                </label>
-                                <span className="font-mono text-lg font-bold text-indigo-400">${price.toFixed(3)}</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="0.005" max="0.30" step="0.001"
-                                value={price}
-                                onChange={(e) => setPrice(parseFloat(e.target.value))}
-                                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                            />
-                            <div className="flex justify-between text-[9px] text-slate-600 font-mono">
-                                <span>$0.005 (Crash)</span>
-                                <span>$0.30 (Moon)</span>
-                            </div>
-                        </div>
-
-                        {/* CAPEX Selector */}
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                                Hardware Cost <Citation tag="[Sec 3.2]" />
-                            </label>
-                            <div className="relative">
-                                <select
-                                    value={capex}
-                                    onChange={(e) => setCapex(parseInt(e.target.value))}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-slate-300 focus:border-indigo-500 outline-none transition-colors appearance-none"
-                                >
-                                    <option value="400">Entry Level ($400 - DIY)</option>
-                                    <option value="800">Prosumer ($800 - Standard)</option>
-                                    <option value="2000">Enterprise ($2000 - Ref Grade)</option>
-                                </select>
-                                <div className="absolute right-3 top-2.5 pointer-events-none text-slate-500">
-                                    <ChevronRight size={14} className="rotate-90" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Scenario Selector */}
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                                Macro Scenario <Citation tag="[Fig 9.1]" />
-                            </label>
-                            <div className="grid grid-cols-1 gap-2">
-                                {[
-                                    { id: 'baseline', label: 'Baseline', desc: 'Organic Growth' },
-                                    { id: 'bearish', label: 'Bearish Macro', desc: 'High Churn Pressure' },
-                                    { id: 'taper', label: 'Emissions Taper', desc: 'Supply Shock' }
-                                ].map((opt) => (
-                                    <button
-                                        key={opt.id}
-                                        onClick={() => setScenario(opt.id as any)}
-                                        className={`text-left px-3 py-2 rounded-lg border transition-all ${scenario === opt.id ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'}`}
-                                    >
-                                        <div className="text-xs font-bold uppercase">{opt.label}</div>
-                                        <div className={`text-[10px] ${scenario === opt.id ? 'text-indigo-200' : 'text-slate-600'}`}>{opt.desc}</div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Solana Advantage Card */}
-                        {activeProfile.metadata.chain === 'solana' && (
-                            <div className="p-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10">
-                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 mb-1 flex items-center justify-between">
-                                    <span>Solana Architecture</span>
-                                    <span className="text-[8px] bg-indigo-500 text-white px-1 rounded">ACTIVE</span>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-[9px] text-slate-400">
-                                        <CheckCircle2 size={10} className="text-emerald-400" />
-                                        <span>SVM Parallel Execution</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-[9px] text-slate-400">
-                                        <CheckCircle2 size={10} className="text-emerald-400" />
-                                        <span>State Compression (cNFTs)</span>
-                                    </div>
-                                    <p className="text-[9px] text-indigo-400/80 mt-2 italic leading-tight">
-                                        "Million-device scale at nearly zero cost."
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Toggles */}
-                        <div className="pt-6 border-t border-slate-800">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                    {sidebarProtocols.map(p => {
+                        const isActive = activeProfile?.metadata.id === p.metadata.id;
+                        return (
                             <button
-                                onClick={() => setShowCitations(!showCitations)}
-                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${showCitations ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-slate-900 border-slate-700 text-slate-500'}`}
+                                key={p.metadata.id}
+                                onClick={() => onSelectProtocol && onSelectProtocol(p)}
+                                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group ${isActive
+                                    ? 'bg-indigo-500/10 text-white shadow-lg shadow-indigo-500/5 border border-indigo-500/20'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent'
+                                    }`}
                             >
-                                <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
-                                    <BookOpen size={14} /> Citations
-                                </span>
-                                <div className={`w-8 h-4 rounded-full relative transition-colors ${showCitations ? 'bg-emerald-500' : 'bg-slate-700'}`}>
-                                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${showCitations ? 'translate-x-4' : 'translate-x-0'}`} />
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300'
+                                    }`}>
+                                    {p.metadata.name.substring(0, 2).toUpperCase()}
                                 </div>
+                                {!sidebarCollapsed && (
+                                    <div className="flex flex-col items-start truncate">
+                                        <span className={`text-sm font-semibold truncate ${isActive ? 'text-indigo-400' : ''}`}>
+                                            {p.metadata.name}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500 truncate">
+                                            {p.metadata.mechanism}
+                                        </span>
+                                    </div>
+                                )}
+                                {isActive && !sidebarCollapsed && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
+                                )}
                             </button>
-                        </div>
+                        );
+                    })}
+                </div>
 
-                        {/* Mini Verdict in Sidebar for Visibility */}
-                        <div className={`p-4 rounded-lg border ${simulationResult.paybackMonths > 18 ? 'bg-red-950/30 border-red-900/50' : 'bg-emerald-950/30 border-emerald-900/50'}`}>
-                            <div className="text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
-                                <Activity size={12} /> Status
+                {/* Sidebar Footer */}
+                <div className="p-4 border-t border-slate-800">
+                    <div className={`flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        {!sidebarCollapsed && (
+                            <div className="flex flex-col">
+                                <span className="text-[10px] uppercase font-bold text-slate-400">Status</span>
+                                <span className="text-xs font-bold text-emerald-400">Simulation Active</span>
                             </div>
-                            <div className={`text-xs font-bold ${simulationResult.paybackMonths > 18 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                {simulationResult.paybackMonths > 18 ? 'CAPITULATION RISK' : 'HEALTHY GROWTH'}
-                            </div>
-                        </div>
+                        )}
                     </div>
-                )}
+                </div>
             </aside>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 h-[calc(100vh-4rem)] overflow-y-auto scrollbar-hide bg-[#0f172a]">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 w-full space-y-8">
 
-                    {/* Header for Active Protocol */}
+                    {/* REMOVED DUPLICATE HEADER */}
+                    {/* Main Title and Context integrated into top of content */}
+
+
+
+                    {/* Title Section (formerly in Header) */}
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-                                {activeProfile ? activeProfile.metadata.name : 'Unknown Protocol'}
-                                <span className="text-[#94a3b8] font-normal text-sm hidden sm:inline-block">| Thesis Simulation</span>
+                            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                                DePIN Risk Engine <span className="text-slate-500 font-normal">| {activeProfile ? activeProfile.metadata.name : 'Onocoy'} Thesis</span>
                             </h1>
-                            <p className="text-xs text-slate-500 mt-1">
-                                Mechanism: <span className="text-indigo-400">{activeProfile?.metadata.mechanism}</span>
-                            </p>
+                            <p className="text-xs text-slate-400">Stress-Testing Tokenomics against "Vampire Attacks" & Market Crashes</p>
                         </div>
-                        <div className="hidden md:flex items-center gap-3">
-                            <span className="px-3 py-1 rounded-full bg-[#3b82f6]/10 text-[#3b82f6] text-xs font-mono border border-[#3b82f6]/20">v.1.1.0 Interactive</span>
-                            <button
-                                onClick={handleDownload}
-                                className="p-2 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white transition-all border border-slate-700 hover:border-indigo-500"
-                                title="Download Report"
-                            >
-                                <Download size={16} />
-                            </button>
+                        <div className="hidden md:flex gap-4 text-xs font-mono text-slate-500">
+                            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> System Online</span>
+                            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> Model v3.0</span>
                         </div>
                     </div>
 
-                    {/* METRICS GRID */}
-                    <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Activity size={64} />
-                            </div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Network Resilience <Citation tag="[Def 1.2]" /></div>
-                            <div className="flex items-baseline gap-2">
-                                <span className={`text-4xl font-mono font-bold ${simulationResult.survivalRate > 50 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {simulationResult.survivalRate}%
-                                </span>
-                                <span className="text-xs text-slate-500 font-bold uppercase">Survival Rate</span>
-                            </div>
-                            <div className="mt-4 text-xs text-slate-400 leading-relaxed">
-                                Projected node retention. <strong className="text-white">Rural utility nodes</strong> represent the floor.
-                            </div>
-                        </div>
+                    <div className="w-full h-px bg-slate-800" />
 
-                        <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <ShieldAlert size={64} />
-                            </div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Miner Payback <Citation tag="[Eq 3.4]" /></div>
-                            <div className="flex items-baseline gap-2">
-                                <span className={`text-4xl font-mono font-bold ${simulationResult.paybackMonths < 18 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {simulationResult.paybackMonths > 60 ? '>5y' : `${simulationResult.paybackMonths.toFixed(1)}mo`}
-                                </span>
-                                <span className="text-xs text-slate-500 font-bold uppercase">ROI Period</span>
-                            </div>
-                            <div className="mt-4 text-xs text-slate-400 leading-relaxed">
-                                If Payback &gt; 18mo, <strong className="text-red-400">Urban Speculators</strong> capitulate. Rural nodes ignore this signal.
+                    {/* KPI Summary Cards */}
+                    <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-500/50">
+                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Network Solvency</div>
+                            <div className="text-2xl font-bold text-white">{simulationData.solvencyText}</div>
+                            <div className={`text-xs mt-1 ${revenueStrategy === 'reserve' ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                {revenueStrategy === 'reserve' ? 'Runway Remaining' : 'No Reserves (Burn Mode)'}
                             </div>
                         </div>
-
-                        <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <TrendingDown size={64} />
+                        <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-500/50">
+                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Miner Retention</div>
+                            <div className={`text-2xl font-bold ${simulationData.retentionRate < 70 ? 'text-red-500' : 'text-white'}`}>
+                                {simulationData.retentionRate}%
                             </div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Monthly Revenue <Citation tag="[Data 5.1]" /></div>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-mono font-bold text-indigo-400">
-                                    ${simulationResult.monthlyRevenue.toFixed(2)}
-                                </span>
-                                <span className="text-xs text-slate-500 font-bold uppercase">Per Node</span>
-                            </div>
-                            <div className="mt-4 text-xs text-slate-400 leading-relaxed">
-                                Vs OpEx: <strong className="text-emerald-400">${simulationResult.opexMonthly.toFixed(2)}</strong>. Net <span className={simulationResult.monthlyRevenue - simulationResult.opexMonthly > 0 ? 'text-emerald-400' : 'text-red-400'}>${(simulationResult.monthlyRevenue - simulationResult.opexMonthly).toFixed(2)}</span>
-                            </div>
+                            <div className="text-xs text-slate-400 mt-1">Hardware Active</div>
                         </div>
+                        {/* ... other KPIs ... */}
                     </section>
 
-                    {/* THESIS VERDICT */}
-                    <section className="bg-indigo-900/10 border border-indigo-500/20 p-6 rounded-2xl">
-                        <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <BookOpen size={14} /> Thesis Verdict
-                        </h3>
-                        <p className="text-sm md:text-base text-slate-300 leading-relaxed font-medium">
-                            {simulationResult.paybackMonths > 18 ? (
-                                <>
-                                    At <strong>${price.toFixed(3)}</strong>, the Payback Period exceeds 18 months. <span className="text-red-400 bg-red-900/10 px-1 rounded">Urban miners capitulate</span> as capital seeks better yield. However, notice that <strong>Rural nodes</strong> (Green layer) remain relatively flat, validating the thesis that utility-driven deployments are price-inelastic compared to speculators.
-                                </>
-                            ) : (
-                                <>
-                                    At <strong>${price.toFixed(3)}</strong>, the network is profitable. Both Urban and Rural layers grow. This represents the "Flywheel" phase where token incentives successfully subsidize hardware CAPEX <Citation tag="[7]" />.
-                                </>
-                            )}
-                        </p>
-                    </section>
+                    {/* Main "War Room" Layout */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                    {/* MAIN CHARTS */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="lg:col-span-4 space-y-6">
 
-                        {/* CHART 1: CAPITULATION */}
-                        <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <span className="w-1.5 h-6 bg-red-500 rounded-full"></span>
-                                        The Capitulation Curve <Citation tag="[Fig 5.2]" />
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-1">Urban (Red) vs Rural (Green) survival under stress.</p>
+                            {/* SCENARIO SELECTOR (RESTORED) */}
+                            <div className="bg-slate-800/80 backdrop-blur-md border border-slate-700/50 rounded-xl p-6">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Zap size={16} className="text-yellow-400" />
+                                    Select Scenario
+                                </h3>
+                                <select
+                                    value={selectedScenarioId}
+                                    onChange={(e) => handleScenarioChange(e.target.value)}
+                                    className="w-full bg-slate-900 text-white text-sm border border-slate-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                >
+                                    <option value="baseline">Baseline (Organic Growth)</option>
+                                    {SCENARIOS.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-slate-500 mt-2">
+                                    {SCENARIOS.find(s => s.id === selectedScenarioId)?.description || "Standard baseline simulation."}
+                                </p>
+                            </div>
+
+                            {/* External Factors */}
+                            <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-xl p-6">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+                                    <TrendingDown size={16} className="text-red-500" />
+                                    Market Stressors
+                                </h3>
+                                {/* Market Stress Slider */}
+                                <div className="mb-6">
+                                    <label className="flex justify-between text-xs font-medium text-slate-400 mb-2">
+                                        <span>Bear Market Severity</span>
+                                        <span className="text-white">{marketStress}%</span>
+                                    </label>
+                                    <input
+                                        type="range" min="-90" max="20" step="10"
+                                        value={marketStress} onChange={(e) => setMarketStress(parseInt(e.target.value))}
+                                        className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    />
+                                </div>
+                                {/* Vampire Attack Slider */}
+                                <div className="mb-0">
+                                    <label className="flex justify-between text-xs font-medium text-slate-400 mb-2">
+                                        <span>Vampire Attack (Competitor Yield)</span>
+                                        <span className="text-white">+{competitorYield}%</span>
+                                    </label>
+                                    <input
+                                        type="range" min="0" max="200" step="20"
+                                        value={competitorYield} onChange={(e) => setCompetitorYield(parseInt(e.target.value))}
+                                        className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    />
                                 </div>
                             </div>
-                            <div className="flex-1 min-h-[300px]">
-                                <Line data={stressData} options={{ ...commonOptions, scales: { ...commonOptions.scales, y: { stacked: true, grid: { color: '#334155' } } } }} />
-                            </div>
-                        </div>
 
-                        {/* CHART 2: SOLVENCY */}
-                        <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <span className="w-1.5 h-6 bg-yellow-500 rounded-full"></span>
-                                        Solvency Mechanics <Citation tag="[Eq 4.2]" />
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-1">Burn-to-Mint Ratio. &lt; 1.0 means inflationary subsidy.</p>
+                            {/* Hardware Economics (RESTORED) */}
+                            <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-xl p-6">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+                                    <Server size={16} className="text-indigo-500" />
+                                    Hardware Economics
+                                </h3>
+                                <div className="mb-0">
+                                    <label className="flex justify-between text-xs font-medium text-slate-400 mb-2">
+                                        <span>Hardware Cost (Capex)</span>
+                                        <span className="text-white">${capex}</span>
+                                    </label>
+                                    <input
+                                        type="range" min="200" max="3000" step="100"
+                                        value={capex} onChange={(e) => setCapex(parseInt(e.target.value))}
+                                        className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    />
+                                    <p className="text-[10px] text-slate-500 mt-2">
+                                        Higher Capex makes "Urban" nodes exit faster during stress.
+                                    </p>
                                 </div>
                             </div>
-                            <div className="flex-1 min-h-[300px]">
-                                <ChartComponent type='line' data={solvencyChartData} options={commonOptions} />
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* SECONDARY ROW */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20 overflow-hidden">
-
-                        {/* CHART 3: VANITY TRAP */}
-                        <div className="lg:col-span-2 bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <span className="w-1.5 h-6 bg-purple-500 rounded-full"></span>
-                                        The Vanity Trap <Citation tag="[Sec 2.3]" />
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-1">Total Miners (Bars) vs Effective Coverage (Line).</p>
+                            {/* Internal Levers */}
+                            <div className="bg-slate-800/50 backdrop-blur-md border-t-4 border-t-indigo-500 border-x border-b border-slate-700/50 rounded-xl p-6">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+                                    <Settings2 size={16} className="text-indigo-500" />
+                                    Protocol Levers
+                                </h3>
+                                <div className="mb-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-medium text-slate-400">Emission Model</span>
+                                        <span className="text-xs font-bold text-indigo-400">
+                                            {emissionType === 'fixed' ? 'Fixed Schedule' : 'KPI-Based'}
+                                        </span>
+                                    </div>
+                                    <select
+                                        value={emissionType} onChange={(e) => setEmissionType(e.target.value as 'fixed' | 'demand')}
+                                        className="w-full bg-slate-900 text-white text-xs border border-slate-600 rounded p-2"
+                                    >
+                                        <option value="fixed">Fixed (Halving Schedule)</option>
+                                        <option value="demand">KPI-Based (Demand Driven)</option>
+                                    </select>
+                                </div>
+                                <div className="mb-0">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-medium text-slate-400">Revenue Strategy</span>
+                                        <span className="text-xs font-bold text-indigo-400">
+                                            {revenueStrategy === 'burn' ? 'Burn Token' : 'Sinking Fund'}
+                                        </span>
+                                    </div>
+                                    <select
+                                        value={revenueStrategy} onChange={(e) => setRevenueStrategy(e.target.value as 'burn' | 'reserve')}
+                                        className="w-full bg-slate-900 text-white text-xs border border-slate-600 rounded p-2"
+                                    >
+                                        <option value="burn">Buy & Burn (Deflationary)</option>
+                                        <option value="reserve">Sinking Fund (Treasury)</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div className="h-[300px]">
-                                <ChartComponent type='bar' data={vanityChartData} options={{
-                                    ...commonOptions,
-                                    scales: {
-                                        x: { grid: { display: false } },
-                                        y: { type: 'linear', display: true, position: 'left', grid: { color: '#334155' } },
-                                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
-                                    }
-                                }} />
-                            </div>
+
                         </div>
 
-                        {/* CHART 4: GEOSPATIAL (Conditional) */}
-                        {activeProfile?.metadata.model_type === 'location_based' && (
-                            <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl">
-                                <div className="flex justify-between items-start mb-6">
+                        {/* Visualization Column */}
+                        <div className="lg:col-span-8 space-y-6">
+
+                            {/* Chart 1: Stability */}
+                            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                                <div className="flex justify-between items-start mb-4">
+                                    <h3 className="text-lg font-bold text-white">Network Stability (Aggregate)</h3>
+                                    <div className="flex items-center gap-4 text-xs">
+                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-indigo-500 rounded-sm"></span> Price</div>
+                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-400 rounded-sm"></span> Total Nodes</div>
+                                    </div>
+                                </div>
+                                <div className="h-[200px]">
+                                    <Line
+                                        data={stabilityData}
+                                        options={{
+                                            ...commonOptions,
+                                            scales: {
+                                                y: { type: 'linear', display: true, position: 'left', grid: { color: '#334155' } },
+                                                y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } },
+                                                x: { grid: { display: false } }
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Chart 2: Network Composition (RESTORED) */}
+                            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                                <div className="flex justify-between items-start mb-4">
                                     <div>
-                                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                            <span className="w-1.5 h-6 bg-green-500 rounded-full"></span>
-                                            Geospatial Resilience <Citation tag="[Map 1]" />
-                                        </h3>
-                                        <p className="text-xs text-slate-400 mt-1">Topology Analysis (Abstract).</p>
+                                        <h3 className="text-lg font-bold text-white">Grid Composition (Urban vs Rural)</h3>
+                                        <p className="text-xs text-slate-400">Visualizing where potential capitulation starts (Speculators vs Utility).</p>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs">
+                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded-sm"></span> Rural (Utility)</div>
+                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-rose-500 rounded-sm"></span> Urban (Speculators)</div>
                                     </div>
                                 </div>
-                                <div className="h-[300px]">
-                                    <Scatter data={geoData} options={{
-                                        ...commonOptions,
-                                        scales: {
-                                            x: { display: false },
-                                            y: { display: false }
-                                        }
-                                    }} />
+                                <div className="h-[200px]">
+                                    <Line data={compositionData} options={commonOptions} />
                                 </div>
-                                <div className="mt-4 flex gap-4 justify-center">
-                                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                        <span className={`w-2 h-2 rounded-full ${simulationResult.paybackMonths > 18 ? 'bg-red-500' : 'bg-red-500/30'}`}></span>
-                                        Urban (Risk)
+                            </div>
+
+                            {/* Bottom Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Chart 3: Treasury */}
+                                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex flex-col">
+                                    <h3 className="text-sm font-bold text-white mb-4">Protocol Health (Reserves)</h3>
+                                    <div className="flex-1 min-h-[200px]">
+                                        <Bar data={treasuryData} options={commonOptions} />
                                     </div>
-                                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                        Rural (Safe)
+                                </div>
+
+                                {/* Chart 4: ROI */}
+                                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex flex-col justify-center">
+                                    <h3 className="text-sm font-bold text-white mb-4">Miner ROI Status</h3>
+                                    <div className="flex flex-col space-y-4">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400">Hardware Cost</span>
+                                            <span className="text-white">${capex}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400">Avg Monthly Reward</span>
+                                            <span className="text-indigo-400 font-mono">${simulationData.finalMonthlyRevenue.toFixed(2)}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full transition-all duration-500 ${simulationData.finalPayback > 24 ? 'bg-red-500' : 'bg-indigo-500'}`}
+                                                style={{ width: `${Math.min(100, (simulationData.finalPayback / 36) * 100)}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-slate-500">
+                                            <span>Instant</span>
+                                            <span className={simulationData.finalPayback > 24 ? 'text-red-400 font-bold' : 'text-slate-300'}>
+                                                {simulationData.finalPayback > 60 ? '>5 Years' : simulationData.finalPayback.toFixed(1) + ' Mo'} Breakeven
+                                            </span>
+                                            <span>36 Mo</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        )}
+
+                        </div>
                     </div>
 
-                </div>
-            </main>
+                    {/* Footer */}
+                    <footer className="border-t border-slate-800 pt-8 pb-12">
+                        {/* ... footer ... */}
+                    </footer>
+                </main>
+            </div>
         </div>
     );
 };

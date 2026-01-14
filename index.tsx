@@ -2,6 +2,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart, ReferenceLine, ComposedChart, Bar, Cell, ReferenceArea } from 'recharts';
+import { FlywheelWidget } from './src/components/FlywheelWidget';
+import { TokenomicsStudy } from './src/components/CaseStudy/TokenomicsStudy';
 import {
   Play,
   Settings2,
@@ -172,6 +174,10 @@ interface SimulationParams {
   competitorYield: number;  // 0.0 to 2.0 (0% to 200% competitor yield advantage)
   emissionModel: 'fixed' | 'kpi';  // Fixed schedule vs demand-driven
   revenueStrategy: 'burn' | 'reserve';  // Buy & Burn vs Sinking Fund
+
+  // Module 5: Report-Aligned Scenarios
+  growthCallEventWeek?: number;        // Week to trigger "Supply Shock"
+  growthCallEventPct?: number;         // Magnitude of shock (0.5 = +50%)
 }
 
 interface SimResult {
@@ -321,6 +327,22 @@ const CHART_INTERPRETATIONS: Record<string, ChartInterpretation> = {
     robust: "High utilization of deployed assets; efficient capital allocation.",
     fragile: "Massive over-provisioning (Ghost Network).",
     failureMode: "Capital Inefficiency: Vast resources deployed for zero utility."
+  },
+  "Provider Count": {
+    subtitle: "Total active service providers participating in the network.",
+    question: "Is the network maintaining a healthy base of physical infrastructure providers?",
+    formula: "Σ Active_Nodes_t",
+    robust: "Stable or growing node count aligned with token emissions.",
+    fragile: "Sharp decline (>15%) indicating capitulation or hardware obsolescence.",
+    failureMode: "miner_capitulation: Network contraction below service viability threshold."
+  },
+  "Treasury Health & Vampire Churn": {
+    subtitle: "Resilience of reserves against competitor yield attacks.",
+    question: "Can the protocol survive a vampire attack using its treasury?",
+    formula: "Net_Treasury = Revenue - BuyBacks - Churn_Cost",
+    robust: "Treasury maintains > 6mo runway; Churn < 10%.",
+    fragile: "Treasury depleted; Churn accelerates > 20%.",
+    failureMode: "Liquidity Crisis: No reserves left to defend peg or retain miners."
   }
 };
 
@@ -435,6 +457,11 @@ const BaseChartBox: React.FC<{
 }> = ({ title, icon: Icon, color, onExpand, isDriver, driverColor = 'indigo', source, heightClass = "h-[380px]", children }) => {
   const interp = CHART_INTERPRETATIONS[title];
   const [showInterp, setShowInterp] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className={`bg-slate-900 border ${isDriver ? `border-${driverColor}-500/50 shadow-[0_0_20px_rgba(0,0,0,0.5),0_0_10px_rgba(var(--${driverColor}-rgb),0.2)]` : 'border-slate-800'} rounded-xl p-5 flex flex-col ${heightClass} shadow-sm relative overflow-hidden group transition-all duration-500`}>
@@ -477,10 +504,20 @@ const BaseChartBox: React.FC<{
         <p className="text-[9px] text-slate-500 font-medium italic pl-8">{interp?.subtitle}</p>
       </div>
 
-      <div className="flex-1 w-full min-h-0 relative">
-        <ResponsiveContainer width="100%" height="100%">
-          {children as any}
-        </ResponsiveContainer>
+      <div className="flex-1 w-full min-h-[50px] min-w-[200px] relative">
+        {/* Only render ResponsiveContainer client-side after mount to ensure dimensions are available */}
+        <div style={{ width: '100%', height: '100%' }}>
+          {mounted ? (
+            <ResponsiveContainer width="100%" height="100%" minHeight={50} minWidth={200} debounce={50}>
+              {children as any}
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center space-y-2 opacity-50">
+              <div className="w-full h-[80%] bg-slate-800/50 rounded-lg animate-pulse" />
+              <div className="w-24 h-2 bg-slate-800/50 rounded animate-pulse" />
+            </div>
+          )}
+        </div>
         {source && (
           <div className="absolute bottom-0 right-0 pointer-events-none">
             <span className="text-[8px] text-slate-600 font-mono bg-slate-900/80 px-1 py-0.5 rounded backdrop-blur">
@@ -953,7 +990,7 @@ const App: React.FC = () => {
     burnPct: PROTOCOL_PROFILES[0].parameters.burn_fraction.value,
     demandType: PROTOCOL_PROFILES[0].parameters.demand_regime.value,
     macro: 'bearish',
-    nSims: 100,
+    nSims: 25,
     seed: 42,
     providerCostPerWeek: PROTOCOL_PROFILES[0].parameters.provider_economics.opex_weekly.value,
     baseCapacityPerProvider: 180.0,
@@ -1008,8 +1045,6 @@ const App: React.FC = () => {
   const [onChainMetrics, setOnChainMetrics] = useState<Record<string, OnChainMetrics>>({});
   const [activeTab, setActiveTab] = useState<'simulator' | 'thesis'>('simulator');
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
-  const [showScenarioToast, setShowScenarioToast] = useState(false);
-  const [scenarioToastContent, setScenarioToastContent] = useState<SimulationScenario | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -1235,7 +1270,7 @@ const App: React.FC = () => {
       scenario: 'baseline',
       macro: 'bearish',
       demandType: activeProfile.parameters.demand_regime.value,
-      nSims: 100,
+      nSims: 25,
       competitorYield: 0.0,
       emissionModel: 'fixed',
       revenueStrategy: 'burn',
@@ -1383,8 +1418,8 @@ const App: React.FC = () => {
         case "Capacity vs Demand":
           return (
             <ComposedChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Units', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Area type="monotone" dataKey={(d: any) => d?.capacity?.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.15} name="Capacity" />
@@ -1396,8 +1431,8 @@ const App: React.FC = () => {
         case "Miner Payback Period (Months)":
           return (
             <LineChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} domain={[0, 36]} allowDataOverflow={true} label={{ value: 'Months', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
@@ -1425,24 +1460,12 @@ const App: React.FC = () => {
               <Legend verticalAlign="top" height={36} iconType="circle" />
             </LineChart>
           );
-        case "Provider Count":
-          return (
-            <LineChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
-              <YAxis fontSize={11} label={{ value: 'Active Nodes', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
-              <Line type="step" dataKey={(d: any) => d?.providers?.mean} stroke="#10b981" strokeWidth={3} dot={false} name="Providers" />
-              {isDriver && <Line data={focusedCounterfactual} type="step" dataKey="providersRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Equilibrium Reference" opacity={0.4} />}
-              <ReferenceLine y={10} stroke="#f43f5e" strokeDasharray="3 3" label={{ position: 'right', value: 'Threshold', fill: '#f43f5e', fontSize: 10 }} />
-              <Legend verticalAlign="top" height={36} iconType="circle" />
-            </LineChart>
-          );
+
         case "The Solvency Ratio":
           return (
             <ComposedChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} domain={[0, 5]} allowDataOverflow={true} label={{ value: 'Burn/Mint Ratio', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <ReferenceArea y1={0} y2={1} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} />
@@ -1465,8 +1488,8 @@ const App: React.FC = () => {
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} label={{ value: 'Node Count', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Area type="monotone" dataKey="ruralCount.mean" stackId="1" stroke="#10b981" fill="url(#ruralGradientFocus)" name="Rural (Utility)" />
@@ -1477,8 +1500,8 @@ const App: React.FC = () => {
         case "Effective Service Capacity":
           return (
             <ComposedChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Units', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Area type="monotone" dataKey={(d: any) => d?.capacity?.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.15} name="Total Capacity" />
@@ -1489,8 +1512,8 @@ const App: React.FC = () => {
         case "Liquidity Shock Impact":
           return (
             <LineChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Price (USD)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Line type="monotone" dataKey={(d: any) => d?.price?.mean} stroke="#8b5cf6" strokeWidth={3} dot={false} name="Token Price" />
@@ -1500,8 +1523,8 @@ const App: React.FC = () => {
         case "Burn vs Emissions":
           return (
             <ComposedChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Tokens', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Line type="monotone" dataKey={(d: any) => d?.burned?.mean} stroke="#fbbf24" strokeWidth={3} dot={false} name="Tokens Burned" />
@@ -1513,10 +1536,14 @@ const App: React.FC = () => {
         case "Network Utilization (%)":
           return (
             <AreaChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis domain={[0, 100]} fontSize={11} label={{ value: '% Utilized', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <ReferenceArea y1={0} y2={30} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} label={{ value: "Waste", position: 'insideRight', fill: '#f43f5e', fontSize: 10, opacity: 0.5 }} />
+              <ReferenceArea y1={30} y2={70} {...{ fill: "#fbbf24", fillOpacity: 0.05 } as any} label={{ value: "Growth", position: 'insideRight', fill: '#fbbf24', fontSize: 10, opacity: 0.5 }} />
+              <ReferenceArea y1={70} y2={95} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} label={{ value: "Optimal", position: 'insideRight', fill: '#10b981', fontSize: 10, opacity: 0.5 }} />
+              <ReferenceArea y1={95} y2={100} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} label={{ value: "Congestion", position: 'insideRight', fill: '#f43f5e', fontSize: 10, opacity: 0.5 }} />
               <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.2} name="Utilization %" />
               {isDriver && <Line data={focusedCounterfactual} type="monotone" dataKey="utilizationRef" stroke="#475569" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Equilibrium Reference" opacity={0.4} />}
               <Legend verticalAlign="top" height={36} iconType="circle" />
@@ -1525,8 +1552,8 @@ const App: React.FC = () => {
         case "Supply Trajectory":
           return (
             <LineChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} tickFormatter={formatCompact} label={{ value: 'Total Supply', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
               <Line type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" strokeWidth={3} dot={false} name="Circ. Supply" />
@@ -1536,13 +1563,45 @@ const App: React.FC = () => {
         case "Service Pricing Proxy":
           return (
             <LineChart data={displayedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="t" fontSize={11} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
               <YAxis fontSize={11} label={{ value: 'CHF', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <ReferenceLine y={0.05} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Web2 Competitor (Proxy)', fill: '#10b981', fontSize: 10, position: 'insideTopRight' }} />
               <Line type="monotone" dataKey={(d: any) => d?.servicePrice?.mean} stroke="#3b82f6" strokeWidth={3} dot={false} name="CHF / Unit" />
               <Legend verticalAlign="top" height={36} iconType="circle" />
             </LineChart>
+
+          );
+        case "Provider Count":
+          return (
+            <AreaChart data={displayedData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis fontSize={11} label={{ value: 'Nodes', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <Area type="monotone" dataKey={(d: any) => d?.providers?.mean} stroke="#22c55e" fill="rgba(34, 197, 94, 0.1)" strokeWidth={3} name="Total Providers" />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+            </AreaChart>
+          );
+        case "Treasury Health & Vampire Churn":
+          return (
+            <ComposedChart data={displayedData}>
+              <defs>
+                <linearGradient id="treasuryGradientFocus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+              <XAxis dataKey="t" fontSize={11} interval="preserveStartEnd" label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
+              <YAxis yAxisId="left" fontSize={11} tickFormatter={formatCompact} label={{ value: 'Treasury ($)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+              <YAxis yAxisId="right" orientation="right" fontSize={11} label={{ value: 'Vampire Churn', angle: 90, position: 'insideRight', fill: '#64748b', fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+              <Area yAxisId="left" type="monotone" dataKey="treasuryBalance.mean" name="Treasury" stroke="#10b981" fill="url(#treasuryGradientFocus)" strokeWidth={2} />
+              <Line yAxisId="right" type="monotone" dataKey="vampireChurn.mean" name="Vampire Churn" stroke="#f43f5e" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+            </ComposedChart>
           );
         default:
           return null;
@@ -1562,6 +1621,51 @@ const App: React.FC = () => {
             </div>
             <button onClick={() => setFocusChart(null)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
           </div>
+
+          {activeScenarioId && (() => {
+            const activeScenario = SCENARIOS.find(s => s.id === activeScenarioId);
+            if (!activeScenario) return null;
+            const Icon = activeScenario.iconName === 'TrendingDown' ? TrendingDown :
+              activeScenario.iconName === 'Infinity' ? InfinityIcon :
+                activeScenario.iconName === 'Swords' ? Swords : Zap;
+
+            return (
+              <div className="w-full bg-indigo-950/30 border-b border-indigo-500/20 px-8 py-4 flex items-center gap-6 shrink-0 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 shadow-[0_0_10px_#6366f1]"></div>
+                <div className="absolute right-10 -top-6 text-indigo-500/5 rotate-12 pointer-events-none">
+                  <Icon size={140} />
+                </div>
+
+                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/30 text-indigo-400 shrink-0">
+                  <Icon size={32} />
+                </div>
+
+                <div className="flex-1 min-w-0 z-10">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="text-xl font-black text-white tracking-tight leading-none">{activeScenario.name} Active</h3>
+                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-black uppercase tracking-widest border border-indigo-500/30">
+                      Simulation Override
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-200/70 font-medium leading-relaxed italic truncate">
+                    "{activeScenario.description}"
+                  </p>
+                </div>
+
+                <div className="hidden lg:block w-px h-12 bg-indigo-500/20 mx-2"></div>
+
+                <div className="hidden lg:flex flex-col items-start gap-1 max-w-md z-10">
+                  <h4 className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Target size={12} />
+                    Hypothesis
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-snug font-medium">
+                    {activeScenario.thesisPoint}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="flex-1 p-8 flex flex-col lg:flex-row gap-10 overflow-hidden">
             <div className="flex-[3] w-full h-[600px] bg-slate-950/50 rounded-2xl p-6 border border-slate-800 relative">
@@ -1653,6 +1757,12 @@ const App: React.FC = () => {
             >
               Thesis
             </button>
+            <button
+              onClick={() => setActiveTab('case_study')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'case_study' ? 'bg-orange-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              Case Study
+            </button>
           </div>
 
           {activeTab === 'simulator' && (
@@ -1707,7 +1817,10 @@ const App: React.FC = () => {
             </DropdownItem>
             <DropdownItem
               icon={<Calculator size={14} />}
-              onClick={() => setShowAuditPanel(!showAuditPanel)}
+              onClick={() => {
+                setActiveTab('simulator');
+                setShowAuditPanel(true);
+              }}
               description="Calibration & validation checks"
             >
               System Audit
@@ -1756,8 +1869,11 @@ const App: React.FC = () => {
 
           {/* Settings - Icon only for cleaner look */}
           <button
-            onClick={() => setViewMode('settings')}
-            className={`p-2.5 rounded-xl border transition-all ${viewMode === 'settings' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
+            onClick={() => {
+              setActiveTab('simulator');
+              setViewMode('settings');
+            }}
+            className={`p-2.5 rounded-xl border transition-all ${viewMode === 'settings' && activeTab === 'simulator' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
             title="Settings"
           >
             <Settings2 size={16} />
@@ -1785,7 +1901,9 @@ const App: React.FC = () => {
         </div>
       </header >
 
-      {activeTab === 'thesis' ? (
+      {activeTab === 'case_study' ? (
+        <TokenomicsStudy />
+      ) : activeTab === 'thesis' ? (
         <ThesisDashboard
           activeProfile={activeProfile}
           protocols={PROTOCOL_PROFILES}
@@ -1804,18 +1922,26 @@ const App: React.FC = () => {
               profiles={PROTOCOL_PROFILES}
               onAnalyze={(id) => {
                 // Switch to sandbox and load the profile
-                const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id);
+                // Explorer passes IDs that might be internal IDs OR CoingeckoIDs
+                const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id || p.metadata.coingeckoId === id);
                 if (profile) {
                   loadProfile(profile);
                   setViewMode('sandbox');
+                } else {
+                  console.warn(`No simulation profile found for ${id}`);
+                  // Optionally notify user via toast (if we had one)
                 }
               }}
               onCompare={(id) => {
                 // Switch to comparison and ensure protocol is selected
-                if (!selectedProtocolIds.includes(id)) {
-                  setSelectedProtocolIds(prev => [...prev, id]);
+                const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id || p.metadata.coingeckoId === id);
+                if (profile) {
+                  const targetId = profile.metadata.id;
+                  if (!selectedProtocolIds.includes(targetId)) {
+                    setSelectedProtocolIds(prev => [...prev, targetId]);
+                  }
+                  setViewMode('comparison');
                 }
-                setViewMode('comparison');
               }}
             />
           ) : (
@@ -2021,16 +2147,11 @@ const App: React.FC = () => {
                               setParams(prev => ({ ...prev, ...scenario.params }));
                               // set active state
                               setActiveScenarioId(scenario.id);
-                              setScenarioToastContent(scenario);
-                              setShowScenarioToast(true);
 
                               // Auto-focus the relevant chart for "Proof"
                               if (scenario.focusChart) {
                                 setFocusChart(scenario.focusChart);
                               }
-
-                              // Auto-hide toast after 8 seconds
-                              setTimeout(() => setShowScenarioToast(false), 8000);
                             }}
                             className={`p-3 rounded-xl border text-left transition-all group ${isActive ? 'bg-indigo-600/20 border-indigo-500 shadow-earthquake' : 'bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20'}`}
                           >
@@ -2298,6 +2419,37 @@ const App: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Deep Dive & Flywheel Section */}
+                      <div className="space-y-8 mb-12">
+                        <div className="border-b border-slate-800 pb-4">
+                          <h2 className="text-xl font-bold text-white mb-2">Deep Dive Analysis</h2>
+                          <p className="text-sm text-slate-400">Advanced diagnostics for {activeProfile.metadata.name}, including network health and thesis verification.</p>
+                        </div>
+
+                        {/* FLYWHEEL WIDGET */}
+                        {(() => {
+                          const data = aggregated; // In Sandbox mode, 'aggregated' is the active profile data
+                          if (!data || data.length === 0) return null;
+                          const lastPoint = data[data.length - 1];
+
+                          // Map simulation data to widget props
+                          const metrics = {
+                            nodes: lastPoint.providers.mean,
+                            utilization: lastPoint.utilization.mean,
+                            revenue: lastPoint.revenue ? lastPoint.revenue.mean : (lastPoint.minted.mean * lastPoint.price.mean * 0.1), // Fallback
+                            incentive: lastPoint.solvencyScore.mean * 100
+                          };
+
+                          const isStressed = metrics.utilization < 10 || metrics.incentive < 50;
+
+                          return (
+                            <div className="mb-8">
+                              <FlywheelWidget metrics={metrics} stress={isStressed} />
+                            </div>
+                          );
+                        })()}
+                      </div>
+
                       {/* Module 1: Solvency */}
                       <SectionLayout
                         id="module-1"
@@ -2388,7 +2540,7 @@ const App: React.FC = () => {
                                   <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                                 </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                               <XAxis dataKey="t" fontSize={9} />
                               <YAxis fontSize={9} tickFormatter={formatCompact} />
                               <Tooltip
@@ -2454,7 +2606,7 @@ const App: React.FC = () => {
                                   <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                 </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                               <XAxis dataKey="t" fontSize={9} />
                               <YAxis fontSize={9} tickFormatter={formatCompact} />
                               <Tooltip
@@ -2542,7 +2694,7 @@ const App: React.FC = () => {
                                   <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
                                 </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                               <XAxis dataKey="t" fontSize={9} tickFormatter={(val) => val === params.investorUnlockWeek ? `⚡ W${val}` : val} label={{ value: 'Time', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                               <YAxis fontSize={9} tickFormatter={(val) => `$${val.toFixed(2)}`} label={{ value: 'Price ($)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                               <Tooltip />
@@ -2631,7 +2783,7 @@ const App: React.FC = () => {
                                   <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                 </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                               <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                               <YAxis yAxisId="left" fontSize={9} tickFormatter={formatCompact} label={{ value: 'Treasury ($)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                               <YAxis yAxisId="right" orientation="right" fontSize={9} label={{ value: 'Vampire Churn', angle: 90, position: 'insideRight', fill: '#64748b', fontSize: 9 }} />
@@ -2677,35 +2829,7 @@ const App: React.FC = () => {
                           </div>
                         </div>
                       </SectionLayout>
-                      {showAuditPanel && (
-                        <div className="p-6 bg-slate-900 border border-indigo-500/30 rounded-3xl animate-in zoom-in-95 duration-200 shadow-2xl">
-                          <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                              <Calculator className="text-indigo-400" size={18} />
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-white">System Calibration Audit (T={params.T})</h4>
-                            </div>
-                            <button onClick={() => setShowAuditPanel(false)} className="text-slate-600 hover:text-white transition-colors"><X size={14} /></button>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-                            <div className="space-y-1 group">
-                              <span className="text-[8px] font-bold text-slate-500 uppercase flex items-center gap-1.5">Provider ROI (Incentive) <Info size={10} className="opacity-30" /></span>
-                              <div className="text-sm font-mono text-emerald-400 bg-emerald-400/5 px-2 py-1 rounded border border-emerald-400/20">{((aggregated[aggregated.length - 1]?.incentive?.mean || 0) * 100).toFixed(1)}%</div>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-bold text-slate-500 uppercase">System Scarcity</span>
-                              <div className="text-sm font-mono text-amber-400 bg-amber-400/5 px-2 py-1 rounded border border-amber-400/20">{((aggregated[aggregated.length - 1]?.scarcity?.mean || 0) * 100).toFixed(1)}%</div>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-bold text-slate-500 uppercase">Weekly Emission Ratio</span>
-                              <div className="text-sm font-mono text-indigo-400 bg-indigo-400/5 px-2 py-1 rounded border border-indigo-400/20">{((aggregated[aggregated.length - 1]?.minted?.mean || 0) / (params.initialSupply) * 100).toFixed(4)}%</div>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-bold text-slate-500 uppercase">Realized OpEx</span>
-                              <div className="text-sm font-mono text-slate-300 bg-slate-300/5 px-2 py-1 rounded border border-slate-300/20">CHF {params.providerCostPerWeek.toFixed(2)} / unit</div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                         {/* Chart 1: Miner Payback Period (The Trigger) */}
@@ -2719,7 +2843,7 @@ const App: React.FC = () => {
                           source="Hardware Cost / Weekly Profit"
                         >
                           <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                             <YAxis
                               fontSize={9}
@@ -2767,7 +2891,7 @@ const App: React.FC = () => {
                           source="Value Burned / Value Minted"
                         >
                           <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                             <YAxis fontSize={9} domain={[0, 5]} allowDataOverflow={true} label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                             <Tooltip
@@ -2811,7 +2935,7 @@ const App: React.FC = () => {
                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                             <YAxis fontSize={9} label={{ value: 'Nodes', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                             <Tooltip
@@ -2850,7 +2974,7 @@ const App: React.FC = () => {
                           source="Serviceable Demand vs Total Capacity"
                         >
                           <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                             <YAxis fontSize={9} tickFormatter={formatCompact} label={{ value: 'Units', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                             <Area type="monotone" dataKey={(d: any) => d?.capacity?.mean} stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} name="Total Capacity" />
@@ -2861,7 +2985,7 @@ const App: React.FC = () => {
                         {/* Chart 5: Supply Trajectory (Kept as context) */}
                         <BaseChartBox title="Supply Trajectory" icon={Database} color="violet" onExpand={() => setFocusChart("Supply Trajectory")} isDriver={incentiveRegime.drivers.includes('Supply Trajectory')} driverColor={incentiveRegime.color} source="Protocol Parameters">
                           <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                             <YAxis fontSize={9} tickFormatter={formatCompact} label={{ value: 'Supply', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                             <Line type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" strokeWidth={2} dot={false} />
@@ -2871,7 +2995,7 @@ const App: React.FC = () => {
                         {/* Chart 6: Network Utilization (Kept as derived metric) */}
                         <BaseChartBox title="Network Utilization (%)" icon={BarChart3} color="rose" onExpand={() => setFocusChart("Network Utilization (%)")} isDriver={incentiveRegime.drivers.includes('Network Utilization (%)')} driverColor={incentiveRegime.color} source="Derived Metric">
                           <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                             <YAxis domain={[0, 100]} fontSize={9} label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                             <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
@@ -3056,45 +3180,76 @@ const App: React.FC = () => {
                           goodDirection: 'up' | 'down' | 'neutral';
                           getDelta?: (m: typeof protocolMetrics[0], baseline: typeof protocolMetrics[0]) => number | null;
                           hint?: string;
-                        }) => (
-                          <tr className="border-b border-slate-800/30 hover:bg-slate-800/20 transition-colors group">
-                            <td className="p-3 text-[10px] font-bold text-slate-400 bg-slate-950/30 sticky left-0 z-10">
-                              <div className="flex items-center gap-2">
-                                <span className={iconColor}>{icon}</span>
-                                <span>{label}</span>
-                                {hint && (
-                                  <span className="opacity-0 group-hover:opacity-100 text-[8px] text-slate-600 transition-opacity">
-                                    {hint}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            {protocolMetrics.map((m, idx) => {
-                              const value = getValue(m);
-                              const delta = getDelta && idx > 0 ? getDelta(m, baseline) : null;
-                              const isGood = goodDirection === 'up' ? value > 0 :
-                                goodDirection === 'down' ? value < 0 : true;
+                        }) => {
+                          // 1. Calculate Min/Max for Heatmap
+                          const allValues = protocolMetrics.map(getValue);
+                          const validValues = allValues.filter(v => isFinite(v) && !isNaN(v));
+                          const min = Math.min(...validValues);
+                          const max = Math.max(...validValues);
+                          const range = max - min;
 
-                              return (
-                                <td key={m.protocol.metadata.id} className="p-3 text-center">
-                                  <div className={`text-sm font-mono font-bold ${goodDirection === 'neutral' ? 'text-white' :
-                                    isGood ? 'text-emerald-400' : 'text-rose-400'
-                                    }`}>
-                                    {format(value)}
-                                  </div>
-                                  {delta !== null && (
-                                    <div className={`text-[9px] mt-0.5 font-bold ${goodDirection === 'up' ? (delta >= 0 ? 'text-emerald-400' : 'text-rose-400') :
-                                      goodDirection === 'down' ? (delta <= 0 ? 'text-emerald-400' : 'text-rose-400') :
-                                        'text-slate-500'
-                                      }`}>
-                                      {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
-                                    </div>
+                          return (
+                            <tr className="border-b border-slate-800/30 hover:bg-slate-800/20 transition-colors group">
+                              <td className="p-3 text-[10px] font-bold text-slate-400 bg-slate-950/30 sticky left-0 z-10 w-[200px]">
+                                <div className="flex items-center gap-2">
+                                  <span className={iconColor}>{icon}</span>
+                                  <span>{label}</span>
+                                  {hint && (
+                                    <span className="opacity-0 group-hover:opacity-100 text-[8px] text-slate-600 transition-opacity">
+                                      {hint}
+                                    </span>
                                   )}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
+                                </div>
+                              </td>
+                              {protocolMetrics.map((m, idx) => {
+                                const value = getValue(m);
+                                const delta = getDelta && idx > 0 ? getDelta(m, baseline) : null;
+                                const isGood = goodDirection === 'up' ? value > 0 :
+                                  goodDirection === 'down' ? value < 0 : true;
+
+                                // Heatmap Logic
+                                let bgStyle = {};
+                                if (goodDirection !== 'neutral' && range > 0 && isFinite(value)) {
+                                  // Normalize 0 to 1
+                                  let normalized = (value - min) / range;
+                                  // Invert if "Down" is good (e.g. Churn)
+                                  if (goodDirection === 'down') normalized = 1 - normalized;
+
+                                  // Apply Opacity (Max 0.20)
+                                  const opacity = 0.05 + (normalized * 0.15); // Base 5% + up to 15%
+                                  const color = normalized > 0.5 ? '16, 185, 129' : '244, 63, 94'; // Emerald vs Rose
+
+                                  // Adjust Normalized for Color Strength (0.5 center pivot)
+                                  // If normalized > 0.5 (Good), strength increases from 0 to 1 as norm goes 0.5 -> 1
+                                  // If normalized < 0.5 (Bad), strength increases from 0 to 1 as norm goes 0.5 -> 0
+                                  let strength = Math.abs(normalized - 0.5) * 2;
+
+                                  bgStyle = {
+                                    backgroundColor: `rgba(${color}, ${strength * 0.2})`
+                                  };
+                                }
+
+                                return (
+                                  <td key={m.protocol.metadata.id} className="p-3 text-center transition-colors" style={bgStyle}>
+                                    <div className={`text-sm font-mono font-bold ${goodDirection === 'neutral' ? 'text-white' :
+                                      isGood ? 'text-emerald-400' : 'text-rose-400'
+                                      }`}>
+                                      {format(value)}
+                                    </div>
+                                    {delta !== null && (
+                                      <div className={`text-[9px] mt-0.5 font-bold ${goodDirection === 'up' ? (delta >= 0 ? 'text-emerald-400' : 'text-rose-400') :
+                                        goodDirection === 'down' ? (delta <= 0 ? 'text-emerald-400' : 'text-rose-400') :
+                                          'text-slate-500'
+                                        }`}>
+                                        {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+                                      </div>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        };
 
                         // Section header component
                         const SectionHeader = ({ icon, iconColor, title, hint }: { icon: React.ReactNode; iconColor: string; title: string; hint: string }) => (
@@ -3495,7 +3650,7 @@ const App: React.FC = () => {
                         <div className="h-64">
                           <ResponsiveContainer width="100%" height="100%">
                             <LineChart margin={{ left: 0, right: 20, top: 10, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                               <XAxis
                                 dataKey="t"
                                 fontSize={9}
@@ -3586,227 +3741,272 @@ const App: React.FC = () => {
                       </div>
 
 
-                      <div className="overflow-x-auto custom-scrollbar pb-4">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="text-left">
-                              <th className="p-4 bg-slate-950 sticky left-0 z-10 w-48">
-                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Metric</span>
-                              </th>
-                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                                <th key={p.metadata.id} className="p-4 min-w-[280px]">
-                                  <div className="flex flex-col gap-1">
-                                    <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">{p.metadata.name}</span>
-                                    <span className="text-[9px] text-slate-500 font-bold uppercase">{p.metadata.mechanism}</span>
-                                  </div>
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/50">
+                      <div className="space-y-8">
 
-                            <tr className="hover:bg-slate-900/30 transition-colors">
-                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                  <ShieldQuestion size={14} /> Regime
-                                </div>
-                              </td>
+                        {/* 1. THESIS SCORECARDS ("The Verdict") */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Survival Score */}
+                          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <ShieldQuestion size={16} className="text-emerald-400" />
+                              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Survival Score</h3>
+                            </div>
+                            <div className="space-y-3">
                               {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
-                                const regime = calculateRegime(multiAggregated[p.metadata.id] || [], p);
+                                const data = multiAggregated[p.metadata.id] || [];
+                                const last = data[data.length - 1];
+                                const solvency = last?.solvencyScore?.mean || 0;
+                                // Score out of 100 based on Solvency Ratio (1.0 = 100)
+                                const score = Math.min(100, Math.max(0, solvency * 100));
                                 return (
-                                  <td key={p.metadata.id} className="p-5">
-                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-${regime.color}-500/10 border border-${regime.color}-500/20`}>
-                                      <div className={`w-1.5 h-1.5 rounded-full bg-${regime.color}-500 animate-pulse`} />
-                                      <span className={`text-[10px] font-black text-${regime.color}-400 uppercase tracking-widest`}>{regime.regime}</span>
+                                  <div key={p.metadata.id} className="flex flex-col gap-1">
+                                    <div className="flex justify-between text-[10px] font-bold">
+                                      <span className="text-slate-300">{p.metadata.name}</span>
+                                      <span className={score > 80 ? 'text-emerald-400' : score < 50 ? 'text-rose-400' : 'text-amber-400'}>{score.toFixed(0)}/100</span>
                                     </div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-
-
-                            <tr className="hover:bg-slate-900/30 transition-colors">
-                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                  <Database size={14} /> Supply
-                                </div>
-                              </td>
-                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                                <td key={p.metadata.id} className="p-5 h-28">
-                                  <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                      <defs>
-                                        <linearGradient id={`supply-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
-                                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                        </linearGradient>
-                                      </defs>
-                                      <Area type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" fill={`url(#supply-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
-                                    </AreaChart>
-                                  </ResponsiveContainer>
-                                </td>
-                              ))}
-                            </tr>
-
-
-                            <tr className="hover:bg-slate-900/30 transition-colors">
-                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                  <Users size={14} /> Providers
-                                </div>
-                              </td>
-                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                                <td key={p.metadata.id} className="p-5 h-28">
-                                  <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                      <defs>
-                                        <linearGradient id={`providers-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
-                                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                        </linearGradient>
-                                      </defs>
-                                      <Area type="monotone" dataKey={(d: any) => d?.providers?.mean} stroke="#10b981" fill={`url(#providers-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
-                                    </AreaChart>
-                                  </ResponsiveContainer>
-                                </td>
-                              ))}
-                            </tr>
-
-
-                            <tr className="hover:bg-slate-900/30 transition-colors">
-                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                  <Activity size={14} /> Utilization
-                                </div>
-                              </td>
-                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                                <td key={p.metadata.id} className="p-5 h-28">
-                                  <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                      <defs>
-                                        <linearGradient id={`util-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
-                                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                                        </linearGradient>
-                                      </defs>
-                                      <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f59e0b" fill={`url(#util-${p.metadata.id})`} strokeWidth={2} isAnimationActive={false} />
-                                    </AreaChart>
-                                  </ResponsiveContainer>
-                                </td>
-                              ))}
-                            </tr>
-
-
-                            <tr className="hover:bg-slate-900/30 transition-colors">
-                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                  <Flame size={14} /> Burn/Mint
-                                </div>
-                              </td>
-                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                                <td key={p.metadata.id} className="p-5 h-28">
-                                  <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={multiAggregated[p.metadata.id] || []}>
-                                      <Area type="monotone" dataKey={(d: any) => d?.minted?.mean} stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={1.5} isAnimationActive={false} />
-                                      <Area type="monotone" dataKey={(d: any) => d?.burned?.mean} stroke="#22c55e" fill="#22c55e" fillOpacity={0.1} strokeWidth={1.5} isAnimationActive={false} />
-                                    </AreaChart>
-                                  </ResponsiveContainer>
-                                </td>
-                              ))}
-                            </tr>
-
-
-                            <tr className="hover:bg-slate-900/30 transition-colors">
-                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                  <Settings2 size={14} /> Parameters
-                                </div>
-                              </td>
-                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
-                                <td key={p.metadata.id} className="p-5">
-                                  <div className="grid grid-cols-2 gap-3 text-[9px]">
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500">Supply:</span>
-                                      <span className="text-white font-mono">{formatCompact(p.parameters.supply.value)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500">Max Mint:</span>
-                                      <span className="text-white font-mono">{formatCompact(p.parameters.emissions.value)}/wk</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500">Burn %:</span>
-                                      <span className="text-white font-mono">{(p.parameters.burn_fraction.value * 100).toFixed(0)}%</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500">OpEx:</span>
-                                      <span className="text-white font-mono">${p.parameters.provider_economics.opex_weekly.value}/wk</span>
+                                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full ${score > 80 ? 'bg-emerald-500' : score < 50 ? 'bg-rose-500' : 'bg-amber-500'}`} style={{ width: `${score}%` }} />
                                     </div>
                                   </div>
-                                </td>
-                              ))}
-                            </tr>
+                                )
+                              })}
+                            </div>
+                          </div>
 
-                            {/* NEW: Financial/Payback Row */}
-                            <tr className="hover:bg-slate-900/30 transition-colors">
-                              <td className="p-5 bg-slate-950/50 sticky left-0 z-10">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                  <DollarSign size={14} /> Financials
-                                </div>
-                              </td>
+                          {/* Financial Health */}
+                          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <DollarSign size={16} className="text-amber-400" />
+                              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Financial Health</h3>
+                            </div>
+                            <div className="space-y-3">
                               {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
-                                // Estimated Capex Map (in USD)
                                 const CAPEX_ESTIMATES: Record<string, number> = {
                                   'grass_v1': 0, 'helium_bme_v1': 450, 'adaptive_elastic_v1': 1500,
                                   'filecoin_v1': 2000, 'akash_v1': 1000, 'hivemapper_v1': 300,
                                   'dimo_v1': 350, 'ono_v3_calibrated': 1000
                                 };
                                 const capex = CAPEX_ESTIMATES[p.metadata.id] || 500;
-
-                                // Calculate from last simulation step
                                 const data = multiAggregated[p.metadata.id] || [];
                                 const last = data[data.length - 1];
-
-                                let paybackText = "N/A";
-                                let textColor = "text-slate-500";
-
+                                let payback = 999;
                                 if (last && last.providers.mean > 0) {
-                                  const weeklyRewardTokens = last.minted.mean / last.providers.mean;
-                                  const tokenPrice = last.price.mean;
-                                  const weeklyRevenue = weeklyRewardTokens * tokenPrice;
-                                  const weeklyOpEx = p.parameters.provider_economics.opex_weekly.value;
-                                  const weeklyProfit = weeklyRevenue - weeklyOpEx;
-
-                                  if (capex === 0) {
-                                    paybackText = "Instant (0 Capex)";
-                                    textColor = "text-emerald-400";
-                                  } else if (weeklyProfit <= 0) {
-                                    paybackText = "Never (Unprofitable)";
-                                    textColor = "text-rose-400";
-                                  } else {
-                                    const months = capex / (weeklyProfit * 4.3); // 4.3 weeks/month
-                                    if (months > 60) {
-                                      paybackText = ">5 Years";
-                                      textColor = "text-rose-400";
-                                    } else {
-                                      paybackText = `${months.toFixed(1)} Months`;
-                                      textColor = months < 12 ? "text-emerald-400" : "text-amber-400";
-                                    }
-                                  }
+                                  const weeklyProfit = ((last.minted.mean / last.providers.mean) * last.price.mean) - p.parameters.provider_economics.opex_weekly.value;
+                                  payback = weeklyProfit <= 0 ? 999 : (capex / (weeklyProfit * 4.3));
                                 }
+                                const isProfitable = payback < 999;
+                                const display = isProfitable ? (capex === 0 ? "Instant" : `${payback.toFixed(1)}m Payback`) : "Unprofitable";
 
                                 return (
-                                  <td key={p.metadata.id} className="p-5">
-                                    <div className="flex flex-col gap-1">
-                                      <span className="text-[9px] text-slate-500 uppercase font-bold">Est. Payback Period</span>
-                                      <span className={`text-xs font-mono font-bold ${textColor}`}>{paybackText}</span>
-                                      {capex > 0 && <span className="text-[8px] text-slate-600">Based on ${capex} hardware cost</span>}
-                                    </div>
-                                  </td>
-                                );
+                                  <div key={p.metadata.id} className="flex justify-between items-center text-[10px]">
+                                    <span className="font-bold text-slate-300">{p.metadata.name}</span>
+                                    <span className={`px-2 py-1 rounded border ${isProfitable && payback < 12 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
+                                      {display}
+                                    </span>
+                                  </div>
+                                )
                               })}
-                            </tr>
-                          </tbody>
-                        </table>
+                            </div>
+                          </div>
+
+                          {/* Growth Potential */}
+                          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <TrendingUp size={16} className="text-indigo-400" />
+                              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Growth Potential</h3>
+                            </div>
+                            <div className="space-y-3">
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
+                                const demandType = p.parameters.demand_regime.value;
+                                const data = multiAggregated[p.metadata.id] || [];
+                                const last = data[data.length - 1];
+                                const utilization = last?.utilization?.mean || 0;
+
+                                return (
+                                  <div key={p.metadata.id} className="flex justify-between items-center text-[10px]">
+                                    <span className="font-bold text-slate-300">{p.metadata.name}</span>
+                                    <div className="text-right">
+                                      <div className="font-mono text-indigo-400">{utilization.toFixed(1)}% Util</div>
+                                      <div className="text-[9px] text-slate-500 capitalize">{demandType} Demand</div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. DETAILED METRICS (Grouped) */}
+                        <div className="space-y-6">
+
+                          {/* LAYER 1: THE PHYSICS */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4 px-2">
+                              <Database size={14} className="text-slate-500" />
+                              <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Layer 1: The Physics</h4>
+                              <div className="h-px bg-slate-800 flex-1 ml-4" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                <div key={p.metadata.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+                                  <div className="flex justify-between mb-2">
+                                    <span className="font-black text-indigo-400 uppercase tracking-widest text-xs">{p.metadata.name}</span>
+                                    <span className="text-[10px] text-slate-500 font-bold">{p.metadata.mechanism}</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-[10px] text-slate-400">
+                                    <div className="flex flex-col">
+                                      <span className="text-slate-600">Model Type</span>
+                                      <span className="font-medium text-slate-300 capitalize">{p.metadata.model_type.replace('_', ' ')}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-slate-600">Chain</span>
+                                      <span className="font-medium text-slate-300 capitalize">{p.metadata.chain}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-slate-600">Max Supply</span>
+                                      <span className="font-medium text-slate-300">{formatCompact(p.parameters.supply.value)}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-slate-600">Emissions</span>
+                                      <span className="font-medium text-slate-300">{formatCompact(p.parameters.emissions.value)}/wk</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* LAYER 2: PRIMARY METRICS (Survival) */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4 px-2">
+                              <ShieldQuestion size={14} className="text-slate-500" />
+                              <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Layer 2: Survival Metrics (Primary)</h4>
+                              <div className="h-px bg-slate-800 flex-1 ml-4" />
+                            </div>
+
+                            <div className="bg-slate-900/30 border border-slate-800 rounded-xl overflow-hidden">
+                              {/* Comparison Rows */}
+                              <div className="divide-y divide-slate-800">
+                                {/* Burn/Mint Ratio Row */}
+                                <div className="p-4 flex items-center justify-between hover:bg-slate-800/20">
+                                  <div className="w-1/4">
+                                    <h5 className="text-[10px] font-bold text-slate-400 uppercase">Real Yield (Burn vs Mint)</h5>
+                                    <p className="text-[9px] text-slate-600 mt-1">Ratio &gt; 1.0 means deflationary.</p>
+                                  </div>
+                                  <div className="flex-1 flex justify-end gap-8">
+                                    {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
+                                      const data = multiAggregated[p.metadata.id] || [];
+                                      const solvency = data[data.length - 1]?.solvencyScore?.mean || 0;
+                                      return (
+                                        <div key={p.metadata.id} className="text-right">
+                                          <span className="text-[9px] uppercase font-bold text-slate-500 block mb-1">{p.metadata.name}</span>
+                                          <span className={`text-sm font-mono font-bold ${solvency > 0.8 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            {solvency.toFixed(2)}x
+                                          </span>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* OpEx Coverage Row */}
+                                <div className="p-4 flex items-center justify-between hover:bg-slate-800/20">
+                                  <div className="w-1/4">
+                                    <h5 className="text-[10px] font-bold text-slate-400 uppercase">OpEx Coverage</h5>
+                                    <p className="text-[9px] text-slate-600 mt-1">Weekly Cost to run a node.</p>
+                                  </div>
+                                  <div className="flex-1 flex justify-end gap-8">
+                                    {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => {
+                                      const opex = p.parameters.provider_economics.opex_weekly.value;
+                                      return (
+                                        <div key={p.metadata.id} className="text-right">
+                                          <span className="text-[9px] uppercase font-bold text-slate-500 block mb-1">{p.metadata.name}</span>
+                                          <span className={`text-sm font-mono font-bold ${opex < 10 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                            ${opex}/wk
+                                          </span>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* CHARTS SECTION (Collapsed by default logic or bottom placement) */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4 px-2">
+                              <Activity size={14} className="text-slate-500" />
+                              <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Deep Dive: Charts</h4>
+                              <div className="h-px bg-slate-800 flex-1 ml-4" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-64">
+                                <h5 className="text-[10px] font-bold text-slate-400 uppercase mb-4">Supply Growth</h5>
+                                <ResponsiveContainer width="100%" height="90%">
+                                  <AreaChart>
+                                    <defs>
+                                      {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map(p => (
+                                        <linearGradient key={p.metadata.id} id={`gradient-${p.metadata.id}`} x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1} />
+                                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                        </linearGradient>
+                                      ))}
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+                                    <XAxis dataKey="t" fontSize={9} tick={{ fill: '#64748b' }} allowDuplicatedCategory={false} />
+                                    <YAxis fontSize={9} tick={{ fill: '#64748b' }} tickFormatter={formatCompact} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} />
+                                    {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map((p, i) => {
+                                      const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444'];
+                                      return (
+                                        <Area
+                                          key={p.metadata.id}
+                                          data={multiAggregated[p.metadata.id] || []}
+                                          type="monotone"
+                                          dataKey={(d: any) => d?.supply?.mean}
+                                          stroke={colors[i % colors.length]}
+                                          fillOpacity={0.1}
+                                          fill={colors[i % colors.length]}
+                                          name={p.metadata.name}
+                                        />
+                                      )
+                                    })}
+                                  </AreaChart>
+                                </ResponsiveContainer>
+                              </div>
+
+                              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-64">
+                                <h5 className="text-[10px] font-bold text-slate-400 uppercase mb-4">Solvency Ratio (Burn / Mint)</h5>
+                                <ResponsiveContainer width="100%" height="90%">
+                                  <LineChart>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+                                    <XAxis dataKey="t" fontSize={9} tick={{ fill: '#64748b' }} allowDuplicatedCategory={false} />
+                                    <YAxis fontSize={9} tick={{ fill: '#64748b' }} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} />
+                                    <ReferenceLine y={1} stroke="#10b981" strokeDasharray="3 3" />
+                                    {PROTOCOL_PROFILES.filter(p => selectedProtocolIds.includes(p.metadata.id)).map((p, i) => {
+                                      const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444'];
+                                      return (
+                                        <Line
+                                          key={p.metadata.id}
+                                          data={multiAggregated[p.metadata.id] || []}
+                                          type="monotone"
+                                          dataKey={(d: any) => d?.solvencyScore?.mean}
+                                          stroke={colors[i % colors.length]}
+                                          strokeWidth={2}
+                                          dot={false}
+                                          name={p.metadata.name}
+                                        />
+                                      )
+                                    })}
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
                       </div>
                     </div>
                   )}
@@ -3815,376 +4015,319 @@ const App: React.FC = () => {
 
                 {renderFocusChart()}
 
-
-                {
-                  showSpecModal && (
-                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
-                      <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col h-[80vh] overflow-hidden">
-                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-                          <div className="flex items-center gap-3">
-                            <Binary size={20} className="text-indigo-400" />
-                            <div>
-                              <h3 className="text-lg font-black text-white uppercase tracking-tight">Mathematical Specification</h3>
-                              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Logic V1.1 Verification</p>
-                            </div>
-                          </div>
-                          <button onClick={() => setShowSpecModal(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div className="space-y-6">
-                              <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Core Mechanics</h4>
-                              <FormulaDisplay label="Market Clearing" formula="Utility_Served = min(Demand, Total_Capacity)" />
-                              <FormulaDisplay label="System Capacity" formula="Capacity = Providers * Unit_Capability" />
-                              <FormulaDisplay label="Capital Efficiency" formula="Utilization = (Served / Capacity) * 100" />
-                              <FormulaDisplay label="Pricing Equilibrium" formula="Service_Price_{t+1} = Service_Price_t * (1 + 0.6 * Scarcity)" />
-                            </div>
-                            <div className="space-y-6">
-                              <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Tokenomics</h4>
-                              <FormulaDisplay label="Utility Value Burn" formula="Burn = (Served * Service_Price) / Token_Price" />
-                              <FormulaDisplay label="Dynamic Emissions" formula="Mint = Max_Mint * (0.6 + 0.4 * tanh(Demand / 15000))" />
-                              <FormulaDisplay label="Supply Conservation" formula="Supply_{t+1} = Supply_t + Mint_t - Burn_t" />
-                            </div>
-                          </div>
-                          <div className="bg-slate-950/50 p-8 rounded-2xl border border-slate-800 space-y-4">
-                            <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2"><Variable size={14} /> Feedback Sensitivity</h4>
-                            <p className="text-[11px] text-slate-400 leading-relaxed italic">"Provider behavior follows a Proportional-Derivative growth model. Delta Providers is proportional to the ROI over OpEx, dampened by a 15% weekly growth ceiling to simulate physical hardware lead times."</p>
-                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                              <code className="text-xs text-indigo-400 font-mono">Delta_N = min(N * 0.15, (ROI * sensitivity * churn_capitulation))</code>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
-                          <button onClick={() => setShowSpecModal(false)} className="px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Verified & Understood</button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }
-
-                <div className={`fixed inset-y-0 right-0 w-[450px] bg-slate-900 border-l border-slate-800 shadow-2xl z-[500] transform transition-transform duration-500 ease-in-out ${showKnowledgeLayer ? 'translate-x-0' : 'translate-x-full'}`}>
-                  <div className="h-full flex flex-col p-6 space-y-8 overflow-y-auto custom-scrollbar">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-6">
-                      <div className="flex items-center gap-3">
-                        <Library className="text-indigo-400" size={20} />
-                        <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Regime Taxonomy</h3>
-                      </div>
-                      <button onClick={() => setShowKnowledgeLayer(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
-                    </div>
-                    {Object.entries(REGIME_KNOWLEDGE).map(([key, data]) => (
-                      <section key={key} className={`p-6 rounded-2xl border ${incentiveRegime.id === key ? `bg-${data.color}-500/5 border-${data.color}-500/30` : 'bg-slate-950/40 border-slate-800'}`}>
-                        <div className="flex items-center gap-3 mb-4">
-                          <data.icon size={18} className={`text-${data.color}-400`} />
-                          <h4 className={`text-xs font-black uppercase tracking-widest text-${data.color}-400`}>{data.title}</h4>
-                        </div>
-                        <p className="text-[11px] text-slate-200 leading-relaxed font-medium">{data.definition}</p>
-                      </section>
-                    ))}
-                  </div>
-                </div>
-
-
-                {
-                  showExportPanel && (
-                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
-                      <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-                          <div className="flex items-center gap-3">
-                            <Download size={20} className="text-emerald-400" />
-                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Export Data</h3>
-                          </div>
-                          <button onClick={() => setShowExportPanel(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
-                        </div>
-                        <div className="p-8 space-y-6">
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <button
-                              onClick={() => {
-                                exportToCSV(aggregated as unknown as NewAggregateResult[]);
-                                setShowExportPanel(false);
-                              }}
-                              className="p-6 bg-slate-950 border border-slate-800 rounded-2xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group"
-                            >
-                              <FileDown size={32} className="text-slate-500 group-hover:text-emerald-400 mb-3 transition-colors" />
-                              <h4 className="text-sm font-bold text-white mb-1">Export CSV</h4>
-                              <p className="text-[10px] text-slate-500">Time series data for analysis</p>
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (derivedMetrics) {
-                                  exportToJSON(aggregated as unknown as NewAggregateResult[], params as unknown as NewSimulationParams, derivedMetrics);
-                                }
-                                setShowExportPanel(false);
-                              }}
-                              className="p-6 bg-slate-950 border border-slate-800 rounded-2xl hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group"
-                            >
-                              <FileJson size={32} className="text-slate-500 group-hover:text-indigo-400 mb-3 transition-colors" />
-                              <h4 className="text-sm font-bold text-white mb-1">Export JSON</h4>
-                              <p className="text-[10px] text-slate-500">Full data with parameters</p>
-                            </button>
-                          </div>
-
-
-                          <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
-                            <div className="flex items-center gap-3 mb-3">
-                              <Share2 size={16} className="text-slate-500" />
-                              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Shareable Link</span>
-                            </div>
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                readOnly
-                                value={generateShareableURL(params as unknown as NewSimulationParams)}
-                                className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] font-mono text-slate-400 truncate"
-                              />
-                              <button
-                                onClick={() => copyToClipboard(generateShareableURL(params as unknown as NewSimulationParams))}
-                                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-colors"
-                              >
-                                Copy
-                              </button>
-                            </div>
-                          </div>
-
-
-                          {derivedMetrics && (
-                            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
-                              <div className="flex items-center gap-3 mb-4">
-                                <Gauge size={16} className="text-amber-500" />
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Risk Metrics (V2 Model)</span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-4 text-[10px]">
-                                <div>
-                                  <span className="text-slate-500 block mb-1">Max Drawdown</span>
-                                  <span className={`font-bold ${derivedMetrics.maxDrawdown > 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                    {derivedMetrics.maxDrawdown.toFixed(1)}%
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-slate-500 block mb-1">Death Spiral Risk</span>
-                                  <span className={`font-bold ${derivedMetrics.deathSpiralProbability > 20 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                    {derivedMetrics.deathSpiralProbability.toFixed(1)}%
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-slate-500 block mb-1">Sharpe Ratio</span>
-                                  <span className={`font-bold ${derivedMetrics.sharpeRatio < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                    {derivedMetrics.sharpeRatio.toFixed(2)}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-slate-500 block mb-1">Provider Retention</span>
-                                  <span className={`font-bold ${derivedMetrics.retentionRate < 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                    {derivedMetrics.retentionRate.toFixed(1)}%
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
-                          <button onClick={() => setShowExportPanel(false)} className="px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Close</button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }
-
-
-                {
-                  showDePINBrowser && (
-                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
-                      <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-                          <div className="flex items-center gap-3">
-                            <Layers size={20} className="text-indigo-400" />
-                            <div>
-                              <h3 className="text-lg font-black text-white uppercase tracking-tight">DePIN Token Browser</h3>
-                              <p className="text-[10px] text-slate-500">
-                                {Object.keys(allDePINData).length} tokens tracked •
-                                {lastLiveDataFetch ? ` Updated ${lastLiveDataFetch.toLocaleTimeString()}` : ' Click Fetch Live to load data'}
-                              </p>
-                            </div>
-                          </div>
-                          <button onClick={() => setShowDePINBrowser(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
-                        </div>
-
-                        <div className="flex-1 overflow-auto p-6 custom-scrollbar">
-                          {Object.keys(allDePINData).length === 0 ? (
-                            <div className="text-center py-12">
-                              <Layers size={48} className="text-slate-700 mx-auto mb-4" />
-                              <p className="text-slate-500 mb-4">No live data loaded yet</p>
-                              <button
-                                onClick={fetchLiveData}
-                                disabled={liveDataLoading}
-                                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all"
-                              >
-                                {liveDataLoading ? 'Fetching...' : 'Fetch Live Data'}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-6">
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {Object.entries(DEPIN_TOKENS).map(([tokenId, info]) => {
-                                  const data = allDePINData[tokenId];
-                                  if (!data) return null;
-
-                                  return (
-                                    <div key={tokenId} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-indigo-500/30 transition-all">
-                                      <div className="flex items-center justify-between mb-3">
-                                        <div>
-                                          <h4 className="text-sm font-bold text-white">{info.name}</h4>
-                                          <p className="text-[9px] text-indigo-400 uppercase">{info.category}</p>
-                                        </div>
-                                        <span className="text-[9px] font-mono text-slate-500">{info.symbol}</span>
-                                      </div>
-
-                                      <div className="flex items-baseline justify-between mb-3">
-                                        <span className="text-lg font-bold text-white font-mono">
-                                          ${data.currentPrice < 0.01 ? data.currentPrice.toFixed(6) : data.currentPrice.toFixed(4)}
-                                        </span>
-                                        <span className={`text-[10px] font-bold ${data.priceChangePercentage24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                          {data.priceChangePercentage24h >= 0 ? '↑' : '↓'} {Math.abs(data.priceChangePercentage24h).toFixed(2)}%
-                                        </span>
-                                      </div>
-
-                                      <div className="grid grid-cols-2 gap-2 text-[9px]">
-                                        <div>
-                                          <span className="text-slate-500 block">Market Cap</span>
-                                          <span className="text-slate-300 font-mono">{formatCompact(data.marketCap)}</span>
-                                        </div>
-                                        <div>
-                                          <span className="text-slate-500 block">Supply</span>
-                                          <span className="text-slate-300 font-mono">{formatCompact(data.circulatingSupply)}</span>
-                                        </div>
-                                      </div>
-
-
-                                      {data.sparkline7d && data.sparkline7d.length > 0 && (
-                                        <div className="mt-3 h-8 flex items-end gap-px">
-                                          {data.sparkline7d.slice(-30).map((price, i, arr) => {
-                                            const min = Math.min(...arr);
-                                            const max = Math.max(...arr);
-                                            const height = max > min ? ((price - min) / (max - min)) * 100 : 50;
-                                            const isUp = i > 0 && price > arr[i - 1];
-                                            return (
-                                              <div
-                                                key={i}
-                                                className={`flex-1 rounded-t ${isUp ? 'bg-emerald-500/50' : 'bg-slate-700'}`}
-                                                style={{ height: `${Math.max(height, 5)}%` }}
-                                              />
-                                            );
-                                          })}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-
-
-                              <div className="p-4 bg-slate-950 border border-amber-500/20 rounded-2xl">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-3">
-                                    <Database size={16} className="text-amber-400" />
-                                    <div>
-                                      <h4 className="text-sm font-bold text-white">On-Chain Analytics</h4>
-                                      <p className="text-[9px] text-slate-500">Powered by Dune Analytics (coming soon)</p>
-                                    </div>
-                                  </div>
-                                  <span className={`text-[9px] px-2 py-1 rounded ${isDuneConfigured() ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                    {isDuneConfigured() ? 'Connected' : 'Not Configured'}
-                                  </span>
-                                </div>
-                                <p className="text-[10px] text-slate-400 mb-3">
-                                  {getDuneStatus().message}
-                                </p>
-                                {!isDuneConfigured() && (
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="password"
-                                      placeholder="Enter Dune API Key"
-                                      className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] text-slate-300"
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          const input = e.target as HTMLInputElement;
-                                          if (input.value) {
-                                            saveDuneApiKey(input.value);
-                                            input.value = '';
-                                          }
-                                        }
-                                      }}
-                                    />
-                                    <button className="px-4 py-2 bg-amber-600/20 text-amber-400 rounded-lg text-[10px] font-bold hover:bg-amber-600/30 transition-colors">
-                                      Save
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="p-4 bg-slate-950/50 border-t border-slate-800 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={autoRefreshEnabled}
-                                onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
-                              />
-                              <span className="text-[10px] text-slate-400">Auto-refresh every 5 min</span>
-                            </label>
-                            {autoRefreshEnabled && timeUntilRefresh && (
-                              <span className="text-[9px] text-emerald-400">Next: {timeUntilRefresh}</span>
-                            )}
-                          </div>
-                          <button onClick={() => setShowDePINBrowser(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-bold transition-all">Close</button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }
               </main >
             </>
           )}
+        </div >
+      )}
 
-          {/* Scenario Insight Toast */}
-          {showScenarioToast && scenarioToastContent && (
-            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mx-4 bg-slate-900/90 backdrop-blur-xl border border-indigo-500/50 rounded-2xl shadow-2xl shadow-indigo-500/20 p-6 relative overflow-hidden group">
-                {/* Progress Bar */}
-                <div className="absolute top-0 left-0 h-1 bg-indigo-500/30 w-full">
-                  <div className="h-full bg-indigo-500 w-full animate-[shrink_8s_linear_forwards]" />
-                </div>
+      {/* GLOBAL OVERLAYS - Moved to Root Level */}
 
-                <div className="flex gap-4">
-                  <div className="p-3 bg-indigo-500/20 rounded-xl h-fit border border-indigo-500/30">
-                    {(() => {
-                      const Icon = scenarioToastContent.iconName === 'TrendingDown' ? TrendingDown :
-                        scenarioToastContent.iconName === 'Infinity' ? InfinityIcon :
-                          scenarioToastContent.iconName === 'Swords' ? Swords : Zap;
-                      return <Icon size={24} className="text-indigo-400" />;
-                    })()}
+      {/* 1. Spec Modal */}
+      {
+        showSpecModal && (
+          <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col h-[80vh] overflow-hidden">
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                <div className="flex items-center gap-3">
+                  <Binary size={20} className="text-indigo-400" />
+                  <div>
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight">Mathematical Specification</h3>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Logic V1.1 Verification</p>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-black text-white uppercase tracking-wider">
-                        Scenario Active: <span className="text-indigo-400">{scenarioToastContent.name}</span>
-                      </h4>
-                      <button onClick={() => setShowScenarioToast(false)} className="text-slate-500 hover:text-white transition-colors"><X size={16} /></button>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                      {scenarioToastContent.thesisPoint}
-                    </p>
+                </div>
+                <button onClick={() => setShowSpecModal(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-6">
+                    <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Core Mechanics</h4>
+                    <FormulaDisplay label="Market Clearing" formula="Utility_Served = min(Demand, Total_Capacity)" />
+                    <FormulaDisplay label="System Capacity" formula="Capacity = Providers * Unit_Capability" />
+                    <FormulaDisplay label="Capital Efficiency" formula="Utilization = (Served / Capacity) * 100" />
+                    <FormulaDisplay label="Pricing Equilibrium" formula="Service_Price_{t+1} = Service_Price_t * (1 + 0.6 * Scarcity)" />
+                  </div>
+                  <div className="space-y-6">
+                    <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2">Tokenomics</h4>
+                    <FormulaDisplay label="Utility Value Burn" formula="Burn = (Served * Service_Price) / Token_Price" />
+                    <FormulaDisplay label="Dynamic Emissions" formula="Mint = Max_Mint * (0.6 + 0.4 * tanh(Demand / 15000))" />
+                    <FormulaDisplay label="Supply Conservation" formula="Supply_{t+1} = Supply_t + Mint_t - Burn_t" />
+                  </div>
+                </div>
+                <div className="bg-slate-950/50 p-8 rounded-2xl border border-slate-800 space-y-4">
+                  <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2"><Variable size={14} /> Feedback Sensitivity</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed italic">"Provider behavior follows a Proportional-Derivative growth model. Delta Providers is proportional to the ROI over OpEx, dampened by a 15% weekly growth ceiling to simulate physical hardware lead times."</p>
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <code className="text-xs text-indigo-400 font-mono">Delta_N = min(N * 0.15, (ROI * sensitivity * churn_capitulation))</code>
                   </div>
                 </div>
               </div>
+              <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
+                <button onClick={() => setShowSpecModal(false)} className="px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Verified & Understood</button>
+              </div>
             </div>
-          )}
-        </div >
+          </div>
+        )
+      }
+
+      {/* 2. Knowledge Layer Sidebar */}
+      <div className={`fixed inset-y-0 right-0 w-[450px] bg-slate-900 border-l border-slate-800 shadow-2xl z-[500] transform transition-transform duration-500 ease-in-out ${showKnowledgeLayer ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="h-full flex flex-col p-6 space-y-8 overflow-y-auto custom-scrollbar">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-6">
+            <div className="flex items-center gap-3">
+              <Library className="text-indigo-400" size={20} />
+              <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Regime Taxonomy</h3>
+            </div>
+            <button onClick={() => setShowKnowledgeLayer(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+          </div>
+          {Object.entries(REGIME_KNOWLEDGE).map(([key, data]) => (
+            <section key={key} className={`p-6 rounded-2xl border ${incentiveRegime.id === key ? `bg-${data.color}-500/5 border-${data.color}-500/30` : 'bg-slate-950/40 border-slate-800'}`}>
+              <div className="flex items-center gap-3 mb-4">
+                <data.icon size={18} className={`text-${data.color}-400`} />
+                <h4 className={`text-xs font-black uppercase tracking-widest text-${data.color}-400`}>{data.title}</h4>
+              </div>
+              <p className="text-[11px] text-slate-200 leading-relaxed font-medium">{data.definition}</p>
+            </section>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Export Panel */}
+      {
+        showExportPanel && (
+          <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Download size={20} className="text-emerald-400" />
+                  <h3 className="text-lg font-black text-white uppercase tracking-tight">Export Simulation Data</h3>
+                </div>
+                <button onClick={() => setShowExportPanel(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+              </div>
+
+              <div className="p-8 grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    exportToCSV(displayedData, `DePIN_Sim_${incentiveRegime.id}_${new Date().toISOString().split('T')[0]}`);
+                    setShowExportPanel(false);
+                  }}
+                  className="p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all group text-left"
+                >
+                  <FileDown className="text-emerald-400 mb-3 group-hover:scale-110 transition-transform" size={24} />
+                  <div className="font-bold text-white text-sm mb-1">CSV Format</div>
+                  <div className="text-[10px] text-slate-500">Spreadsheet compatible (Excel, Sheets)</div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (derivedMetrics) {
+                      exportToJSON(displayedData, params, derivedMetrics, `DePIN_Sim_${incentiveRegime.id}_${new Date().toISOString().split('T')[0]}`);
+                      setShowExportPanel(false);
+                    }
+                  }}
+                  className="p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all group text-left"
+                >
+                  <FileJson className="text-amber-400 mb-3 group-hover:scale-110 transition-transform" size={24} />
+                  <div className="font-bold text-white text-sm mb-1">JSON Format</div>
+                  <div className="text-[10px] text-slate-500">Raw data for programmatic analysis</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* 4. DePIN Browser */}
+      {
+        showDePINBrowser && (
+          <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                <div className="flex items-center gap-3">
+                  <Layers size={20} className="text-indigo-400" />
+                  <div>
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight">DePIN Token Browser</h3>
+                    <p className="text-[10px] text-slate-500">
+                      {Object.keys(allDePINData).length} tokens tracked •
+                      {lastLiveDataFetch ? ` Updated ${lastLiveDataFetch.toLocaleTimeString()}` : ' Click Fetch Live to load data'}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setShowDePINBrowser(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-6 custom-scrollbar">
+                {Object.keys(allDePINData).length === 0 ? (
+                  <div className="text-center py-12">
+                    <Layers size={48} className="text-slate-700 mx-auto mb-4" />
+                    <p className="text-slate-500 mb-4">No live data loaded yet</p>
+                    <button
+                      onClick={fetchLiveData}
+                      disabled={liveDataLoading}
+                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all"
+                    >
+                      {liveDataLoading ? 'Fetching...' : 'Fetch Live Data'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Object.entries(DEPIN_TOKENS).map(([tokenId, info]) => {
+                        const data = allDePINData[tokenId];
+                        if (!data) return null;
+
+                        return (
+                          <div key={tokenId} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-indigo-500/30 transition-all">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <h4 className="text-sm font-bold text-white">{info.name}</h4>
+                                <p className="text-[9px] text-indigo-400 uppercase">{info.category}</p>
+                              </div>
+                              <span className="text-[9px] font-mono text-slate-500">{info.symbol}</span>
+                            </div>
+
+                            <div className="flex items-baseline justify-between mb-3">
+                              <span className="text-lg font-bold text-white font-mono">
+                                ${data.currentPrice < 0.01 ? data.currentPrice.toFixed(6) : data.currentPrice.toFixed(4)}
+                              </span>
+                              <span className={`text-[10px] font-bold ${data.priceChangePercentage24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {data.priceChangePercentage24h >= 0 ? '↑' : '↓'} {Math.abs(data.priceChangePercentage24h).toFixed(2)}%
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-[9px]">
+                              <div>
+                                <span className="text-slate-500 block">Market Cap</span>
+                                <span className="text-slate-300 font-mono">{formatCompactUtil(data.marketCap)}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500 block">Supply</span>
+                                <span className="text-slate-300 font-mono">{formatCompactUtil(data.circulatingSupply)}</span>
+                              </div>
+                            </div>
+
+
+                            {data.sparkline7d && data.sparkline7d.length > 0 && (
+                              <div className="mt-3 h-8 flex items-end gap-px">
+                                {data.sparkline7d.slice(-30).map((price, i, arr) => {
+                                  const min = Math.min(...arr);
+                                  const max = Math.max(...arr);
+                                  const height = max > min ? ((price - min) / (max - min)) * 100 : 50;
+                                  const isUp = i > 0 && price > arr[i - 1];
+                                  return (
+                                    <div
+                                      key={i}
+                                      className={`flex-1 rounded-t ${isUp ? 'bg-emerald-500/50' : 'bg-slate-700'}`}
+                                      style={{ height: `${Math.max(height, 5)}%` }}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+
+                    <div className="p-4 bg-slate-950 border border-amber-500/20 rounded-2xl">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <Database size={16} className="text-amber-400" />
+                          <div>
+                            <h4 className="text-sm font-bold text-white">On-Chain Analytics</h4>
+                            <p className="text-[9px] text-slate-500">Powered by Dune Analytics (coming soon)</p>
+                          </div>
+                        </div>
+                        <span className={`text-[9px] px-2 py-1 rounded ${isDuneConfigured() ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                          {isDuneConfigured() ? 'Connected' : 'Not Configured'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mb-3">
+                        {getDuneStatus().message}
+                      </p>
+                      {!isDuneConfigured() && (
+                        <div className="flex gap-2">
+                          <input
+                            type="password"
+                            placeholder="Enter Dune API Key"
+                            className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] text-slate-300"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const input = e.target as HTMLInputElement;
+                                if (input.value) {
+                                  saveDuneApiKey(input.value);
+                                  input.value = '';
+                                }
+                              }
+                            }}
+                          />
+                          <button className="px-4 py-2 bg-amber-600/20 text-amber-400 rounded-lg text-[10px] font-bold hover:bg-amber-600/30 transition-colors">
+                            Save
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 bg-slate-950/50 border-t border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoRefreshEnabled}
+                      onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-[10px] text-slate-400">Auto-refresh every 5 min</span>
+                  </label>
+                  {autoRefreshEnabled && timeUntilRefresh && (
+                    <span className="text-[9px] text-emerald-400">Next: {timeUntilRefresh}</span>
+                  )}
+                </div>
+                <button onClick={() => setShowDePINBrowser(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-bold transition-all">Close</button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+      {/* 5. System Audit Panel */}
+      {showAuditPanel && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <Calculator className="text-indigo-400" size={20} />
+                <h4 className="text-sm font-black uppercase tracking-widest text-white">System Calibration Audit (T={params.T})</h4>
+              </div>
+              <button onClick={() => setShowAuditPanel(false)} className="p-2 text-slate-500 hover:text-white bg-slate-800 rounded-full transition-colors"><X size={18} /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2 group p-4 bg-slate-950 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5">Provider ROI (Incentive) <Info size={12} className="opacity-30" /></span>
+                <div className="text-xl font-mono text-emerald-400">{((aggregated[aggregated.length - 1]?.incentive?.mean || 0) * 100).toFixed(1)}%</div>
+              </div>
+              <div className="space-y-2 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">System Scarcity</span>
+                <div className="text-xl font-mono text-amber-400">{((aggregated[aggregated.length - 1]?.scarcity?.mean || 0) * 100).toFixed(1)}%</div>
+              </div>
+              <div className="space-y-2 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Weekly Emission Ratio</span>
+                <div className="text-xl font-mono text-indigo-400">{((aggregated[aggregated.length - 1]?.minted?.mean || 0) / (params.initialSupply) * 100).toFixed(4)}%</div>
+              </div>
+              <div className="space-y-2 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Realized OpEx</span>
+                <div className="text-xl font-mono text-slate-300">CHF {params.providerCostPerWeek.toFixed(2)} / unit</div>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button onClick={() => setShowAuditPanel(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all">Close Audit</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`

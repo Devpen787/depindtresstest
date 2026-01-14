@@ -604,3 +604,4 @@ If user has CoinGecko Pro API key:
 ---
 
 **End of Data Update Strategy**
+
