@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface CollapsibleSectionProps {
+    id?: string;
     title: string;
     icon: React.ReactNode;
     iconColor: string;
@@ -12,6 +13,7 @@ interface CollapsibleSectionProps {
 }
 
 export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
+    id,
     title,
     icon,
     iconColor,
@@ -22,7 +24,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
 }) => {
 
     return (
-        <section className="transition-all duration-300">
+        <section id={id} className="transition-all duration-300 scroll-mt-24">
             <button
                 onClick={onToggle}
                 className="w-full flex items-center justify-between mb-4 group cursor-pointer"

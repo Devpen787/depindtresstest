@@ -1,5 +1,6 @@
 import React from 'react';
 import { RefreshCw, Database, Users, Banknote, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { formatCompact } from '../utils/format';
 
 interface FlywheelWidgetProps {
     metrics: {
@@ -82,7 +83,7 @@ export const FlywheelWidget: React.FC<FlywheelWidgetProps> = ({ metrics, stress 
                 <div className={`relative z-10 p-4 rounded-lg border flex flex-col items-center text-center transition-all ${getStatusColor(revenueStatus)}`}>
                     <Banknote size={20} className="mb-2 opacity-70" />
                     <span className="text-[10px] font-bold uppercase opacity-60 tracking-wider">Value Capture</span>
-                    <span className="text-xl font-black tracking-tight">${(metrics.revenue / 1000).toFixed(1)}k</span>
+                    <span className="text-xl font-black tracking-tight">${formatCompact(metrics.revenue)}</span>
                     <span className="text-[9px] opacity-50 font-medium">Monthly Burn</span>
                 </div>
 

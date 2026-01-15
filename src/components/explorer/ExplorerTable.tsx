@@ -61,6 +61,7 @@ export const ExplorerTable: React.FC<ExplorerTableProps> = ({
                         <HeaderCell label="24h Change" column="price" width="w-32" tooltip="Source: CoinGecko API" />
                         <HeaderCell label="Market Cap" column="marketCap" width="w-40" tooltip="Source: CoinGecko / Solana On-Chain" />
                         <HeaderCell label="Risk" column="riskLevel" width="w-24" tooltip="Source: Stress Model V1.2" />
+                        <HeaderCell label="Payback" column="paybackPeriod" width="w-28" tooltip="Source: Est. Hardware ROI" />
                         <HeaderCell label="Score" column="stressScore" width="w-20" tooltip="Source: 52-Week Sim" />
                         <HeaderCell label="7d Trend" width="w-32" tooltip="Source: CoinGecko Sparkline" />
                         <HeaderCell label="Actions" width="w-48" />
@@ -107,6 +108,15 @@ export const ExplorerTable: React.FC<ExplorerTableProps> = ({
                                             'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                                         }`}>
                                         {protocol.riskLevel}
+                                    </span>
+                                ) : (
+                                    <span className="text-slate-600 font-mono">-</span>
+                                )}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                                {protocol.paybackPeriod ? (
+                                    <span className="text-sm font-mono text-slate-300">
+                                        {protocol.paybackPeriod} Mo
                                     </span>
                                 ) : (
                                     <span className="text-slate-600 font-mono">-</span>

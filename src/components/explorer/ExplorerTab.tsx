@@ -74,18 +74,19 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({ onAnalyze, onCompare, 
                     else if (regime === 'growth') riskLevel = 'MEDIUM';
                     else riskLevel = 'LOW';
 
-                    // Payback Period: (Hardware + Setup) / Weekly Profit
-                    // Simplified: We don't have hardware cost here, using a proxy based on OpEx
-                    // Let's assume hardware is ~50x weekly OpEx for estimation
-                    const weeklyOpEx = profile.parameters.provider_economics.opex_weekly.value;
-                    const revenuePerWeek = (profile.parameters.emissions.value * price) / 10000; // Mock distribution
-                    // This is a rough proxy since we lack full simulation engine here
-                    // So we will just map some static values or use the profile hints if available
 
-                    // Better approach: Use derived metrics if passed, otherwise estimate
-                    if (regime === 'consistent') paybackPeriod = 24; // weeks
-                    else if (regime === 'growth') paybackPeriod = 36;
-                    else paybackPeriod = 52;
+                    // Payback Period: (Hardware) / Weekly Profit
+                    const hardwareCost = profile.parameters.hardware_cost.value;
+                    const weeklyOpEx = profile.parameters.provider_economics.opex_weekly.value;
+                    const weeklyTokens = profile.parameters.emissions.value / Math.max(1, profile.parameters.initial_active_providers.value);
+                    const weeklyRevenue = weeklyTokens * price;
+                    const weeklyProfit = weeklyRevenue - weeklyOpEx;
+
+                    if (weeklyProfit > 0) {
+                        paybackPeriod = Math.max(0.1, parseFloat(((hardwareCost / weeklyProfit) / 4.33).toFixed(1))); // Months
+                    } else {
+                        paybackPeriod = null; // Infinite / Never
+                    }
 
                     // Stress Score: 0-10, based on burn fraction and supply
                     stressScore = Math.min(10, Math.max(1, (profile.parameters.burn_fraction.value * 10) + (profile.parameters.demand_regime.value === 'volatile' ? -2 : 0)));

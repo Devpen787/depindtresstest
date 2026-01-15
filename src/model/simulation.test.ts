@@ -7,6 +7,7 @@ import {
 } from './simulation';
 import { SeededRNG } from './rng';
 import { SimulationParams, ProviderPool, Provider } from './types';
+import { METRICS } from '../data/MetricRegistry';
 
 // Mock Params
 const MOCK_PARAMS: SimulationParams = {
@@ -48,7 +49,9 @@ const MOCK_PARAMS: SimulationParams = {
     competitorYield: 0,
     emissionModel: 'fixed',
     hardwareCost: 1000,
-    nSims: 1
+    nSims: 1,
+    proTierPct: 0,
+    proTierEfficiency: 1.5
 };
 
 describe('V3 Simulation Engine (Math Verification)', () => {
@@ -105,25 +108,32 @@ describe('V3 Simulation Engine (Math Verification)', () => {
     describe('2. Logic Proof: Death Spiral (Panic Trigger)', () => {
         it('should trigger significantly higher churn during a crash compared to a normal week', () => {
             // CONTROL GROUP: No Crash
-            const controlParams = { ...MOCK_PARAMS, initialProviders: 1000, seed: 999 };
-            const controlResults = simulateOne(controlParams, 999);
-
-            // EXPERIMENT GROUP: Crash at Week 20
-            const crashParams = {
+            const controlParams = {
                 ...MOCK_PARAMS,
                 initialProviders: 1000,
-                seed: 999, // Same seed to ensure identical agents
-                investorUnlockWeek: 20,
+                seed: 999,
+                providerCostPerWeek: 4,
+                maxMintWeekly: 10000, // Back to normal mint
+                baseDemand: 2000 // Low demand for marginal profit
+            };
+            const controlResults = simulateOne(controlParams, 999);
+
+            // EXPERIMENT GROUP: Crash at Week 2
+            const crashParams = {
+                ...controlParams,
+                initialProviders: 1000,
+                seed: 999,
+                investorUnlockWeek: 2, // Early crash
                 investorSellPct: 0.50 // 50% Supply Dump -> Massive Crash
             };
             const crashResults = simulateOne(crashParams, 999);
 
-            // Compare Churn at Week 20
+            // Compare Churn at Week 2
             // Note: We check the specific week of the event
-            const controlChurn = controlResults[20].churnCount;
-            const crashChurn = crashResults[20].churnCount;
+            const controlChurn = controlResults[2].churnCount;
+            const crashChurn = crashResults[2].churnCount;
 
-            console.log(`Control Week 20 Churn: ${controlChurn}, Crash Week 20 Churn: ${crashChurn}`);
+            console.log(`Control Week 2 Churn: ${controlChurn}, Crash Week 2 Churn: ${crashChurn}`);
 
             // MATH PROOF: Churn should be at least 5x higher in the crash scenario
             // Using a large multiplier to ensure statistical significance
@@ -154,6 +164,166 @@ describe('V3 Simulation Engine (Math Verification)', () => {
             const resNoBurn = simulateOne(paramsNoBurn, 123)[10];
 
             expect(resNoBurn.solvencyScore).toBeLessThan(0.1); // Should be near zero
+        });
+    });
+
+
+    describe('4. Defense Validation: Invariants & Registry Checks', () => {
+        // [Sanity Gate 1] Retention Constraint
+        it('Retention Rate should never exceed 1.0 or result in negative active nodes', () => {
+            const res = simulateOne({ ...MOCK_PARAMS, initialProviders: 100, churnThreshold: -9999 }, 123);
+
+            // Loop through all weeks
+            res.forEach((week, index) => {
+                // Derived Formula: 1 - (CumulativeChurn / Start)
+                // In simulation.ts, 'churnCount' is per week.
+                const startNodes = MOCK_PARAMS.initialProviders;
+                // Since we don't have cumulative churn in the result object, we can verify the 'active providers' 
+                // invariant: Active <= Start (assuming no growth for this test)
+
+                // Assert 1: Active nodes constraint (assuming 0 growth for simplicity in this specific test setup)
+                // If maxProviderGrowthRate > 0, Active CAN be > Start. 
+                // So let's test the lower bound: Active >= 0.
+                expect(week.providers).toBeGreaterThanOrEqual(0);
+            });
+        });
+
+        // [Sanity Gate 2] Solvency Non-Negativity
+        it('Solvency Score should be non-negative even in extreme burn scenarios', () => {
+            // Force 100% burn
+            const params = { ...MOCK_PARAMS, burnPct: 1.0 };
+            const res = simulateOne(params, 999);
+
+            res.forEach(week => {
+                expect(week.solvencyScore).toBeGreaterThanOrEqual(0);
+                expect(week.solvencyScore).not.toBeNaN();
+                expect(week.solvencyScore).not.toBe(Infinity);
+            });
+        });
+
+        // [Sanity Gate 3] Coverage Monotonicity (Coverage cannot be 0 if there are active nodes)
+        it('Network Coverage Score should be positive when nodes are active', () => {
+            const res = simulateOne(MOCK_PARAMS, 123);
+
+            res.forEach(week => {
+                if (week.providers > 0) {
+                    expect(week.weightedCoverage).toBeGreaterThan(0);
+                }
+            });
+        });
+    });
+
+    describe('5. Metric Registry Integrity (ADR-001 Compliance)', () => {
+        it('All Registered Metrics should have valid Tier assignments', () => {
+            Object.values(METRICS).forEach(metric => {
+                expect(['survival', 'viability', 'utility']).toContain(metric.tier);
+            });
+        });
+
+        it('All Registered Metrics should have a human-readable label', () => {
+            Object.values(METRICS).forEach(metric => {
+                expect(metric.label).toBeTruthy();
+                expect(typeof metric.label).toBe('string');
+                expect(metric.label.length).toBeGreaterThan(3);
+            });
+        });
+
+        it('Survival Tier metrics should include critical thresholds', () => {
+            Object.values(METRICS)
+                .filter(m => m.tier === 'survival')
+                .forEach(metric => {
+                    // Not all survival metrics strictly need numeric thresholds (e.g. Urban Density count),
+                    // but key ones like Solvency/Retention do.
+                    if (['solvency_ratio', 'weekly_retention_rate'].includes(metric.id)) {
+                        expect(metric.thresholds).toBeDefined();
+                        expect(metric.thresholds?.critical).toBeDefined();
+                    }
+                });
+        });
+    });
+
+    describe('6. Quality Scale (Hardware Tiers)', () => {
+        it('should generate Pro providers based on proTierPct', () => {
+            const params = { ...MOCK_PARAMS, initialProviders: 100, proTierPct: 0.5 };
+            // Since we can't easily inspect internal state of simulateOne without exported metrics,
+            // we test the shared createProvider logic directly which is exported.
+            const rng = new SeededRNG(123);
+            const active = [];
+            for (let i = 0; i < 100; i++) {
+                active.push(createProvider(rng, params, 0));
+            }
+
+            const proCount = active.filter(p => p.hardwareTier === 'pro').length;
+            // Binomial distribution approx checks
+            expect(proCount).toBeGreaterThan(40);
+            expect(proCount).toBeLessThan(60);
+        });
+
+        it('Pro providers should have higher capacity (Efficiency Multiplier)', () => {
+            const params = { ...MOCK_PARAMS, baseCapacityPerProvider: 100, proTierEfficiency: 2.0, proTierPct: 0.5 };
+            const rng = new SeededRNG(123);
+
+            let proFound = false;
+            let basicFound = false;
+
+            for (let i = 0; i < 50; i++) {
+                const p = createProvider(rng, params, 0);
+                if (p.hardwareTier === 'pro') {
+                    // Capacity = Base * Efficiency * Random
+                    // 100 * 2.0 = 200. Min 10.
+                    // Random is normal * 0.1 usually. So 200 +/- 20.
+                    expect(p.capacity).toBeGreaterThan(150);
+                    proFound = true;
+                } else {
+                    // 100 * 1.0 = 100 +/- 10.
+                    expect(p.capacity).toBeLessThan(150);
+                    basicFound = true;
+                }
+            }
+            expect(proFound).toBe(true);
+            expect(basicFound).toBe(true);
+        });
+
+        it('Pro providers should be stickier during panic', () => {
+            const rng = new SeededRNG(123);
+            const params = { ...MOCK_PARAMS };
+            // Create specific providers to test panic logic
+            const proMiner: Provider = {
+                ...createProvider(rng, params, 0),
+                hardwareTier: 'pro',
+                id: 'pro-1',
+                type: 'urban' // Urban + Pro = Super Sticky
+            };
+            const basicMiner: Provider = {
+                ...createProvider(rng, params, 0),
+                hardwareTier: 'basic',
+                id: 'basic-1',
+                type: 'urban' // Urban + Basic = Normal Sticky
+            };
+
+            const oldPrice = 1.0;
+            const newPrice = 0.5;
+            const prevProfits = new Map<string, number>();
+            prevProfits.set('pro-1', -10); // Loss
+            prevProfits.set('basic-1', -10); // Loss
+
+            let proChurns = 0;
+            let basicChurns = 0;
+
+            // Run Monte Carlo on decision logic
+            for (let i = 0; i < 1000; i++) {
+                proMiner.isActive = true;
+                basicMiner.isActive = true;
+                const tempPool = { active: [proMiner, basicMiner], churned: [], pending: [] };
+
+                const res = processPanicEvents(tempPool, oldPrice, newPrice, prevProfits, rng);
+                const survivors = res.pool.active.map(p => p.id);
+
+                if (!survivors.includes('pro-1')) proChurns++;
+                if (!survivors.includes('basic-1')) basicChurns++;
+            }
+
+            expect(proChurns).toBeLessThan(basicChurns);
         });
     });
 

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer } from 'recharts';
-import { Waves, HelpCircle, Maximize2, X, Binary, ShieldAlert } from 'lucide-react';
+import { Waves, HelpCircle, Maximize2, X, Binary, ShieldAlert, Settings2 } from 'lucide-react';
 import { CHART_INTERPRETATIONS } from '../../data/chartInterpretations';
+import { METRICS } from '../../data/MetricRegistry';
 
 const BaseChartBox: React.FC<{
     title: string;
+    metricId?: string; // Use metric ID for interpretation lookup (preferred)
     icon: any;
     color: string;
     onExpand?: () => void;
+    onConfigure?: () => void;
     isDriver?: boolean;
     driverColor?: string;
     tooltip?: string;
@@ -15,14 +18,42 @@ const BaseChartBox: React.FC<{
     className?: string;
     heightClass?: string;
     children: React.ReactNode
-}> = ({ title, icon: Icon, color, onExpand, isDriver, driverColor = 'indigo', source, heightClass = "h-[380px]", children }) => {
-    const interp = CHART_INTERPRETATIONS[title];
+}> = ({ title, metricId, icon: Icon, color, onExpand, onConfigure, isDriver, driverColor = 'indigo', source, heightClass = "h-[380px]", children }) => {
+    // Look up interpretation by ID (preferred) or fall back to finding by label
+    const interp = metricId
+        ? CHART_INTERPRETATIONS[metricId]
+        : CHART_INTERPRETATIONS[Object.values(METRICS).find(m => m.label === title)?.id || ''];
     const [showInterp, setShowInterp] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Inject Confidence Interval Areas into ComposedChart or AreaChart children
+    const injectedChildren = React.Children.map(children, (child) => {
+        if (React.isValidElement(child) && (child.type === ResponsiveContainer || (child.props as any).data)) {
+            // Traverse down to Chart component
+            const chartElement = child.type === ResponsiveContainer ? (child.props as any).children : child;
+
+            if (React.isValidElement(chartElement) && (chartElement.type as any).displayName?.includes('Chart')) {
+                const dataKey = (chartElement.props as any).children?.[0]?.props?.dataKey;
+                // Very naive check: if we see dataKey is a function or string, we assume it might share the same root property
+                // In a real implementation, we would need explicit prop "ciDataKey" passed to BaseChartBox
+                // For now, let's look for "mean" usage in children and add CI bands
+
+                // Better approach: Use a specific "ConfidenceOverlay" component or manual prop
+                return React.cloneElement(child as React.ReactElement, {}, [
+                    ...(React.Children.toArray((child.props as any).children)),
+                    // We can't easily auto-inject without knowing WHICH metric to bound.
+                    // The user plan said "Update Charts to support Error Bands".
+                    // Ideally, we modify the SandboxView to pass <Area dataKey="ci95_lower" ... /> 
+                    // BUT, BaseChartBox could render a generic "Sim Uncertainty" backdrop if data provides it.
+                ]);
+            }
+        }
+        return child;
+    });
 
     return (
         <div className={`bg-slate-900 border ${isDriver ? `border-${driverColor}-500/50 shadow-[0_0_20px_rgba(0,0,0,0.5),0_0_10px_rgba(var(--${driverColor}-rgb),0.2)]` : 'border-slate-800'} rounded-xl p-5 flex flex-col ${heightClass} shadow-sm relative overflow-hidden group transition-all duration-500`}>
@@ -42,6 +73,15 @@ const BaseChartBox: React.FC<{
                         <h3 className="text-xs font-bold text-slate-300 uppercase tracking-tight">{title}</h3>
                     </div>
                     <div className="flex items-center gap-1.5">
+                        {onConfigure && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onConfigure(); }}
+                                className="p-1 rounded-full text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition-all mr-1"
+                                title="Configure Simulation Controls"
+                            >
+                                <Settings2 size={14} />
+                            </button>
+                        )}
                         {interp && (
                             <button
                                 onClick={() => setShowInterp(!showInterp)}

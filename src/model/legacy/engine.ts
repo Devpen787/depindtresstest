@@ -5,6 +5,7 @@ export interface LegacySimulationParams {
     T: number;
     initialSupply: number;
     initialPrice: number;
+    initialProviders: number;
     maxMintWeekly: number;
     burnPct: number;
 
@@ -102,7 +103,7 @@ export function getDemandSeries(T: number, base: number, type: DemandType, rng: 
 
 export function simulateOne(params: LegacySimulationParams, simSeed: number): LegacySimResult[] {
     const rng = new SeededRNG(simSeed);
-    const { T, initialSupply, initialPrice, maxMintWeekly, burnPct, demandType, macro,
+    const { T, initialSupply, initialPrice, initialProviders, maxMintWeekly, burnPct, demandType, macro,
         providerCostPerWeek, baseCapacityPerProvider, kDemandPrice, kMintPrice, rewardLagWeeks, churnThreshold,
         initialLiquidity, investorUnlockWeek, investorSellPct,
         // Module 4: Competitive Resilience
@@ -118,7 +119,7 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
 
     let currentSupply = initialSupply;
     let currentPrice = initialPrice;
-    let currentProviders = 30;
+    let currentProviders = initialProviders || 30; // Fallback to 30 if undefined
     let currentServicePrice = 0.5;
 
     let poolUsd = initialLiquidity;

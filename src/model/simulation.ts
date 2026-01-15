@@ -33,16 +33,24 @@ export function createProvider(
 
   const costMultiplier = isUrban ? 1.5 : 0.8;
 
-  // Heterogeneous capacity (normal distribution around base)
+  // Quality Scale (Hardware Tiers)
+  const isPro = rng.next() < (params.proTierPct || 0); // Default 0 if undefined
+  const hardwareTier = isPro ? 'pro' : 'basic';
+  const efficiencyMult = isPro ? (params.proTierEfficiency || 1.5) : 1.0;
+
+  // Heterogeneous capacity (normal distribution around base) * Efficiency
   const capacity = Math.max(
     10,
-    params.baseCapacityPerProvider * (1 + params.capacityStdDev * rng.normal())
+    (params.baseCapacityPerProvider * efficiencyMult) * (1 + params.capacityStdDev * rng.normal())
   );
 
   // Heterogeneous costs with tier multiplier
+  // Pro hardware often has higher OPEX (power/cooling), assume 20% higher for now if efficiency is 50% higher
+  const tierCostMult = isPro ? 1.2 : 1.0;
+
   const operationalCost = Math.max(
     1,
-    (params.providerCostPerWeek * costMultiplier) * (1 + params.costStdDev * rng.normal())
+    (params.providerCostPerWeek * costMultiplier * tierCostMult) * (1 + params.costStdDev * rng.normal())
   );
 
   // Derived Share Factor (Location Score)
@@ -64,6 +72,8 @@ export function createProvider(
     consecutiveLossWeeks: 0,
     isActive: true,
     type,
+    hardwareTier,
+    hardwareEfficiency: efficiencyMult,
     locationScale,
   };
 }
@@ -174,7 +184,7 @@ function processProviderDecisions(
 
   let potentialJoins = 0;
 
-  // SCENARIO 2: HARDWARE SATURATION (Mass Join Event)
+  const weeklyHardwareCost = params.hardwareCost / 52;  // SCENARIO 2: HARDWARE SATURATION (Mass Join Event)
   if (params.scenario === 'saturation' && currentWeek === Math.floor(params.T / 3)) {
     // Massive spike: Insert 3x current supply
     potentialJoins = pool.active.length * 2.0;
@@ -185,13 +195,18 @@ function processProviderDecisions(
     const shockPct = params.growthCallEventPct || 0.5;
     potentialJoins = Math.floor(pool.active.length * shockPct);
   }
-  else if (avgProfit > params.profitThresholdToJoin) {
-    // Standard growth
-    const attractiveness = (avgProfit - params.profitThresholdToJoin) / params.profitThresholdToJoin;
+  else if (avgProfit > params.profitThresholdToJoin + weeklyHardwareCost) {
+    // Standard growth - adjusted for Hardware ROI
+    const netAttractiveness = avgProfit - (params.profitThresholdToJoin + weeklyHardwareCost);
+    const attractiveness = netAttractiveness / params.profitThresholdToJoin;
+
     potentialJoins = Math.floor(
       newActive.length * params.maxProviderGrowthRate * Math.min(1, attractiveness)
     );
   }
+
+  // Cap at 0 if negative
+  potentialJoins = Math.max(0, potentialJoins);
 
   if (potentialJoins > 0) {
     for (let i = 0; i < potentialJoins; i++) {
@@ -349,9 +364,70 @@ export function processPanicEvents(
       } else {
         panicProb += 0.1; // Rural MORE likely to panic (Low friction)
       }
+
+      // Hardware Tier Sensitivity
+      // Pro users (Capitalized) are stickier than Basic users
+      if (provider.hardwareTier === 'pro') {
+        panicProb -= 0.15;
+      }
     }
 
+
+
+
     if (rng.next() < panicProb) {
+      provider.isActive = false;
+      newChurned.push(provider);
+      churnCount++;
+    } else {
+      newActive.push(provider);
+    }
+  }
+
+  return {
+    pool: { ...pool, active: newActive, churned: newChurned },
+    churnCount
+  };
+}
+
+/**
+ * Handle Vampire Attack Churn
+ * Nodes leave if competitor yield is significantly higher
+ */
+function processVampireAttack(
+  pool: ProviderPool,
+  params: SimulationParams,
+  rng: SeededRNG
+): { pool: ProviderPool; churnCount: number } {
+  if (params.competitorYield <= 0) {
+    return { pool, churnCount: 0 };
+  }
+
+  const newActive: Provider[] = [];
+  const newChurned: Provider[] = [...pool.churned];
+  let churnCount = 0;
+
+  // Base Churn Probability based on Yield Advantage
+  // e.g. 0.5 (50% better yield) -> 5% weekly churn chance
+  // e.g. 1.0 (100% better yield) -> 15% weekly churn chance
+  // e.g. 2.0 (200% better yield) -> 40% weekly churn chance
+  const baseProb = Math.pow(params.competitorYield, 1.5) * 0.1;
+
+  for (const provider of pool.active) {
+    let prob = baseProb;
+
+    // Rural (Mercenary, low sunk cost) are 2x more likely to switch
+    if (provider.type === 'rural') {
+      prob *= 1.5;
+    } else {
+      // Urban (High sunk cost) are stickier
+      prob *= 0.5;
+    }
+
+    // Random noise
+    prob *= (0.8 + 0.4 * rng.next());
+
+    if (rng.next() < prob) {
       provider.isActive = false;
       newChurned.push(provider);
       churnCount++;
@@ -452,6 +528,16 @@ export function simulateOne(
       joinCount = decision.joinCount;
     }
 
+    // Vampire Attack Logic (Module 4)
+    let vampireChars = 0;
+    if (params.competitorYield > 0) {
+      const vampireResult = processVampireAttack(providerPool, params, rng);
+      providerPool = vampireResult.pool;
+      churnCount += vampireResult.churnCount;
+      vampireChars = vampireResult.churnCount;
+    }
+
+
     // ========================================
     // PHASE 1: DEMAND & SERVICE (Micro Physics)
     // ========================================
@@ -502,11 +588,7 @@ export function simulateOne(
     // If params.initialProviders was small (30), 5000 was unreachable. 
     // If params is now 370k, 5000 is trivial.
     // Let's adjust saturation denominator safely or leave as is (saturation = 1.0 immediately).
-    // Let's leave as is but use scaled count.
-
-    // Scale Demand for emission factor? demand is Micro. 15000 was constant.
-    // If we scaled demand down by 185x, we should scale constant down or scale demand up.
-    // Scale Demand UP for emission calc.
+    // Let's scale Demand UP for emission calc.
     const scaledDemand = demand * scalingFactor;
 
     const emissionFactor = 0.6 + 0.4 * Math.tanh(scaledDemand / 15000.0) - 0.2 * saturation;
@@ -612,11 +694,27 @@ export function simulateOne(
 
         netFlow = buyPressureEffective - sellPressureMacro - burnedMacro;
 
-        // Price dynamics (Using MACRO values against MACRO Supply)
-        const buyPressureEffect = params.kBuyPressure * Math.tanh(buyPressureEffective / tokenSupply * 100);
-        const sellPressureEffect = -params.kSellPressure * Math.tanh(sellPressureMacro / tokenSupply * 100);
+        // Price dynamics (Using MACRO values against LIQUIDITY POOL DEPTH)
+        // Use poolTokens instead of tokenSupply to make Initial Liquidity meaningful.
+        // If pool is deep, same buy pressure moves price LESS.
+        const liquidityDepth = Math.max(poolTokens, 1000);
+
+        // Note: kBuyPressure is a sensitivity constant. If we switch denominator from Supply (100M) to Pool (5M),
+        // we essentially multiply impact by 20x. We might need to adjust k factors or accept higher volatility.
+        // Let's keep constants but swap denominator.
+
+        const buyPressureEffect = params.kBuyPressure * Math.tanh(buyPressureEffective / liquidityDepth * 100);
+        const sellPressureEffect = -params.kSellPressure * Math.tanh(sellPressureMacro / liquidityDepth * 100);
+
         const demandPressure = params.kDemandPrice * Math.tanh(scarcityEffective);
-        const dilutionPressure = -params.kMintPrice * (mintedMacro / tokenSupply) * 100;
+
+        // Dilution should compare Mint vs Supply (Dilution of Market Cap)
+        // BOOSTED Sensitivity: Multiplied by 50 to make 'Max Mint' control visible
+        const dilutionPressure = -params.kMintPrice * 50.0 * (mintedMacro / tokenSupply) * 100;
+
+        // Deflationary Pressure (Burn)
+        // Use kMintPrice coefficient as proxy for 'Supply Awareness'
+        const deflationPressure = params.kMintPrice * 50.0 * (burnedMacro / tokenSupply) * 100;
 
         const logReturn =
           mu +
@@ -624,9 +722,19 @@ export function simulateOne(
           sellPressureEffect +
           demandPressure +
           dilutionPressure +
+          deflationPressure +
           sigma * rng.normal();
 
-        nextPrice = Math.max(0.0001, tokenPrice * Math.exp(logReturn));
+        // CIRCUIT BREAKER: Clamp weekly volatility to prevent infinite spirals
+        // Max weekly jump: +100% (0.69) / -50% (-0.69)
+        const clampedLogReturn = Math.max(-1.0, Math.min(1.0, logReturn));
+
+        nextPrice = Math.max(0.0001, tokenPrice * Math.exp(clampedLogReturn));
+
+        // Safety cap for USD representation
+        if (!isFinite(nextPrice) || nextPrice > 1_000_000) {
+          nextPrice = 1_000_000;
+        }
         poolUsd = Math.sqrt(k * nextPrice);
         poolTokens = Math.sqrt(k / nextPrice);
       }
@@ -669,23 +777,23 @@ export function simulateOne(
       urbanCount: providerPool.active.filter(p => p.type === 'urban').length * scalingFactor,
       ruralCount: providerPool.active.filter(p => p.type === 'rural').length * scalingFactor,
       weightedCoverage: providerPool.active.reduce((sum, p) => sum + p.locationScale, 0) * scalingFactor,
+      proCount: providerPool.active.filter(p => p.hardwareTier === 'pro').length * scalingFactor,
       // Module 4
       treasuryBalance: (treasuryTokens + (params.revenueStrategy === 'reserve' ? burnedMacro : 0)) * tokenPrice,
-      vampireChurn: 0, // Placeholder
+      vampireChurn: vampireChars * scalingFactor,
     });
 
     // Accumulate Treasury
     if (params.revenueStrategy === 'reserve') {
       treasuryTokens += burnedMacro;
     }
-
     // Update state for next iteration
     tokenPrice = nextPrice;
   }
 
+
   return results;
 }
-
 // ============================================================================
 // AGGREGATION
 // ============================================================================
@@ -695,7 +803,7 @@ export function simulateOne(
  */
 function calculateStats(values: number[]): MetricStats {
   if (values.length === 0) {
-    return { mean: 0, p10: 0, p90: 0, min: 0, max: 0, stdDev: 0 };
+    return { mean: 0, p10: 0, p90: 0, min: 0, max: 0, stdDev: 0, ci95_lower: 0, ci95_upper: 0 };
   }
 
   const sorted = [...values].sort((a, b) => a - b);
@@ -708,7 +816,18 @@ function calculateStats(values: number[]): MetricStats {
   const variance = values.reduce((sum, x) => sum + (x - mean) ** 2, 0) / n;
   const stdDev = Math.sqrt(variance);
 
-  return { mean, p10, p90, min, max, stdDev };
+  const marginOfError = 1.96 * (stdDev / Math.sqrt(n)); // 95% Confidence Interval (Z=1.96)
+
+  return {
+    mean,
+    p10,
+    p90,
+    min,
+    max,
+    stdDev,
+    ci95_lower: mean - marginOfError,
+    ci95_upper: mean + marginOfError
+  };
 }
 
 /**

@@ -29,6 +29,8 @@ export interface Provider {
   consecutiveLossWeeks: number;  // Weeks of consecutive losses
   isActive: boolean;             // Whether provider is still active
   type: 'urban' | 'rural';       // Provider tier (Urban = High Cost, Rural = Low Cost)
+  hardwareTier: 'basic' | 'pro'; // Hardware quality (Pro = High Efficiency/CAPEX)
+  hardwareEfficiency: number;    // Multiplier for rewards (1.0 = Basic)
   locationScale: number; // 0..1 (Connectivity/Density)/ Share Factor (1.0 = Unique, 0.3 = Dense/Redundant)
 }
 
@@ -111,6 +113,10 @@ export interface SimulationParams {
   // Module 5: Report-Aligned Scenarios
   growthCallEventWeek?: number;        // Week to trigger "Supply Shock"
   growthCallEventPct?: number;         // Magnitude of shock (0.5 = +50%)
+
+  // Quality Scale
+  proTierPct: number;                  // % of new providers that are Pro (0.0 - 1.0)
+  proTierEfficiency: number;           // Efficiency multiplier for Pro nodes (e.g. 1.5)
 }
 
 // ============================================================================
@@ -195,6 +201,9 @@ export interface SimResult {
   ruralCount: number;
   weightedCoverage: number;
 
+  // Quality Scale
+  proCount: number;
+
   // Module 4: Competitive Resilience
   treasuryBalance: number;
   vampireChurn: number;
@@ -210,6 +219,8 @@ export interface MetricStats {
   min: number;
   max: number;
   stdDev: number;
+  ci95_lower: number;
+  ci95_upper: number;
 }
 
 /**
@@ -246,6 +257,9 @@ export interface AggregateResult {
   urbanCount: MetricStats;
   ruralCount: MetricStats;
   weightedCoverage: MetricStats;
+
+  // Quality Scale
+  proCount: MetricStats;
 
   // Module 4: Competitive Resilience
   treasuryBalance: MetricStats;

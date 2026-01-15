@@ -49,6 +49,6 @@ export interface ExplorerProtocol {
 }
 
 // Table sorting options
-export type SortColumn = 'rank' | 'name' | 'price' | 'marketCap' | 'change24h' | 'riskLevel' | 'stressScore';
+export type SortColumn = 'rank' | 'name' | 'price' | 'marketCap' | 'change24h' | 'riskLevel' | 'stressScore' | 'paybackPeriod';
 
 export type SortDirection = 'asc' | 'desc';

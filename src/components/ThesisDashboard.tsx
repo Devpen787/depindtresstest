@@ -25,7 +25,10 @@ import {
     Settings2,
     Server,
     Hammer,
-    ChevronRight
+    ChevronRight,
+    Github,
+    MessageSquare,
+    Info
 } from 'lucide-react';
 import type { ProtocolProfileV1 } from '../data/protocols';
 import { SCENARIOS, SimulationScenario } from '../data/scenarios';
@@ -130,8 +133,9 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                 monthlyStress = monthlyStress * 1.1;
             }
 
-            // Apply Price Change with volatility
-            let randomVol = (Math.random() - 0.5) * 0.05;
+            // Apply Price Change with volatility (deterministic based on month for reproducibility)
+            // Using a simple deterministic formula instead of random variation
+            const randomVol = ((i * 17 + 7) % 20 - 10) * 0.005; // Produces -0.05 to +0.05 range
             currentPrice = currentPrice * (1 + monthlyStress + randomVol);
             if (currentPrice < 0.001) currentPrice = 0.001;
 
@@ -254,7 +258,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
             }
         },
         scales: {
-            x: { grid: { display: false }, ticks: { color: '#64748b' } },
+            x: { grid: { display: false }, ticks: { maxTicksLimit: 12, color: '#64748b' } },
             y: { grid: { color: '#334155' }, ticks: { color: '#64748b' } }
         }
     };
@@ -372,7 +376,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                 </div>
 
                 {/* Sidebar Footer */}
-                <div className="p-4 border-t border-slate-800">
+                <div className="p-4 border-t border-slate-800 space-y-4">
                     <div className={`flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 ${sidebarCollapsed ? 'justify-center' : ''}`}>
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         {!sidebarCollapsed && (
@@ -381,6 +385,31 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                                 <span className="text-xs font-bold text-emerald-400">Simulation Active</span>
                             </div>
                         )}
+                    </div>
+
+                    <div className={`grid ${sidebarCollapsed ? 'grid-cols-1 gap-4' : 'grid-cols-3 gap-2'}`}>
+                        <a
+                            href="https://github.com/volt-capital/depin-stress-test"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-800 group transition-colors"
+                            title="GitHub Repo"
+                        >
+                            <Github size={16} className="text-slate-500 group-hover:text-white" />
+                        </a>
+                        <button
+                            className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-800 group transition-colors"
+                            title="Why we built this"
+                        >
+                            <Info size={16} className="text-slate-500 group-hover:text-emerald-400" />
+                        </button>
+                        <a
+                            href="mailto:hello@depinstresstest.com"
+                            className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-800 group transition-colors"
+                            title="Send Feedback"
+                        >
+                            <MessageSquare size={16} className="text-slate-500 group-hover:text-indigo-400" />
+                        </a>
                     </div>
                 </div>
             </aside>
