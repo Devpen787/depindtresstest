@@ -12,20 +12,29 @@ import {
 } from 'recharts';
 import { PeerId } from './PeerToggle';
 
+// Generic data point for dynamic keys
 interface SolvencyDataPoint {
     month: string;
     onocoy: number;
-    geodnet?: number;
-    hivemapper?: number;
-    helium?: number;
+    [key: string]: number | string | undefined;
 }
 
-// Peer colors matching PeerToggle
+// Peer colors matching PeerToggle & HealthMetricsBarChart
 const COLORS: Record<string, string> = {
     onocoy: '#6366f1', // Indigo
-    geodnet: '#f97316', // Orange
-    hivemapper: '#10b981', // Emerald
-    helium: '#a855f7' // Purple
+    // Wireless
+    geodnet_v1: '#f97316', // Orange
+    hivemapper_v1: '#facc15', // Yellow
+    helium_bme_v1: '#22c55e', // Green
+    dimo_v1: '#3b82f6', // Blue
+    xnet_v1: '#ef4444', // Red
+    // Compute
+    adaptive_elastic_v1: '#a855f7', // Purple (Render)
+    akash_v1: '#f43f5e', // Rose
+    aleph_v1: '#06b6d4', // Cyan
+    grass_v1: '#10b981', // Emerald
+    ionet_v1: '#8b5cf6', // Violet
+    nosana_v1: '#ec4899' // Pink
 };
 
 interface SolvencyProjectionChartProps {
@@ -33,57 +42,69 @@ interface SolvencyProjectionChartProps {
     scenarioId: string;
 }
 
+// Helper to generate consistent mock data for all peers
+const getMockData = (base: number, volatility: number) => {
+    return {
+        geodnet_v1: base,
+        hivemapper_v1: base * 0.95,
+        helium_bme_v1: base * 0.9,
+        dimo_v1: base * 0.98,
+        xnet_v1: base * 0.88,
+        adaptive_elastic_v1: base * 1.05,
+        akash_v1: base * 0.92,
+        aleph_v1: base * 0.96,
+        grass_v1: base * 1.1,
+        ionet_v1: base * 1.02,
+        nosana_v1: base * 0.94
+    };
+};
+
 // Mock solvency projection data by scenario (keyed by scenario.id)
 const SCENARIO_DATA: Record<string, SolvencyDataPoint[]> = {
-    // Default/Baseline
     baseline: [
-        { month: 'Now', onocoy: 100, geodnet: 100, hivemapper: 100, helium: 100 },
-        { month: 'M3', onocoy: 102, geodnet: 101, hivemapper: 98, helium: 99 },
-        { month: 'M6', onocoy: 105, geodnet: 102, hivemapper: 97, helium: 98 },
-        { month: 'M9', onocoy: 108, geodnet: 103, hivemapper: 105, helium: 97 },
-        { month: 'M12', onocoy: 112, geodnet: 104, hivemapper: 110, helium: 96 },
-        { month: 'M18', onocoy: 118, geodnet: 106, hivemapper: 115, helium: 94 },
-        { month: 'M24', onocoy: 125, geodnet: 108, hivemapper: 120, helium: 92 }
+        { month: 'Now', onocoy: 100, ...getMockData(100, 0) },
+        { month: 'M3', onocoy: 102, ...getMockData(100, 0.05) },
+        { month: 'M6', onocoy: 105, ...getMockData(98, 0.05) },
+        { month: 'M9', onocoy: 108, ...getMockData(97, 0.05) },
+        { month: 'M12', onocoy: 112, ...getMockData(96, 0.05) },
+        { month: 'M18', onocoy: 118, ...getMockData(94, 0.05) },
+        { month: 'M24', onocoy: 125, ...getMockData(92, 0.05) }
     ],
-    // Liquidity Shock (death_spiral)
     death_spiral: [
-        { month: 'Now', onocoy: 100, geodnet: 100, hivemapper: 100, helium: 100 },
-        { month: 'M3', onocoy: 85, geodnet: 75, hivemapper: 70, helium: 60 },
-        { month: 'M6', onocoy: 80, geodnet: 65, hivemapper: 60, helium: 45 },
-        { month: 'M9', onocoy: 85, geodnet: 60, hivemapper: 55, helium: 40 },
-        { month: 'M12', onocoy: 92, geodnet: 58, hivemapper: 58, helium: 38 },
-        { month: 'M18', onocoy: 100, geodnet: 55, hivemapper: 62, helium: 35 },
-        { month: 'M24', onocoy: 108, geodnet: 52, hivemapper: 65, helium: 30 }
+        { month: 'Now', onocoy: 100, ...getMockData(100, 0) },
+        { month: 'M3', onocoy: 85, ...getMockData(70, 0.1) },
+        { month: 'M6', onocoy: 80, ...getMockData(60, 0.1) },
+        { month: 'M9', onocoy: 85, ...getMockData(50, 0.1) },
+        { month: 'M12', onocoy: 92, ...getMockData(45, 0.1) },
+        { month: 'M18', onocoy: 100, ...getMockData(40, 0.1) },
+        { month: 'M24', onocoy: 108, ...getMockData(35, 0.1) }
     ],
-    // Subsidy Trap (infinite_subsidy)
     infinite_subsidy: [
-        { month: 'Now', onocoy: 100, geodnet: 100, hivemapper: 100, helium: 100 },
-        { month: 'M3', onocoy: 95, geodnet: 92, hivemapper: 88, helium: 85 },
-        { month: 'M6', onocoy: 88, geodnet: 85, hivemapper: 80, helium: 75 },
-        { month: 'M9', onocoy: 82, geodnet: 78, hivemapper: 72, helium: 65 },
-        { month: 'M12', onocoy: 78, geodnet: 72, hivemapper: 68, helium: 58 },
-        { month: 'M18', onocoy: 70, geodnet: 65, hivemapper: 60, helium: 50 },
-        { month: 'M24', onocoy: 65, geodnet: 58, hivemapper: 55, helium: 42 }
+        { month: 'Now', onocoy: 100, ...getMockData(100, 0) },
+        { month: 'M3', onocoy: 95, ...getMockData(90, 0.05) },
+        { month: 'M6', onocoy: 88, ...getMockData(80, 0.05) },
+        { month: 'M9', onocoy: 82, ...getMockData(70, 0.05) },
+        { month: 'M12', onocoy: 78, ...getMockData(65, 0.05) },
+        { month: 'M18', onocoy: 70, ...getMockData(55, 0.05) },
+        { month: 'M24', onocoy: 65, ...getMockData(45, 0.05) }
     ],
-    // Vampire Attack (vampire_attack)
     vampire_attack: [
-        { month: 'Now', onocoy: 100, geodnet: 100, hivemapper: 100, helium: 100 },
-        { month: 'M3', onocoy: 98, geodnet: 95, hivemapper: 90, helium: 85 },
-        { month: 'M6', onocoy: 97, geodnet: 90, hivemapper: 85, helium: 70 },
-        { month: 'M9', onocoy: 98, geodnet: 88, hivemapper: 82, helium: 65 },
-        { month: 'M12', onocoy: 100, geodnet: 85, hivemapper: 80, helium: 60 },
-        { month: 'M18', onocoy: 104, geodnet: 83, hivemapper: 85, helium: 55 },
-        { month: 'M24', onocoy: 108, geodnet: 80, hivemapper: 88, helium: 50 }
+        { month: 'Now', onocoy: 100, ...getMockData(100, 0) },
+        { month: 'M3', onocoy: 98, ...getMockData(92, 0.05) },
+        { month: 'M6', onocoy: 97, ...getMockData(88, 0.05) },
+        { month: 'M9', onocoy: 98, ...getMockData(85, 0.05) },
+        { month: 'M12', onocoy: 100, ...getMockData(82, 0.05) },
+        { month: 'M18', onocoy: 104, ...getMockData(80, 0.05) },
+        { month: 'M24', onocoy: 108, ...getMockData(78, 0.05) }
     ],
-    // Aggressive Expansion (growth_shock)
     growth_shock: [
-        { month: 'Now', onocoy: 100, geodnet: 100, hivemapper: 100, helium: 100 },
-        { month: 'M3', onocoy: 120, geodnet: 115, hivemapper: 110, helium: 105 },
-        { month: 'M6', onocoy: 140, geodnet: 130, hivemapper: 125, helium: 110 },
-        { month: 'M9', onocoy: 160, geodnet: 145, hivemapper: 150, helium: 115 },
-        { month: 'M12', onocoy: 180, geodnet: 160, hivemapper: 180, helium: 120 },
-        { month: 'M18', onocoy: 210, geodnet: 180, hivemapper: 200, helium: 130 },
-        { month: 'M24', onocoy: 250, geodnet: 200, hivemapper: 220, helium: 140 }
+        { month: 'Now', onocoy: 100, ...getMockData(100, 0) },
+        { month: 'M3', onocoy: 120, ...getMockData(110, 0.1) },
+        { month: 'M6', onocoy: 140, ...getMockData(120, 0.1) },
+        { month: 'M9', onocoy: 160, ...getMockData(135, 0.1) },
+        { month: 'M12', onocoy: 180, ...getMockData(150, 0.1) },
+        { month: 'M18', onocoy: 210, ...getMockData(175, 0.1) },
+        { month: 'M24', onocoy: 250, ...getMockData(200, 0.1) }
     ]
 };
 
@@ -190,39 +211,22 @@ export const SolvencyProjectionChart: React.FC<SolvencyProjectionChartProps> = (
                         />
 
                         {/* Dynamic peer lines */}
-                        {selectedPeers.includes('geodnet') && (
+                        {selectedPeers.map(peerId => (
                             <Line
+                                key={peerId}
                                 type="monotone"
-                                dataKey="geodnet"
-                                name="Geodnet"
-                                stroke={COLORS.geodnet}
+                                dataKey={peerId}
+                                name={peerId.replace('_v1', '').replace('_bme', '').replace('adaptive_elastic', 'Render').toUpperCase()}
+                                stroke={COLORS[peerId] || '#94a3b8'}
                                 strokeWidth={2}
-                                dot={{ fill: COLORS.geodnet, r: 2 }}
+                                dot={{ fill: COLORS[peerId] || '#94a3b8', r: 2 }}
                             />
-                        )}
-                        {selectedPeers.includes('hivemapper') && (
-                            <Line
-                                type="monotone"
-                                dataKey="hivemapper"
-                                name="Hivemapper"
-                                stroke={COLORS.hivemapper}
-                                strokeWidth={2}
-                                dot={{ fill: COLORS.hivemapper, r: 2 }}
-                            />
-                        )}
-                        {selectedPeers.includes('helium') && (
-                            <Line
-                                type="monotone"
-                                dataKey="helium"
-                                name="Helium"
-                                stroke={COLORS.helium}
-                                strokeWidth={2}
-                                dot={{ fill: COLORS.helium, r: 2 }}
-                            />
-                        )}
+                        ))}
                     </LineChart>
                 </ResponsiveContainer>
             </div>
         </div>
     );
 };
+
+

@@ -61,6 +61,8 @@ export const COINGECKO_TOKEN_IDS: Record<string, string> = {
   'hivemapper_v1': 'hivemapper',
   'theta_v1': 'theta-token',
   'geodnet_v1': 'geodnet',
+  'aleph_v1': 'aleph',
+  'xnet_v1': 'xnet-mobile',
 };
 
 // Comprehensive DePIN token database
@@ -194,6 +196,14 @@ export const DEPIN_TOKENS: Record<string, DePINTokenInfo> = {
     coingeckoId: 'arweave',
     description: 'Permanent decentralised storage',
     website: 'https://arweave.org',
+  },
+  'xnet-mobile': {
+    name: 'XNET',
+    symbol: 'XNET',
+    category: 'Wireless',
+    coingeckoId: 'xnet-mobile',
+    description: 'Decentralized mobile network on Solana',
+    website: 'https://xnet.company',
   },
 };
 

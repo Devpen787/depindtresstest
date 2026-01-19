@@ -119,6 +119,20 @@ export const useBenchmarkViewModel = (
         const profile = getProfile(protocolId);
         const chain = onChainData[protocolId];
 
+        // Safe Defaults
+        if (!profile) {
+            return {
+                protocolId,
+                activeNodes: 0,
+                hardwareCost: 0,
+                growthYoY: 0,
+                coverageScore: 0,
+                receiverStandard: 'Unknown',
+                dataSource: 'simulated',
+                sourceRefs: ['Missing Profile']
+            } as any;
+        }
+
         // Calculate CAGR / Growth if possible, else 0
         const results = multiAggregated[protocolId] || [];
         let growthYoY = 0;
@@ -145,13 +159,13 @@ export const useBenchmarkViewModel = (
             protocolId,
             snapshotDate: toSnapshotDate(chain?.lastUpdated),
             activeNodes,
-            hardwareCost: profile?.parameters.hardware_cost.value || 0,
-            hardwareEntryCostMin: profile?.parameters.hardware_cost.value || 0,
-            hardwareEntryCostMax: profile?.parameters.hardware_cost.value || 0,
+            hardwareCost: profile.parameters.hardware_cost.value || 0,
+            hardwareEntryCostMin: profile.parameters.hardware_cost.value || 0,
+            hardwareEntryCostMax: profile.parameters.hardware_cost.value || 0,
             growthYoY,
             // Legacy schema doesn't have weightedCoverage, use capacity as proxy for now or 0
             coverageScore: last?.capacity?.mean || 0,
-            receiverStandard: profile?.metadata.model_type === 'location_based' ? 'Location-Based' : 'Fungible Resource',
+            receiverStandard: profile.metadata.model_type === 'location_based' ? 'Location-Based' : 'Fungible Resource',
             dataSource: useLiveNodes ? 'live' : 'simulated',
             sourceRefs: useLiveNodes
                 ? [sourceLabel, 'On-Chain']
@@ -163,30 +177,42 @@ export const useBenchmarkViewModel = (
     const getDemandSide = (protocolId: string): DemandSideBenchmark => {
         const last = getLastPoint(protocolId);
         const profile = getProfile(protocolId);
+        const live = liveData[protocolId]; // CoinGecko
         const chain = onChainData[protocolId];
 
-        // Revenue derived from demand_served * servicePrice
-        const revenuePerWeek = ((last?.demand_served?.mean || 0) * (last?.servicePrice?.mean || 0));
+        if (!profile) return {
+            protocolId,
+            annualizedRevenue: 0,
+            burnRateWeekly: 0,
+            pricingModel: 'Unknown',
+            dataSource: 'simulated',
+            sourceRefs: []
+        };
 
-        // Live Override for Burn
+        // Revenue: Use Live/OnChain if available, else projected annualized
+        const useLiveRev = chain && chain.revenueUSD7d > 0;
+        const revenueAnnual = useLiveRev
+            ? chain.revenueUSD7d * 52
+            : ((last?.demand_served?.mean || 0) * (last?.servicePrice?.mean || 0)) * 52;
+
         const useLiveBurn = chain && chain.tokenBurned7d > 0;
-        const tokensBurned = useLiveBurn ? chain.tokenBurned7d : (last?.burned?.mean || 0);
+        const burnWeekly = useLiveBurn
+            ? chain.tokenBurned7d
+            : (last?.burned?.mean || 0);
 
-        const sourceLabel = chain?.sourceType === 'snapshot' ? 'Market Snapshot (Q1 2025)' :
-            chain?.sourceType === 'dune' ? 'Dune Analytics' :
-                engineLabel;
+        const sourceLabel = useLiveRev ? (chain?.sourceType === 'snapshot' ? 'Snapshot' : 'Dune') : engineLabel;
+
+        const pricingMechanism = profile.metadata.mechanism || 'Standard';
 
         return {
             protocolId,
-            snapshotDate: toSnapshotDate(chain?.lastUpdated),
-            annualizedRevenue: revenuePerWeek * 52,
-            burnRateWeekly: tokensBurned,
+            snapshotDate: toSnapshotDate(chain?.lastUpdated || live?.lastUpdated),
+            annualizedRevenue: revenueAnnual,
+            burnRateWeekly: burnWeekly,
             burnRatePeriod: 'weekly',
-            pricingModel: profile?.metadata.mechanism || 'Unknown',
-            dataSource: useLiveBurn ? 'live' : 'simulated',
-            sourceRefs: useLiveBurn
-                ? [sourceLabel, 'On-Chain']
-                : [sourceLabel, 'Protocol Attributes']
+            pricingModel: pricingMechanism,
+            dataSource: useLiveRev ? 'mixed' : 'simulated',
+            sourceRefs: [sourceLabel]
         };
     };
 
@@ -194,9 +220,22 @@ export const useBenchmarkViewModel = (
     const getTokenomics = (protocolId: string): TokenomicsBenchmark => {
         const last = getLastPoint(protocolId);
         const profile = getProfile(protocolId);
-        const live = liveData[protocolId];
+        const live = liveData[profile?.metadata.coingeckoId || ''] || liveData[protocolId];
         const chain = onChainData[protocolId];
 
+        if (!profile) return {
+            protocolId,
+            circulatingSupply: 0,
+            maxSupply: 0,
+            emissionSchedule: '0/wk',
+            burnPolicy: 'None',
+            sustainabilityRatio: 0,
+            dataSource: 'simulated',
+            sourceRefs: []
+        };
+
+        // Sustainability Ratio = (Tokens Burned * Price) / (Tokens Minted * Price)
+        // ... simplified to val / val
         const emissionsVal = (last?.minted?.mean || 0) * (last?.price?.mean || 0);
         // Burn value: use Live burn if available * Live price if available
         const burnAmt = chain ? chain.tokenBurned7d : (last?.burned?.mean || 0);
@@ -205,7 +244,7 @@ export const useBenchmarkViewModel = (
 
         const ratio = emissionsVal > 0 ? burnVal / emissionsVal : 0;
 
-        const isHybrid = live || chain;
+        const isHybrid = !!(live || chain);
         const chainSource = chain?.sourceType === 'snapshot' ? 'Snapshot' : 'Dune';
 
         return {
@@ -213,8 +252,8 @@ export const useBenchmarkViewModel = (
             snapshotDate: toSnapshotDate(chain?.lastUpdated || live?.lastUpdated),
             maxSupply: live?.maxSupply || null,
             circulatingSupply: last?.supply?.mean || live?.circulatingSupply || 0,
-            emissionSchedule: `${formatLarge(profile?.parameters.emissions.value || 0)}/wk`,
-            burnPolicy: `${(profile?.parameters.burn_fraction.value || 0) * 100}%`,
+            emissionSchedule: `${formatLarge(profile.parameters.emissions.value || 0)}/wk`,
+            burnPolicy: `${(profile.parameters.burn_fraction.value || 0) * 100}%`,
             sustainabilityRatio: ratio * 100, // Percentage
             dataSource: isHybrid ? 'mixed' : 'simulated',
             sourceRefs: isHybrid

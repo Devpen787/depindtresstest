@@ -8,21 +8,39 @@ export interface PeerGroup {
 
 export const PEER_GROUPS: PeerGroup[] = [
     {
-        id: 'gnss_location',
-        name: 'GNSS & Location-Based',
-        description: 'Physical infrastructure networks focused on location verification, mapping, and navigation.',
+        id: 'location_wireless',
+        name: 'Wireless & Location',
+        description: 'Physical networks for coverage (Wireless/GNSS) and mapping.',
         inclusionCriteria: [
-            'Hardware-based participation',
-            'Location-dependent utility',
-            'Tokenized incentives',
-            'Burn-and-mint or similar tokenomics'
+            'Target: Location-based utility',
+            'Hardware: Custom sensors/radios',
+            'Model: Burn-and-Mint Equilibrium'
         ],
         members: [
             'ono_v3_calibrated', // Primary
-            'geodnet_v1',        // Direct Competitor
-            'hivemapper_v1',     // Mapping / Location
-            'helium_bme_v1',     // Wireless / Location
-            'dimo_v1'            // Vehicle Data / Location
+            'geodnet_v1',        // GNSS
+            'helium_bme_v1',     // Wireless
+            'xnet_v1',           // Wireless (Mobile)
+            'hivemapper_v1',     // Mapping
+            'dimo_v1'            // Vehicle
+        ]
+    },
+    {
+        id: 'compute_ai',
+        name: 'Compute & AI',
+        description: 'Decentralized compute resources for AI training, inference, and cloud services.',
+        inclusionCriteria: [
+            'Target: Fungible compute/storage',
+            'Hardware: GPUs/CPUs',
+            'Model: Marketplace or Work Rewards'
+        ],
+        members: [
+            'adaptive_elastic_v1', // Render
+            'ionet_v1',            // io.net
+            'nosana_v1',           // Nosana
+            'grass_v1',            // Grass
+            'aleph_v1',            // Aleph.im
+            'akash_v1'             // Akash
         ]
     }
 ];

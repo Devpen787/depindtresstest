@@ -13,11 +13,22 @@ import {
 import { PeerId } from './PeerToggle';
 
 // Peer colors matching PeerToggle
+// Peer colors matching PeerToggle
 const COLORS: Record<string, string> = {
     onocoy: '#6366f1', // Indigo
-    geodnet: '#f97316', // Orange
-    hivemapper: '#10b981', // Emerald
-    helium: '#a855f7' // Purple
+    // Wireless
+    geodnet_v1: '#f97316', // Orange
+    hivemapper_v1: '#facc15', // Yellow
+    helium_bme_v1: '#22c55e', // Green
+    dimo_v1: '#3b82f6', // Blue
+    xnet_v1: '#ef4444', // Red
+    // Compute
+    adaptive_elastic_v1: '#a855f7', // Purple (Render)
+    akash_v1: '#f43f5e', // Rose
+    aleph_v1: '#06b6d4', // Cyan
+    grass_v1: '#10b981', // Emerald
+    ionet_v1: '#8b5cf6', // Violet
+    nosana_v1: '#ec4899' // Pink
 };
 
 interface HealthMetricsBarChartProps {

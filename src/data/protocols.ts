@@ -328,25 +328,81 @@ export const PROTOCOL_PROFILES: ProtocolProfileV1[] = [
             model_type: "location_based",
             source: "CoinGecko + Geodnet Docs",
             coingeckoId: "geodnet",
-            chain: "solana" // Migrating from Polygon to Solana
+            chain: "solana"
         },
         parameters: {
-            // 1B total, ~440M circulating
             supply: { value: 440_000_000, unit: "tokens" },
-            // 35% to miners over time, halving annually. ~24-48 GEOD/day per miner
-            // ~10K active miners * 36 GEOD/day avg = 360K/day = 2.5M/week
             emissions: { value: 2_500_000, unit: "tokens/week" },
-            burn_fraction: { value: 0.80, unit: "decimal" }, // 80% revenue burn
+            burn_fraction: { value: 0.80, unit: "decimal" },
             adjustment_lag: { value: 0, unit: "weeks" },
             demand_regime: { value: "growth", unit: "category" },
             provider_economics: {
-                // Triple-band GNSS station: $50-100/month = ~$15-25/week
                 opex_weekly: { value: 20.00, unit: "usd/week" },
                 churn_threshold: { value: 8.00, unit: "usd/week_profit" }
             },
             initial_active_providers: { value: 10000, unit: "gnss_stations" },
             initial_price: { value: 0.15, unit: "usd" },
             hardware_cost: { value: 500, unit: "usd" }
+        }
+    },
+    {
+        version: "1.2",
+        metadata: {
+            id: "aleph_v1",
+            name: "Aleph.im",
+            mechanism: "Staking + Utility Sink",
+            notes: "Decentralized cloud computing. 500M max supply. Staking-based security.",
+            model_type: "fungible_resource",
+            source: "CoinGecko + Aleph Docs",
+            coingeckoId: "aleph",
+            chain: "solana"
+        },
+        parameters: {
+            // ~244M circulating, 500M max
+            supply: { value: 244_000_000, unit: "tokens" },
+            // Estimate ~1.5M/mo = ~375k/week
+            emissions: { value: 375_000, unit: "tokens/week" },
+            burn_fraction: { value: 0.10, unit: "decimal" }, // Low direct burn, mostly utility sink
+            adjustment_lag: { value: 2, unit: "weeks" },
+            demand_regime: { value: "growth", unit: "category" },
+            provider_economics: {
+                // Low hardware cost (staking focused)
+                opex_weekly: { value: 15.00, unit: "usd/week" },
+                churn_threshold: { value: 5.00, unit: "usd/week_profit" }
+            },
+            initial_active_providers: { value: 500, unit: "core_nodes" },
+            initial_price: { value: 0.30, unit: "usd" },
+            hardware_cost: { value: 0, unit: "usd" } // Staking only
+        }
+    },
+    {
+        version: "1.2",
+        metadata: {
+            id: "xnet_v1",
+            name: "XNET",
+            mechanism: "Wireless + Revitilization Burn",
+            notes: "Mobile network on Solana. 80% revenue buy-and-burn. 2.5M/epoch emissions.",
+            model_type: "location_based",
+            source: "CoinGecko + XNET Docs",
+            coingeckoId: "xnet-mobile",
+            chain: "solana"
+        },
+        parameters: {
+            // ~1.3B max, circulating estimate
+            supply: { value: 137_000_000, unit: "tokens" },
+            // 2.5M per 2-week epoch = 1.25M/week
+            emissions: { value: 1_250_000, unit: "tokens/week" },
+            burn_fraction: { value: 0.80, unit: "decimal" }, // 80% revenue burn
+            adjustment_lag: { value: 0, unit: "weeks" },
+            demand_regime: { value: "growth", unit: "category" },
+            provider_economics: {
+                // Outdoor APs ~$1200, indoor ~$800. Avg $900.
+                opex_weekly: { value: 10.00, unit: "usd/week" },
+                churn_threshold: { value: 5.00, unit: "usd/week_profit" }
+            },
+            initial_active_providers: { value: 1200, unit: "radios" },
+            initial_price: { value: 0.04, unit: "usd" },
+            hardware_cost: { value: 900, unit: "usd" }
         }
     }
 ];

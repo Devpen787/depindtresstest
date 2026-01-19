@@ -14,18 +14,26 @@ import { PeerId } from './PeerToggle';
 // Peer colors matching PeerToggle
 const COLORS: Record<string, string> = {
     onocoy: '#6366f1', // Indigo
-    geodnet: '#f97316', // Orange
-    hivemapper: '#10b981', // Emerald
-    helium: '#a855f7' // Purple
+    // Wireless
+    geodnet_v1: '#f97316', // Orange
+    hivemapper_v1: '#facc15', // Yellow
+    helium_bme_v1: '#22c55e', // Green
+    dimo_v1: '#3b82f6', // Blue
+    xnet_v1: '#ef4444', // Red
+    // Compute
+    adaptive_elastic_v1: '#a855f7', // Purple (Render)
+    akash_v1: '#f43f5e', // Rose
+    aleph_v1: '#06b6d4', // Cyan
+    grass_v1: '#10b981', // Emerald
+    ionet_v1: '#8b5cf6', // Violet
+    nosana_v1: '#ec4899' // Pink
 };
 
 interface RadarDataPoint {
     dimension: string;
     onocoy: number;
-    geodnet: number;
-    hivemapper: number;
-    helium: number;
     fullMark: number;
+    [key: string]: number | string;
 }
 
 interface StrategicEdgeRadarProps {
@@ -33,47 +41,59 @@ interface StrategicEdgeRadarProps {
     scenarioId: string;
 }
 
+// Helper for consistent mock radar data
+const getRadarMock = (base: number) => {
+    return {
+        geodnet_v1: base * 0.95,
+        hivemapper_v1: base * 0.9,
+        helium_bme_v1: base * 0.85,
+        dimo_v1: base * 0.92,
+        xnet_v1: base * 0.88,
+        adaptive_elastic_v1: base * 1.05,
+        akash_v1: base * 0.9,
+        aleph_v1: base * 0.94,
+        grass_v1: base * 1.1,
+        ionet_v1: base * 0.98,
+        nosana_v1: base * 0.92,
+    };
+};
+
 // Mock radar data by scenario (keyed by scenario.id)
 const SCENARIO_RADAR: Record<string, RadarDataPoint[]> = {
-    // Default/Baseline
     baseline: [
-        { dimension: 'Tech Stack', onocoy: 90, geodnet: 85, hivemapper: 80, helium: 75, fullMark: 100 },
-        { dimension: 'Solvency', onocoy: 85, geodnet: 80, hivemapper: 70, helium: 95, fullMark: 100 },
-        { dimension: 'Coverage', onocoy: 75, geodnet: 80, hivemapper: 85, helium: 95, fullMark: 100 },
-        { dimension: 'Community', onocoy: 80, geodnet: 75, hivemapper: 90, helium: 60, fullMark: 100 },
-        { dimension: 'Ease of Use', onocoy: 85, geodnet: 80, hivemapper: 75, helium: 60, fullMark: 100 }
+        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(85) },
+        { dimension: 'Solvency', onocoy: 85, fullMark: 100, ...getRadarMock(80) },
+        { dimension: 'Coverage', onocoy: 75, fullMark: 100, ...getRadarMock(90) },
+        { dimension: 'Community', onocoy: 80, fullMark: 100, ...getRadarMock(75) },
+        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(70) }
     ],
-    // Liquidity Shock (death_spiral)
     death_spiral: [
-        { dimension: 'Tech Stack', onocoy: 90, geodnet: 85, hivemapper: 70, helium: 65, fullMark: 100 },
-        { dimension: 'Solvency', onocoy: 80, geodnet: 70, hivemapper: 60, helium: 50, fullMark: 100 },
-        { dimension: 'Coverage', onocoy: 70, geodnet: 75, hivemapper: 75, helium: 85, fullMark: 100 },
-        { dimension: 'Community', onocoy: 75, geodnet: 70, hivemapper: 80, helium: 55, fullMark: 100 },
-        { dimension: 'Ease of Use', onocoy: 80, geodnet: 70, hivemapper: 70, helium: 60, fullMark: 100 }
+        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(70) },
+        { dimension: 'Solvency', onocoy: 80, fullMark: 100, ...getRadarMock(60) },
+        { dimension: 'Coverage', onocoy: 70, fullMark: 100, ...getRadarMock(75) },
+        { dimension: 'Community', onocoy: 75, fullMark: 100, ...getRadarMock(65) },
+        { dimension: 'Ease of Use', onocoy: 80, fullMark: 100, ...getRadarMock(70) }
     ],
-    // Subsidy Trap (infinite_subsidy)
     infinite_subsidy: [
-        { dimension: 'Tech Stack', onocoy: 90, geodnet: 85, hivemapper: 80, helium: 75, fullMark: 100 },
-        { dimension: 'Solvency', onocoy: 65, geodnet: 60, hivemapper: 55, helium: 50, fullMark: 100 },
-        { dimension: 'Coverage', onocoy: 75, geodnet: 80, hivemapper: 85, helium: 90, fullMark: 100 },
-        { dimension: 'Community', onocoy: 70, geodnet: 65, hivemapper: 80, helium: 55, fullMark: 100 },
-        { dimension: 'Ease of Use', onocoy: 85, geodnet: 80, hivemapper: 75, helium: 60, fullMark: 100 }
+        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(80) },
+        { dimension: 'Solvency', onocoy: 65, fullMark: 100, ...getRadarMock(60) },
+        { dimension: 'Coverage', onocoy: 75, fullMark: 100, ...getRadarMock(85) },
+        { dimension: 'Community', onocoy: 70, fullMark: 100, ...getRadarMock(70) },
+        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(75) }
     ],
-    // Vampire Attack (vampire_attack)
     vampire_attack: [
-        { dimension: 'Tech Stack', onocoy: 90, geodnet: 85, hivemapper: 80, helium: 75, fullMark: 100 },
-        { dimension: 'Solvency', onocoy: 88, geodnet: 75, hivemapper: 65, helium: 60, fullMark: 100 },
-        { dimension: 'Coverage', onocoy: 70, geodnet: 75, hivemapper: 80, helium: 90, fullMark: 100 },
-        { dimension: 'Community', onocoy: 75, geodnet: 70, hivemapper: 85, helium: 50, fullMark: 100 },
-        { dimension: 'Ease of Use', onocoy: 85, geodnet: 80, hivemapper: 75, helium: 60, fullMark: 100 }
+        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(80) },
+        { dimension: 'Solvency', onocoy: 88, fullMark: 100, ...getRadarMock(75) },
+        { dimension: 'Coverage', onocoy: 70, fullMark: 100, ...getRadarMock(85) },
+        { dimension: 'Community', onocoy: 75, fullMark: 100, ...getRadarMock(60) },
+        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(80) }
     ],
-    // Aggressive Expansion (growth_shock)
     growth_shock: [
-        { dimension: 'Tech Stack', onocoy: 90, geodnet: 85, hivemapper: 80, helium: 75, fullMark: 100 },
-        { dimension: 'Solvency', onocoy: 95, geodnet: 90, hivemapper: 85, helium: 98, fullMark: 100 },
-        { dimension: 'Coverage', onocoy: 80, geodnet: 85, hivemapper: 90, helium: 98, fullMark: 100 },
-        { dimension: 'Community', onocoy: 90, geodnet: 85, hivemapper: 95, helium: 70, fullMark: 100 },
-        { dimension: 'Ease of Use', onocoy: 85, geodnet: 80, hivemapper: 75, helium: 60, fullMark: 100 }
+        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(90) },
+        { dimension: 'Solvency', onocoy: 95, fullMark: 100, ...getRadarMock(95) },
+        { dimension: 'Coverage', onocoy: 80, fullMark: 100, ...getRadarMock(90) },
+        { dimension: 'Community', onocoy: 90, fullMark: 100, ...getRadarMock(85) },
+        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(80) }
     ]
 };
 
@@ -128,39 +148,22 @@ export const StrategicEdgeRadar: React.FC<StrategicEdgeRadarProps> = ({
                         />
 
                         {/* Dynamic peer radars */}
-                        {selectedPeers.includes('geodnet') && (
+                        {selectedPeers.map(peerId => (
                             <Radar
-                                name="Geodnet"
-                                dataKey="geodnet"
-                                stroke={COLORS.geodnet}
-                                fill={COLORS.geodnet}
+                                key={peerId}
+                                name={peerId.replace('_v1', '').replace('_bme', '').replace('adaptive_elastic', 'Render').toUpperCase()}
+                                dataKey={peerId}
+                                stroke={COLORS[peerId] || '#94a3b8'}
+                                fill={COLORS[peerId] || '#94a3b8'}
                                 fillOpacity={0.15}
                                 strokeWidth={1.5}
                             />
-                        )}
-                        {selectedPeers.includes('hivemapper') && (
-                            <Radar
-                                name="Hivemapper"
-                                dataKey="hivemapper"
-                                stroke={COLORS.hivemapper}
-                                fill={COLORS.hivemapper}
-                                fillOpacity={0.15}
-                                strokeWidth={1.5}
-                            />
-                        )}
-                        {selectedPeers.includes('helium') && (
-                            <Radar
-                                name="Helium"
-                                dataKey="helium"
-                                stroke={COLORS.helium}
-                                fill={COLORS.helium}
-                                fillOpacity={0.15}
-                                strokeWidth={1.5}
-                            />
-                        )}
+                        ))}
                     </RadarChart>
                 </ResponsiveContainer>
             </div>
         </div>
     );
 };
+
+

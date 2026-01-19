@@ -17,7 +17,7 @@ import { BenchmarkExportButton } from './BenchmarkExportButton';
 import { SolvencyProjectionChart } from './SolvencyProjectionChart';
 import { HealthMetricsBarChart } from './HealthMetricsBarChart';
 import { StrategicEdgeRadar } from './StrategicEdgeRadar';
-import { BENCHMARK_PEERS } from '../../data/peerGroups';
+import { PEER_GROUPS, BENCHMARK_PEERS } from '../../data/peerGroups';
 import ResearchView from './ResearchView';
 
 interface BenchmarkViewProps {
@@ -34,10 +34,21 @@ interface BenchmarkViewProps {
 }
 
 // Mock data for peer comparison (to be replaced with actual data sources)
-const MOCK_PEER_DATA: Record<PeerId, Record<string, number>> = {
-    geodnet: { payback: 11.5, efficiency: 82, sustain: 1.1, retention: 96.0 },
-    hivemapper: { payback: 8.5, efficiency: 88, sustain: 0.9, retention: 94.5 },
-    helium: { payback: 14.0, efficiency: 65, sustain: 0.8, retention: 92.0 }
+// Mock data for peer comparison (to be replaced with actual data sources)
+const MOCK_PEER_DATA: Record<string, Record<string, number>> = {
+    // Wireless & Location
+    geodnet_v1: { payback: 11.5, efficiency: 82, sustain: 1.1, retention: 96.0 },
+    hivemapper_v1: { payback: 8.5, efficiency: 88, sustain: 0.9, retention: 94.5 },
+    helium_bme_v1: { payback: 14.0, efficiency: 65, sustain: 0.8, retention: 92.0 },
+    dimo_v1: { payback: 10.0, efficiency: 75, sustain: 0.95, retention: 93.0 },
+    xnet_v1: { payback: 16.0, efficiency: 70, sustain: 0.85, retention: 90.0 },
+    // Compute & AI
+    adaptive_elastic_v1: { payback: 9.0, efficiency: 90, sustain: 1.2, retention: 95.0 }, // Render
+    akash_v1: { payback: 12.0, efficiency: 80, sustain: 1.0, retention: 91.0 },
+    aleph_v1: { payback: 11.0, efficiency: 78, sustain: 0.9, retention: 92.0 }, // Estimate
+    grass_v1: { payback: 2.0, efficiency: 95, sustain: 1.5, retention: 98.0 },
+    ionet_v1: { payback: 6.0, efficiency: 85, sustain: 1.1, retention: 89.0 },
+    nosana_v1: { payback: 7.0, efficiency: 88, sustain: 1.05, retention: 90.0 },
 };
 
 export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
@@ -64,8 +75,22 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
     );
 
     // 3. V2 State: Selected Peers & Active Tab
-    const [selectedPeers, setSelectedPeers] = useState<PeerId[]>(['geodnet']);
+    const [activeGroupId, setActiveGroupId] = useState<string>(PEER_GROUPS[0].id);
+    const [selectedPeers, setSelectedPeers] = useState<PeerId[]>(['geodnet_v1']);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'research'>('dashboard');
+
+    // Handle group change: switch group and reset selected peers to defaults
+    const handleGroupChange = useCallback((groupId: string) => {
+        const group = PEER_GROUPS.find(g => g.id === groupId);
+        if (group) {
+            setActiveGroupId(groupId);
+            // Default to first 2 peers in the new group (excluding Onocoy)
+            const defaults = group.members
+                .filter(id => id !== 'ono_v3_calibrated')
+                .slice(0, 2);
+            setSelectedPeers(defaults);
+        }
+    }, []);
 
     const togglePeer = useCallback((peerId: PeerId) => {
         setSelectedPeers(prev =>
@@ -219,7 +244,12 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                 ) : (
                     <>
                         {/* Peer Selector */}
-                        <PeerToggle selectedPeers={selectedPeers} onToggle={togglePeer} />
+                        <PeerToggle
+                            selectedPeers={selectedPeers}
+                            onToggle={togglePeer}
+                            activeGroupId={activeGroupId}
+                            onGroupChange={handleGroupChange}
+                        />
 
                         {!isDataReady && loading ? (
                             <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 text-sm text-slate-400">
