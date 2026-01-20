@@ -56,6 +56,127 @@ export function generateVerdict(
     return { verdict: 'STRONG BUY', reason: 'Resilient under stress conditions', color: 'green' };
 }
 
+const formatPercent = (value: number, digits: number = 1) => {
+    if (!Number.isFinite(value)) return 'N/A';
+    return `${value.toFixed(digits)}%`;
+};
+
+const formatMonths = (value: number) => {
+    if (!Number.isFinite(value)) return 'Never';
+    return `${value.toFixed(1)} mo`;
+};
+
+const pickStatus = (value: number, good: number, warn: number) => {
+    if (!Number.isFinite(value)) return 'Unknown';
+    if (value >= good) return 'Strong';
+    if (value >= warn) return 'Mixed';
+    return 'Weak';
+};
+
+export function generateWrapUpScript(
+    profile: ProtocolProfileV1,
+    results: AggregateResult[],
+    params: SimulationParams,
+    scenario: string = 'Baseline'
+): string {
+    if (!results || results.length === 0) {
+        return `## 6. Wrap-Up Script (5-7 min)\n\nNo simulation data available.`;
+    }
+
+    const last = results[results.length - 1];
+    const first = results[0];
+    const priceChange = first.price.mean > 0
+        ? ((last.price.mean - first.price.mean) / first.price.mean) * 100
+        : 0;
+    const retentionPct = first.providers.mean > 0
+        ? (last.providers.mean / first.providers.mean) * 100
+        : 0;
+    const solvency = last.solvencyScore?.mean || 0;
+    const utilization = last.utilisation?.mean || 0;
+    const providers = last.providers.mean || 0;
+    const weeklyReward = providers > 0 ? (last.minted.mean / providers) * (last.price.mean || 0) : 0;
+    const weeklyProfit = weeklyReward - params.providerCostPerWeek;
+    const paybackMonths = weeklyProfit > 0 ? (params.hardwareCost / weeklyProfit) / 4.33 : Infinity;
+    const treasury = last.treasuryBalance?.mean || 0;
+
+    const strengths: string[] = [];
+    const risks: string[] = [];
+    const actions: string[] = [];
+    const nextTests: string[] = [];
+
+    const solvencyStatus = pickStatus(solvency, 1.0, 0.6);
+    const retentionStatus = pickStatus(retentionPct, 90, 75);
+    const utilizationStatus = pickStatus(utilization, 60, 20);
+    const paybackStatus = Number.isFinite(paybackMonths) && paybackMonths <= 12
+        ? 'Strong'
+        : Number.isFinite(paybackMonths) && paybackMonths <= 24
+            ? 'Mixed'
+            : 'Weak';
+
+    if (solvency >= 1.0) strengths.push('Burn-to-mint is deflationary (solvency >= 1.0).');
+    if (retentionPct >= 90) strengths.push('Provider base is sticky (retention >= 90%).');
+    if (utilization >= 60) strengths.push('Demand is keeping pace with supply (utilization >= 60%).');
+    if (Number.isFinite(paybackMonths) && paybackMonths <= 12) strengths.push('Payback period is competitive (<= 12 months).');
+
+    if (solvency < 0.8) {
+        risks.push('Solvency is below sustainable levels (burn/mint < 0.8).');
+        actions.push('Reduce emissions or increase burn until burn/mint >= 1.0.');
+        nextTests.push('Run the Subsidy Trap scenario to quantify the solvency floor.');
+    }
+    if (utilization < 20) {
+        risks.push('Utilization is weak (demand is not absorbing supply).');
+        actions.push('Pause supply growth and prioritize demand capture or pricing improvements.');
+        nextTests.push('Run Aggressive Expansion to stress the demand lag.');
+    }
+    if (retentionPct < 75) {
+        risks.push('Provider churn is high (retention < 75%).');
+        actions.push('Improve operator ROI with targeted rewards, lockups, or tiered quality incentives.');
+        nextTests.push('Run Vampire Attack to test competitive churn.');
+    }
+    if (Number.isFinite(paybackMonths) && paybackMonths > 24) {
+        risks.push('Payback is too slow (> 24 months).');
+        actions.push('Adjust rewards or offset OPEX to bring payback under 18 months.');
+    }
+    if (priceChange < -50) {
+        risks.push('Price drawdown is severe (> 50% decline).');
+        actions.push('Build liquidity or treasury buffers and stage unlocks to reduce sell pressure.');
+        nextTests.push('Run Liquidity Shock to quantify drawdown resilience.');
+    }
+
+    if (params.revenueStrategy === 'reserve' && treasury <= 0) {
+        risks.push('Treasury reserves are depleted under the reserve strategy.');
+        actions.push('Increase reserve allocation or adjust emissions to rebuild runway.');
+    }
+
+    if (strengths.length === 0) strengths.push('No standout strengths in this run; system is balanced but not dominant.');
+    if (risks.length === 0) risks.push('No critical red flags detected under this scenario.');
+    if (actions.length === 0) actions.push('Maintain current parameters and monitor sensitivity levers.');
+    if (nextTests.length === 0) nextTests.push('Re-run with a longer horizon and higher nSims to tighten confidence bands.');
+
+    return `## 6. Wrap-Up Script (5-7 min)
+
+**Opening (20s)**: "We ran ${profile.metadata.name} through a ${params.T}-week ${scenario} stress test to answer one question: does the system survive without breaking operator incentives?"
+
+**Snapshot (30s)**: Solvency: ${solvency.toFixed(2)} (${solvencyStatus}). Payback: ${formatMonths(paybackMonths)} (${paybackStatus}). Retention: ${formatPercent(retentionPct)} (${retentionStatus}). Utilization: ${formatPercent(utilization)} (${utilizationStatus}). Price change: ${formatPercent(priceChange)}.
+
+**What is working (45s)**:
+- ${strengths.join('\n- ')}
+
+**What is at risk (60s)**:
+- ${risks.join('\n- ')}
+
+**Recommendations (60s)**:
+1. ${actions[0]}
+2. ${actions[1] || actions[0]}
+3. ${actions[2] || actions[0]}
+
+**What to test next (30s)**:
+- ${nextTests.join('\n- ')}
+
+**Close (20s)**: "The key story here is solvency and operator ROI. If we fix the weak links above, the model shows a credible path to resilience."
+`;
+}
+
 /**
  * Generate a full investment memo in Markdown format
  */
@@ -141,6 +262,10 @@ ${verdict.verdict === 'STRONG BUY' ? `1. **Maintain Current Strategy**: The toke
 | Burn Rate | ${(params.burnPct * 100).toFixed(0)}% |
 | Initial Liquidity | $${(params.initialLiquidity / 1e3).toFixed(0)}K |
 | Provider Cost/Week | $${params.providerCostPerWeek} |
+
+---
+
+${generateWrapUpScript(profile, results, params, scenario)}
 
 ---
 

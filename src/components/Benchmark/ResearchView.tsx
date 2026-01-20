@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { useResearchData, ResearchDataPoint, ResearchScenario } from '../../hooks/useResearchData';
 import { FileBarChart, Activity, AlertTriangle, CheckCircle2, MoreHorizontal } from 'lucide-react';
+import { ResilienceScorecard } from './ResilienceScorecard';
+import { LegacyAggregateResult as AggregateResult } from '../../model/legacy/engine';
 
 interface ResearchViewProps {
     scenario: ResearchScenario;
+    simulationResults: AggregateResult[];
+    viewModel: any;
 }
 
-const ResearchView: React.FC<ResearchViewProps> = ({ scenario }) => {
+const ResearchView: React.FC<ResearchViewProps> = ({ scenario, simulationResults, viewModel }) => {
     const { data, loading, error } = useResearchData(scenario);
     const [metric, setMetric] = useState<'price' | 'nodes' | 'revenue'>('price');
 
@@ -60,6 +64,14 @@ const ResearchView: React.FC<ResearchViewProps> = ({ scenario }) => {
 
     return (
         <div className="space-y-6">
+            {/* Resilience Analysis (Empirical) */}
+            <ResilienceScorecard
+                simulationResults={simulationResults}
+                viewModel={viewModel}
+            />
+
+            <div className="border-t border-slate-800 my-6"></div>
+
             {/* Header / Context */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div className="lg:col-span-3 bg-slate-900/50 border border-slate-800 rounded-xl p-6">

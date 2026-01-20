@@ -27,10 +27,10 @@ The application is divided into **5 Primary Views**, each serving a distinct sta
 | View | Purpose | Engine | Best For... |
 | :--- | :--- | :--- | :--- |
 | **1. Simulator (Sandbox)** | **Rapid Prototyping** | Legacy V2 (Vector) | Sketching new ideas, testing parameters instantly, and "What If?" scenarios. |
-| **2. Thesis Dashboard** | **Risk Analysis** | V3 Agent-Based | Stress-testing specific protocols (e.g., ONOCOY, Helium) against rigorous market shocks. |
-| **3. Case Study** | **Auditing & Reporting** | Static / Narrative | Reading curated breakdown reports. Great for explaining *why* a design works to stakeholders. |
-| **4. Explorer** | **Discovery** | Live Data (CoinGecko) | Browsing real-world DePIN projects, checking live prices, and finding protocols to analyze. |
-| **5. Comparison** | **Benchmarking** | V2 Aggregation | Head-to-head "Scorecards" comparing multiple protocols across standardized metrics. |
+| **2. Benchmark** | **Peer Benchmarking** | V2 Aggregation + Live Anchors | Head-to-head scorecards and scenario comparisons. |
+| **3. Thesis Dashboard** | **Risk Analysis** | V3 Agent-Based | Stress-testing specific protocols (e.g., ONOCOY, Helium) against rigorous market shocks. |
+| **4. Diagnostic Audit** | **Engineering Audit** | Rule-Based Diagnostics | Stress signatures, failure modes, and mitigation guidance. |
+| **5. Case Study** | **Auditing & Reporting** | Static / Narrative | Reading curated breakdown reports. Great for explaining *why* a design works to stakeholders. |
   `
   },
   {
@@ -120,6 +120,126 @@ Tests defense mechanisms against competitors.
   `
   },
   {
+    id: 'benchmark',
+    title: '2. Benchmark',
+    icon: '📊',
+    content: `
+*The Benchmark Control Plane. Peer-based comparisons for head-to-head scoring.*
+
+### Tabs
+- **Dashboard**: Metrics cards, peer matrices, radar scores, and sensitivity levers.
+- **Research**: Python Monte Carlo evidence and empirical backtests.
+
+### Key Metrics Cards
+- **Payback Period**: Hardware cost divided by monthly revenue per node.
+- **Coverage Efficiency**: Coverage score normalized to %.
+- **Sustainability Ratio**: 'Burn / Mint' ratio in x.
+- **Retention (Weekly)**: Modeled node retention baseline.
+
+### Core Charts & Panels
+- **Health Metrics Bar Chart**: Onocoy vs peer median across the four core metrics.
+- **Solvency Projection (24 Months)**: Scenario runway with baseline and critical thresholds.
+- **Comparative Matrix**: Head-to-head deltas across standardized metrics.
+- **Strategic Edge Radar**: Tech Stack, Solvency, Coverage, Community, Ease of Use.
+- **Sensitivity Summary**: Ranked sustainability levers by impact.
+- **AI Insights**: Scenario narrative + recommendation.
+- **Export**: CSV download of benchmark metrics.
+
+### Research Panel
+- **Empirical Resilience Scorecard**: Backtest vs historical stress events.
+- **Monte Carlo Cone**: Mean + P05/P95 for Price, Nodes, or Revenue.
+- **Scenario Mapping**: Bear / Neutral / Bull / Hyper based on active parameters.
+  `
+  },
+  {
+    id: 'diagnostic',
+    title: '4. Diagnostic Audit',
+    icon: '🛡️',
+    content: `
+*Engineering audit of structural fragility. Stress responses under fixed assumptions.*
+
+### Inputs (Archetype Controls)
+- **Miner Profile**: Professional vs Mercenary.
+- **Emission Schedule**: Fixed vs Dynamic.
+- **Growth Coordination**: Managed vs Uncoordinated.
+- **Demand Lag**: Low vs High.
+- **Price Shock**: None / Moderate / Severe.
+- **Insider Overhang**: Low vs High.
+
+### Scorecard Metrics
+- **R_BE**: Burn-to-Emission Ratio.
+- **NRR**: Node Retention Rate.
+- **CPV**: CapEx Payback Velocity (months).
+- **LUR**: Liquidity Utilization Rate.
+- **GovScore**: Governance coordination score.
+- **Resilience Score + Verdict**: Robust / Fragile / Zombie / Insolvent.
+
+### Charts & Panels
+- **Signals of Death**: Latent Capacity Degradation, Validation Overhead, Equilibrium Gap, Churn Elasticity.
+- **Subsidy Trap**: Emissions vs burn with LUR indicator.
+- **Density Trap**: ROI decay under uncoordinated growth.
+- **Hex Degradation Map**: Profitable vs Zombie vs Latent nodes.
+- **Strategic Actions**: Recommended engineering interventions.
+  `
+  },
+  {
+    id: 'chart_index',
+    title: 'Chart Index',
+    icon: '🧭',
+    content: `
+### Simulator: Explorer
+- **7d Trend Sparkline**: 7-day price series (CoinGecko sparkline).
+- **Table Columns**: Rank, Protocol, Price, 24h Change, Market Cap, Risk Level, Payback Period, Stress Score.
+
+### Simulator: Comparison
+- **Comparative Metrics Heatmap**: Token Price (End), Inflation (APY), Max Drawdown, Active Nodes (End), Churn Rate, Utilization, Monthly Earnings, Payback Period, Real Rev / Emissions.
+
+### Simulator: Sandbox
+- **Solvency Ratio**: Burn/Mint ratio.
+- **Weekly Retention Rate**: provider retention %.
+- **Urban vs Rural Density**: node counts by cohort.
+- **Payback Period**: months to recoup hardware cost.
+- **Network Coverage Score**: weighted coverage score.
+- **Effective Capacity**: capacity vs demand served.
+- **Geo Coverage View**: total nodes plus rural/urban/balanced distribution.
+- **Quality Distribution**: Pro vs Basic node counts.
+- **Supply Trajectory**: total token supply over time.
+- **Network Utilization**: demand/capacity %.
+- **Scenario Comparison Panel**: Welch t-test on selected metric (mean, p-value, effect size).
+- **Verified Flywheel**: nodes, utilization %, monthly revenue, incentive %.
+
+### Benchmark: Dashboard
+- **Key Metric Cards**: Payback Period, Coverage Efficiency, Sustainability Ratio, Retention (Weekly).
+- **Health Metrics Bar Chart**: normalized Payback, Efficiency, Sustainability, Retention scores.
+- **Solvency Projection**: Solvency Index over time plus runway status.
+- **Comparative Matrix**: Payback, Coverage Efficiency, Sustain Ratio, Retention.
+- **Strategic Edge Radar**: Tech Stack, Solvency, Coverage, Community, Ease of Use.
+- **Sensitivity Summary**: impact score per lever.
+
+### Benchmark: Research
+- **Empirical Resilience Scorecard**: normalized simulation price/nodes vs historical price/nodes.
+- **Monte Carlo Cone**: mean plus P05/P95 for Price, Nodes, or Revenue.
+
+### Thesis
+- **Network Stability**: token price vs active nodes.
+- **Grid Composition**: urban vs rural node counts.
+- **Protocol Health (Reserves)**: treasury value (or burn proxy).
+- **Miner ROI Status**: payback months on a 0-36 month scale.
+
+### Diagnostic
+- **Signals of Death**: Latent Capacity Degradation, Validation Overhead, Equilibrium Gap, Churn Elasticity.
+- **Subsidy Trap**: emissions vs burn plus LUR.
+- **Density Trap**: individual ROI decay.
+- **Hex Degradation Map**: node status mix (profitable/zombie/latent).
+
+### Case Study
+- **Projected Token Value**: coupled vs speculative price paths.
+- **Solvency Matrix**: emissions vs usage grid (solvency score).
+- **Payback Scenarios**: months to ROI.
+- **Resilience Radar**: risk vector scores.
+  `
+  },
+  {
     id: 'terminology',
     title: '16. Terminology Translation',
     icon: '📖',
@@ -157,12 +277,12 @@ This dashboard is not just a simulation; it is a live window into the blockchain
     *   ⚠️ **Unverified**: Relying on self-reported API data.
 
 ### 3. Simulation Data
-*   **Scenario Inputs**: Unlike the Live Explorer, the **Simulator** and **Thesis** tabs use *User-Defined* parameters (Synthetic Data) to allow for "Stress Testing" hypothetical futures.
+*   **Scenario Inputs**: Unlike the Live Explorer, the **Simulator**, **Benchmark**, and **Thesis** tabs use *User-Defined* parameters (Synthetic Data) to allow for "Stress Testing" hypothetical futures.
       `
   },
   {
     id: 'thesis',
-    title: '2. Thesis Dashboard',
+    title: '3. Thesis Dashboard',
     icon: '📉',
     content: `
 *The Stress Test. Interactive risk validation for specific profiles.*
@@ -212,12 +332,12 @@ The **Onocoy Resilience & Stress-Test Engine (ORSTE)** acts as a "flight simulat
 
   {
     id: 'comparison',
-    title: '3. Comparison',
+    title: 'Simulator: Comparison View',
     icon: '📋',
     content: `
-  * The Benchmark.Head - to - head metrics.*
+  * The Simulator's side-by-side comparison view.*
 
-** How to Access **: go to ** Explorer **, check multiple protocols, click "Compare".Or click "Comparison" in the header navigation.
+** How to Access **: In ** Simulator **, select multiple protocols in ** Explorer **, then click "Comparison" in the header navigation.
 
 ** The Scorecard Table Metrics **:
 
@@ -233,10 +353,10 @@ The **Onocoy Resilience & Stress-Test Engine (ORSTE)** acts as a "flight simulat
   },
   {
     id: 'explorer',
-    title: '4. Explorer',
+    title: 'Simulator: Explorer',
     icon: '🔍',
     content: `
-  * The Market.Real - time data.*
+  * The live market browser inside the Simulator.*
 
 - ** Live Data **: Connects to CoinGecko API.
 - ** On - Chain Verify **: Cross - checks supply with Solana RPC(if available).

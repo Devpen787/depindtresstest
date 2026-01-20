@@ -3,6 +3,7 @@ import { ProtocolProfileV1 } from '../data/protocols';
 import { TokenMarketData } from '../services/coingecko';
 import { BENCHMARK_PEERS } from '../data/peerGroups';
 import { ProtocolMetrics } from '../hooks/useProtocolMetrics';
+import { HISTORICAL_EVENTS, HistoricalDataPoint } from '../data/historical_events';
 
 // --- Benchmark Schemas ---
 
@@ -375,10 +376,17 @@ export const useBenchmarkViewModel = (
         return num.toString();
     };
 
+    // 5. Historical Overlay Provider
+    const getHistoricalOverlay = (historicalEventId: string): HistoricalDataPoint[] | null => {
+        const event = HISTORICAL_EVENTS.find(e => e.id === historicalEventId);
+        return event ? event.data : null;
+    };
+
     return {
         getSupplySide,
         getDemandSide,
         getTokenomics,
-        getHeadToHeadMetrics
+        getHeadToHeadMetrics,
+        getHistoricalOverlay
     };
 };

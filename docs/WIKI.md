@@ -8,9 +8,12 @@
 2. [Core Concepts](#core-concepts)
 3. [User Guide](#user-guide)
 4. [Modules Reference](#modules-reference)
-5. [Parameters Reference](#parameters-reference)
-6. [Calculations & Formulas](#calculations--formulas)
-7. [Glossary](#glossary)
+5. [Benchmark Reference](#benchmark-reference)
+6. [Diagnostic Reference](#diagnostic-reference)
+7. [Chart Index](#chart-index)
+8. [Parameters Reference](#parameters-reference)
+9. [Calculations & Formulas](#calculations--formulas)
+10. [Glossary](#glossary)
 
 ---
 
@@ -34,14 +37,17 @@ The DePIN Stress Test Simulator is an interactive dashboard that stress-tests De
 ### Quick Start
 
 1. **Select a Tab**:
+   - **Simulator**: Full sandbox with all controls and sub-views
+   - **Benchmark**: Peer-based scorecards and scenario comparisons
    - **Thesis**: Simplified view with 4 key charts
-   - **Simulator**: Full sandbox with all controls
+   - **Diagnostic**: Engineering audit of structural fragility
+   - **Case Study**: Narrative walkthroughs and curated reports
 
-2. **Choose a Protocol**: Click a profile card in the sidebar
+2. **Choose a Protocol or Peer Set**: Select a profile in the sidebar (Simulator) or a peer group in Benchmark
 
-3. **Adjust Stress Parameters**: Use the sidebar sliders
+3. **Adjust Stress Parameters**: Use the sidebar sliders (Simulator) or the scenario manager (Benchmark)
 
-4. **Click "Run Matrix"**: Watch the simulation play out
+4. **Click "Run Matrix"**: Run the simulation when you're in the Simulator tab
 
 5. **Scroll through Modules**: Each module tests a specific failure mode
 
@@ -100,6 +106,22 @@ Instead of running one scenario, we run 100+ simulations with random variations 
 
 ### Views Explained
 
+#### Simulator View
+The full sandbox with all controls and modules. Three sub-views:
+
+| View | Purpose |
+|------|---------|
+| **Explorer** | Browse and compare protocol profiles |
+| **Comparison** | Side-by-side multi-protocol analysis |
+| **Sandbox** | Deep-dive single-protocol stress testing |
+
+#### Benchmark View
+A peer-based benchmarking console with two tabs:
+- **Dashboard**: Key metrics, peer matrices, radar scores, and sensitivity levers
+- **Research**: Monte Carlo evidence and empirical backtesting overlays
+
+Best for: **Due diligence, head-to-head scoring**
+
 #### Thesis View
 A simplified dashboard focused on the narrative. Contains 4 key charts:
 - The Capitulation Curve
@@ -109,14 +131,16 @@ A simplified dashboard focused on the narrative. Contains 4 key charts:
 
 Best for: **Presentations, thesis defense**
 
-#### Simulator View
-The full sandbox with all controls and modules. Three sub-views:
+#### Diagnostic View
+An engineering audit of structural insolvency. Stress responses are shown under fixed assumptions.
+- Signals of Death scorecard
+- Failure mode charts (Subsidy Trap, Density Trap, Hex Degradation)
+- Strategic action recommendations
 
-| View | Purpose |
-|------|---------|
-| **Explorer** | Browse and compare protocol profiles |
-| **Comparison** | Side-by-side multi-protocol analysis |
-| **Sandbox** | Deep-dive single-protocol stress testing |
+Best for: **Risk audits and protocol engineering**
+
+#### Case Study View
+Curated reports that explain *why* a design works, with narrative structure.
 
 ### Sidebar Controls
 
@@ -164,7 +188,7 @@ Monte Carlo settings:
 | **Settings** | Advanced configuration options |
 | **Export** | Download data as JSON/CSV |
 | **Math Spec** | View all mathematical formulas |
-| **Audit** | Calibration verification panel |
+| **System Wiki** | Open in-app documentation and tutorials |
 | **V1/V2** | Toggle between legacy and new simulation model |
 | **Fetch Live** | Pull real-time token prices from CoinGecko |
 | **DePIN** | Browse all DePIN tokens |
@@ -242,6 +266,118 @@ Monte Carlo settings:
 **Red Flags**:
 - Competitor yield > 100% → Critical threat
 - No reserves + bear market → Price crashes hard
+
+---
+
+## Benchmark Reference
+
+### Dashboard Tab
+
+**Key Metrics Cards**:
+- **Payback Period**: Hardware cost divided by monthly revenue per node
+- **Coverage Efficiency**: Coverage score normalized to %
+- **Sustainability Ratio**: Burn / Mint ratio in x
+- **Retention (Weekly)**: Modeled node retention baseline
+
+**Charts & Panels**:
+- **Health Metrics Bar Chart**: Onocoy vs peer median for the four core metrics
+- **Solvency Projection (24 Months)**: Scenario runway with baseline and critical thresholds
+- **Comparative Matrix**: Head-to-head deltas across standardized metrics
+- **Strategic Edge Radar**: Tech Stack, Solvency, Coverage, Community, Ease of Use
+- **Sensitivity Summary**: Ranked sustainability levers by impact
+- **AI Insights**: Scenario narrative + recommendation
+- **Export Data**: CSV download of benchmark metrics
+
+### Research Tab
+- **Empirical Resilience Scorecard**: Backtest vs historical stress events
+- **Monte Carlo Cone**: Mean + P05/P95 for Price, Nodes, or Revenue
+- **Scenario Mapping**: Bear/Neutral/Bull/Hyper selected from active parameters
+
+### Data Notes
+- Uses simulated outputs; anchored with live and on-chain data when available
+- Scenario pill + engine label shown in the header
+
+---
+
+## Diagnostic Reference
+
+### Inputs (Archetype Controls)
+- **Miner Profile**: Professional vs Mercenary
+- **Emission Schedule**: Fixed vs Dynamic
+- **Growth Coordination**: Managed vs Uncoordinated
+- **Demand Lag**: Low vs High
+- **Price Shock**: None / Moderate / Severe
+- **Insider Overhang**: Low vs High
+
+### Scorecard Metrics
+- **R_BE**: Burn-to-Emission Ratio
+- **NRR**: Node Retention Rate
+- **CPV**: CapEx Payback Velocity (months)
+- **LUR**: Liquidity Utilization Rate
+- **GovScore**: Governance coordination score
+- **Resilience Score** + **Verdict**: Robust / Fragile / Zombie / Insolvent
+
+### Charts & Panels
+- **Signals of Death**: Latent Capacity Degradation, Validation Overhead, Equilibrium Gap, Churn Elasticity
+- **Subsidy Trap**: Emissions vs burn with LUR indicator
+- **Density Trap**: ROI decay under uncoordinated growth
+- **Hex Degradation Map**: Profitable vs Zombie vs Latent nodes
+- **Strategic Actions**: Recommended engineering interventions
+
+---
+
+## Chart Index
+
+### Simulator: Explorer
+- **7d Trend Sparkline**: 7-day price series (CoinGecko sparkline)
+- **Table Columns**: Rank, Protocol, Price, 24h Change, Market Cap, Risk Level, Payback Period, Stress Score
+
+### Simulator: Comparison
+- **Comparative Metrics Heatmap**: Token Price (End), Inflation (APY), Max Drawdown, Active Nodes (End), Churn Rate, Utilization, Monthly Earnings, Payback Period, Real Rev / Emissions
+
+### Simulator: Sandbox
+- **Solvency Ratio**: Burn/Mint ratio
+- **Weekly Retention Rate**: provider retention %
+- **Urban vs Rural Density**: node counts by cohort
+- **Payback Period**: months to recoup hardware cost
+- **Network Coverage Score**: weighted coverage score
+- **Effective Capacity**: capacity vs demand served
+- **Geo Coverage View**: total nodes plus rural/urban/balanced distribution
+- **Quality Distribution**: Pro vs Basic node counts
+- **Supply Trajectory**: total token supply over time
+- **Network Utilization**: demand/capacity %
+- **Scenario Comparison Panel**: Welch t-test on selected metric (mean, p-value, effect size)
+- **Verified Flywheel**: nodes, utilization %, monthly revenue, incentive %
+
+### Benchmark: Dashboard
+- **Key Metric Cards**: Payback Period, Coverage Efficiency, Sustainability Ratio, Retention (Weekly)
+- **Health Metrics Bar Chart**: normalized Payback, Efficiency, Sustainability, Retention scores
+- **Solvency Projection**: Solvency Index over time plus runway status
+- **Comparative Matrix**: Payback, Coverage Efficiency, Sustain Ratio, Retention
+- **Strategic Edge Radar**: Tech Stack, Solvency, Coverage, Community, Ease of Use
+- **Sensitivity Summary**: impact score per lever
+
+### Benchmark: Research
+- **Empirical Resilience Scorecard**: normalized simulation price/nodes vs historical price/nodes
+- **Monte Carlo Cone**: mean plus P05/P95 for Price, Nodes, or Revenue
+
+### Thesis
+- **Network Stability**: token price vs active nodes
+- **Grid Composition**: urban vs rural node counts
+- **Protocol Health (Reserves)**: treasury value (or burn proxy)
+- **Miner ROI Status**: payback months on a 0-36 month scale
+
+### Diagnostic
+- **Signals of Death**: Latent Capacity Degradation, Validation Overhead, Equilibrium Gap, Churn Elasticity
+- **Subsidy Trap**: emissions vs burn plus LUR
+- **Density Trap**: individual ROI decay
+- **Hex Degradation Map**: node status mix (profitable/zombie/latent)
+
+### Case Study
+- **Projected Token Value**: coupled vs speculative price paths
+- **Solvency Matrix**: emissions vs usage grid (solvency score)
+- **Payback Scenarios**: months to ROI
+- **Resilience Radar**: risk vector scores
 
 ---
 
@@ -368,4 +504,4 @@ priceImpact = 1 - (newPoolUsd / newPoolTokens) / currentPrice
 
 ---
 
-*Last updated: 2026-01-10*
+*Last updated: 2026-01-20*

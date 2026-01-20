@@ -12,6 +12,7 @@ import { ExplorerTab } from './src/components/explorer/ExplorerTab';
 import { Settings } from './src/components/Settings';
 import { MethodologyDrawer } from './src/components/MethodologyDrawer';
 import { MethodologySheet } from './src/components/MethodologySheet';
+import { AuditDashboard } from './src/components/Diagnostic/AuditDashboard'; // New Import
 import { HeaderDropdown, DropdownItem, DropdownToggle, DropdownDivider } from './src/components/ui/HeaderDropdown';
 
 // Benchmark View
@@ -37,7 +38,7 @@ const App: React.FC = () => {
   const sim = useSimulationRunner();
 
   // --- UI STATE ---
-  const [activeTab, setActiveTab] = useState<'simulator' | 'thesis' | 'case_study' | 'benchmark'>('simulator');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'thesis' | 'case_study' | 'benchmark' | 'diagnostic'>('simulator');
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     stress: false, competitive: false, scenarios: true, tokenomics: true, advanced: true, providers: true, simulation: true,
@@ -171,14 +172,15 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex p-1 bg-slate-900 rounded-xl border border-slate-800">
-            {['simulator', 'benchmark', 'thesis', 'case_study'].map((tab) => (
+            {['simulator', 'benchmark', 'thesis', 'diagnostic', 'case_study'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab
                   ? tab === 'simulator' ? 'bg-indigo-600 text-white shadow-lg' :
                     tab === 'benchmark' ? 'bg-indigo-600 text-white shadow-lg' :
-                      tab === 'thesis' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-orange-500 text-white shadow-lg'
+                      tab === 'thesis' ? 'bg-emerald-600 text-white shadow-lg' :
+                        tab === 'diagnostic' ? 'bg-rose-600 text-white shadow-lg' : 'bg-orange-500 text-white shadow-lg'
                   : 'text-slate-500 hover:text-slate-300'
                   }`}
               >
@@ -269,6 +271,10 @@ const App: React.FC = () => {
           protocols={PROTOCOL_PROFILES}
           onSelectProtocol={sim.loadProfile}
         />
+      ) : activeTab === 'diagnostic' ? (
+        <div className="flex-1 overflow-y-auto bg-slate-950 custom-scrollbar">
+          <AuditDashboard />
+        </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">
           {sim.viewMode === 'settings' ? (

@@ -240,7 +240,11 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                 </div>
 
                 {activeTab === 'research' ? (
-                    <ResearchView scenario={getResearchScenario()} />
+                    <ResearchView
+                        scenario={getResearchScenario()}
+                        simulationResults={multiAggregated[BENCHMARK_PEERS.primary] || []}
+                        viewModel={viewModel}
+                    />
                 ) : (
                     <>
                         {/* Peer Selector */}
