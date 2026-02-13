@@ -2,6 +2,8 @@ import React from 'react';
 import { ArrowUp, ArrowDown, Activity, BarChart2, ExternalLink, ShieldCheck } from 'lucide-react';
 import { ExplorerProtocol, SortColumn, SortDirection } from './types';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts'; // For sparklines
+import MetricEvidenceBadge from '../ui/MetricEvidenceBadge';
+import { getMetricEvidence } from '../../data/metricEvidence';
 
 interface ExplorerTableProps {
     protocols: ExplorerProtocol[];
@@ -102,37 +104,46 @@ export const ExplorerTable: React.FC<ExplorerTableProps> = ({
                                 </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
-                                {protocol.riskLevel ? (
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${protocol.riskLevel === 'LOW' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                        protocol.riskLevel === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                                            'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                        }`}>
-                                        {protocol.riskLevel}
-                                    </span>
-                                ) : (
-                                    <span className="text-slate-600 font-mono">-</span>
-                                )}
+                                <div className="flex flex-col gap-1">
+                                    {protocol.riskLevel ? (
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider w-fit ${protocol.riskLevel === 'LOW' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                            protocol.riskLevel === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                                'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                            }`}>
+                                            {protocol.riskLevel}
+                                        </span>
+                                    ) : (
+                                        <span className="text-slate-600 font-mono">-</span>
+                                    )}
+                                    <MetricEvidenceBadge evidence={getMetricEvidence('explorer_risk_level')} compact />
+                                </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
-                                {protocol.paybackPeriod ? (
-                                    <span className="text-sm font-mono text-slate-300">
-                                        {protocol.paybackPeriod} Mo
-                                    </span>
-                                ) : (
-                                    <span className="text-slate-600 font-mono">-</span>
-                                )}
+                                <div className="flex flex-col gap-1">
+                                    {protocol.paybackPeriod ? (
+                                        <span className="text-sm font-mono text-slate-300">
+                                            {protocol.paybackPeriod} Mo
+                                        </span>
+                                    ) : (
+                                        <span className="text-slate-600 font-mono">-</span>
+                                    )}
+                                    <MetricEvidenceBadge evidence={getMetricEvidence('explorer_payback_period')} compact />
+                                </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
-                                {protocol.stressScore ? (
-                                    <div className={`font-mono font-bold ${protocol.stressScore >= 7 ? 'text-emerald-400' :
-                                        protocol.stressScore >= 4 ? 'text-amber-400' :
-                                            'text-rose-400'
-                                        }`}>
-                                        {protocol.stressScore.toFixed(1)}
-                                    </div>
-                                ) : (
-                                    <span className="text-slate-600 font-mono">-</span>
-                                )}
+                                <div className="flex flex-col gap-1">
+                                    {protocol.stressScore ? (
+                                        <div className={`font-mono font-bold ${protocol.stressScore >= 7 ? 'text-emerald-400' :
+                                            protocol.stressScore >= 4 ? 'text-amber-400' :
+                                                'text-rose-400'
+                                            }`}>
+                                            {protocol.stressScore.toFixed(1)}
+                                        </div>
+                                    ) : (
+                                        <span className="text-slate-600 font-mono">-</span>
+                                    )}
+                                    <MetricEvidenceBadge evidence={getMetricEvidence('explorer_stress_score')} compact />
+                                </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap h-16 w-32">
                                 {/* Sparkline */}

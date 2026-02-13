@@ -1,5 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
+import { History } from 'lucide-react';
+import { HELIUM_2022_DATA } from '../data/historical/helium_2022';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -32,6 +34,17 @@ import {
 } from 'lucide-react';
 import type { ProtocolProfileV1 } from '../data/protocols';
 import { SCENARIOS, SimulationScenario } from '../data/scenarios';
+import { DecisionPromptCard } from './ui/DecisionPromptCard';
+import { ChartContextHeader } from './ui/ChartContextHeader';
+import MetricEvidenceBadge from './ui/MetricEvidenceBadge';
+import MetricEvidenceLegend from './ui/MetricEvidenceLegend';
+import { getMetricEvidence } from '../data/metricEvidence';
+import {
+    GUARDRAIL_BAND_LABELS,
+    GUARDRAIL_COPY,
+    PAYBACK_GUARDRAILS,
+    RETENTION_GUARDRAILS
+} from '../constants/guardrails';
 
 // Register ChartJS components
 ChartJS.register(
@@ -72,6 +85,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
 
     // Scenario State
     const [selectedScenarioId, setSelectedScenarioId] = useState<string>('baseline');
+    const [showHistoricalOverlay, setShowHistoricalOverlay] = useState(false); // [NEW] Helium Overlay Toggle
 
     const handleScenarioChange = (scenarioId: string) => {
         setSelectedScenarioId(scenarioId);
@@ -264,28 +278,81 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
     };
 
     // Chart 1: Stability (Price vs Total Nodes)
-    const stabilityData = {
-        labels: simulationData.months,
-        datasets: [
-            {
-                label: 'Token Price ($)',
-                data: simulationData.priceData,
-                borderColor: '#6366f1', // Indigo-500
-                backgroundColor: '#6366f1',
-                yAxisID: 'y',
-                tension: 0.4
-            },
-            {
-                label: 'Total Active Nodes',
-                data: simulationData.nodeData,
-                borderColor: '#cbd5e1',
-                backgroundColor: '#cbd5e1',
-                yAxisID: 'y1',
-                tension: 0.4,
-                borderDash: [5, 5]
-            }
-        ]
-    };
+    const stabilityData = useMemo(() => {
+        if (showHistoricalOverlay) {
+            // NORMALIZED MODE (Index 100)
+            const startPrice = simulationData.priceData[0] || 1;
+            const startNodes = simulationData.nodeData[0] || 1;
+
+            const simPriceIndex = simulationData.priceData.map(p => (p / startPrice) * 100);
+            const simNodeIndex = simulationData.nodeData.map(n => (n / startNodes) * 100);
+
+            return {
+                labels: simulationData.months,
+                datasets: [
+                    {
+                        label: 'Sim Price (Index)',
+                        data: simPriceIndex,
+                        borderColor: '#6366f1',
+                        backgroundColor: '#6366f1',
+                        yAxisID: 'y',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Sim Nodes (Index)',
+                        data: simNodeIndex,
+                        borderColor: '#cbd5e1',
+                        backgroundColor: '#cbd5e1',
+                        yAxisID: 'y', // Same axis for index comparison
+                        tension: 0.4,
+                        borderDash: [5, 5]
+                    },
+                    {
+                        label: 'Helium \'22 Price',
+                        data: HELIUM_2022_DATA.priceIndex.slice(0, 12), // Align to 12 months
+                        borderColor: 'rgba(239, 68, 68, 0.5)', // Red (Crash)
+                        borderDash: [2, 2],
+                        pointRadius: 0,
+                        borderWidth: 2,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Helium \'22 Nodes',
+                        data: HELIUM_2022_DATA.nodeCountIndex.slice(0, 12),
+                        borderColor: 'rgba(16, 185, 129, 0.5)', // Green (Growth)
+                        borderDash: [2, 2],
+                        pointRadius: 0,
+                        borderWidth: 2,
+                        yAxisID: 'y'
+                    }
+                ]
+            };
+        } else {
+            // STANDARD MODE
+            return {
+                labels: simulationData.months,
+                datasets: [
+                    {
+                        label: 'Token Price ($)',
+                        data: simulationData.priceData,
+                        borderColor: '#6366f1',
+                        backgroundColor: '#6366f1',
+                        yAxisID: 'y',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Total Active Nodes',
+                        data: simulationData.nodeData,
+                        borderColor: '#cbd5e1',
+                        backgroundColor: '#cbd5e1',
+                        yAxisID: 'y1',
+                        tension: 0.4,
+                        borderDash: [5, 5]
+                    }
+                ]
+            };
+        }
+    }, [simulationData, showHistoricalOverlay]);
 
     // Chart 2: Network Composition (Urban vs Rural) - RESTORED
     const compositionData = {
@@ -323,6 +390,19 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
             borderWidth: 1
         }]
     };
+
+    const thesisStatus = useMemo(() => {
+        const solvencyHealthy = revenueStrategy === 'reserve'
+            ? simulationData.finalReserve > 0
+            : simulationData.finalPayback <= PAYBACK_GUARDRAILS.healthyMaxMonths;
+        const retentionHealthy = simulationData.retentionRate >= RETENTION_GUARDRAILS.thesisMinPct;
+        const paybackHealthy = simulationData.finalPayback <= PAYBACK_GUARDRAILS.watchlistMaxMonths;
+        const healthyCount = [solvencyHealthy, retentionHealthy, paybackHealthy].filter(Boolean).length;
+
+        if (healthyCount <= 1) return { tone: 'critical' as const, label: GUARDRAIL_BAND_LABELS.intervention, detail: 'Multiple resilience guardrails are off-target' };
+        if (healthyCount === 2) return { tone: 'caution' as const, label: GUARDRAIL_BAND_LABELS.watchlist, detail: 'One resilience guardrail needs action' };
+        return { tone: 'healthy' as const, label: GUARDRAIL_BAND_LABELS.healthy, detail: 'Resilience guardrails are inside target ranges' };
+    }, [revenueStrategy, simulationData.finalReserve, simulationData.finalPayback, simulationData.retentionRate]);
 
     const sidebarProtocols = protocols || [];
 
@@ -430,6 +510,10 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                                 DePIN Risk Engine <span className="text-slate-500 font-normal">| {activeProfile ? activeProfile.metadata.name : 'Onocoy'} Thesis</span>
                             </h1>
                             <p className="text-xs text-slate-400">Stress-Testing Tokenomics against "Vampire Attacks" & Market Crashes</p>
+                            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-[10px] text-slate-300">
+                                <Info size={12} className="text-cyan-400" />
+                                Simplified 12-month thesis model (illustrative, not a market forecast)
+                            </div>
                         </div>
                         <div className="hidden md:flex gap-4 text-xs font-mono text-slate-500">
                             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> System Online</span>
@@ -439,18 +523,44 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
 
                     <div className="w-full h-px bg-slate-800" />
 
+                    <DecisionPromptCard
+                        title="Thesis Storyline"
+                        tone={thesisStatus.tone}
+                        statusLabel={thesisStatus.label}
+                        statusDetail={thesisStatus.detail}
+                        provenance={`Scenario: ${selectedScenarioId} • Strategy: ${revenueStrategy} • Emissions: ${emissionType}`}
+                        decisions={[
+                            'Should emissions remain fixed or switch to KPI-based adaptation?',
+                            'Should value accrue through burn or through reserve runway?',
+                            'Is current CapEx level still compatible with survivable payback under stress?'
+                        ]}
+                        questions={[
+                            `If retention falls below ${RETENTION_GUARDRAILS.thesisMinPct}%, which lever restores it with least downside?`,
+                            `Does final payback (${simulationData.finalPayback.toFixed(1)}m) justify current miner participation risk?`,
+                            'What parameter change would most improve resilience without relying on bullish markets?'
+                        ]}
+                    />
+
+                    <MetricEvidenceLegend />
+
                     {/* KPI Summary Cards */}
                     <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-500/50">
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Network Solvency</div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Network Solvency</div>
+                                <MetricEvidenceBadge evidence={getMetricEvidence('thesis_network_solvency')} compact />
+                            </div>
                             <div className="text-2xl font-bold text-white">{simulationData.solvencyText}</div>
                             <div className={`text-xs mt-1 ${revenueStrategy === 'reserve' ? 'text-emerald-400' : 'text-slate-500'}`}>
                                 {revenueStrategy === 'reserve' ? 'Runway Remaining' : 'No Reserves (Burn Mode)'}
                             </div>
                         </div>
                         <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-500/50">
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Miner Retention</div>
-                            <div className={`text-2xl font-bold ${simulationData.retentionRate < 70 ? 'text-red-500' : 'text-white'}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Miner Retention</div>
+                                <MetricEvidenceBadge evidence={getMetricEvidence('thesis_miner_retention')} compact />
+                            </div>
+                            <div className={`text-2xl font-bold ${simulationData.retentionRate < RETENTION_GUARDRAILS.thesisMinPct ? 'text-red-500' : 'text-white'}`}>
                                 {simulationData.retentionRate}%
                             </div>
                             <div className="text-xs text-slate-400 mt-1">Hardware Active</div>
@@ -582,14 +692,32 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
 
                         {/* Visualization Column */}
                         <div className="lg:col-span-8 space-y-6">
+                            <ChartContextHeader
+                                title="How To Read Thesis Charts"
+                                what="These charts show how price, nodes, composition, and runway evolve under one selected stress scenario."
+                                why="Outputs are generated from the simplified monthly loop with scenario shock inputs, emission mode, revenue strategy, and CapEx assumptions."
+                                reference={GUARDRAIL_COPY.thesisChartReference}
+                                nextQuestion="Which lever changes the slope most: stress severity, competitor yield, emission mode, or revenue strategy?"
+                            />
 
                             {/* Chart 1: Stability */}
                             <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
                                 <div className="flex justify-between items-start mb-4">
-                                    <h3 className="text-lg font-bold text-white">Network Stability (Aggregate)</h3>
-                                    <div className="flex items-center gap-4 text-xs">
-                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-indigo-500 rounded-sm"></span> Price</div>
-                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-400 rounded-sm"></span> Total Nodes</div>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-lg font-bold text-white">Network Stability (Aggregate)</h3>
+                                        <MetricEvidenceBadge evidence={getMetricEvidence('historical_overlay_reference')} compact />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={() => setShowHistoricalOverlay(!showHistoricalOverlay)}
+                                            className={`text-xs font-bold px-3 py-1 rounded-full border transition-all flex items-center gap-2 ${showHistoricalOverlay
+                                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/50'
+                                                : 'bg-slate-700 text-slate-400 border-transparent hover:bg-slate-600'
+                                                }`}
+                                        >
+                                            <History size={12} />
+                                            {showHistoricalOverlay ? 'vs Helium Crash (Normalized)' : 'Compare vs History'}
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="h-[200px]">

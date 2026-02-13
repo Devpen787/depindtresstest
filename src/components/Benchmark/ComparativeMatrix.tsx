@@ -1,27 +1,54 @@
 import React from 'react';
 import { Download } from 'lucide-react';
 import { PeerId } from './PeerToggle';
+import MetricEvidenceBadge from '../ui/MetricEvidenceBadge';
+import { getMetricEvidence } from '../../data/metricEvidence';
 
 interface MetricRow {
     id: string;
     label: string;
     inverse: boolean; // Lower is better?
     unit?: string;
+    evidenceId?: string;
 }
 
 const METRICS: MetricRow[] = [
-    { id: 'payback', label: 'Payback (Mo)', inverse: true },
-    { id: 'efficiency', label: 'Coverage Eff.', inverse: false, unit: '%' },
-    { id: 'sustain', label: 'Sustain Ratio', inverse: false, unit: 'x' },
-    { id: 'retention', label: 'Retention %', inverse: false, unit: '%' }
+    { id: 'payback', label: 'Payback (Mo)', inverse: true, evidenceId: 'benchmark_payback' },
+    { id: 'efficiency', label: 'Coverage Eff.', inverse: false, unit: '%', evidenceId: 'benchmark_efficiency' },
+    { id: 'sustain', label: 'Sustain Ratio', inverse: false, unit: 'x', evidenceId: 'benchmark_sustain' },
+    { id: 'retention', label: 'Weekly Retention %', inverse: false, unit: '%', evidenceId: 'benchmark_retention' }
 ];
 
 // Peer display config
-const PEER_COLORS: Record<PeerId, string> = {
-    geodnet: 'text-orange-400',
-    hivemapper: 'text-emerald-400',
-    helium: 'text-purple-400'
+const PEER_COLORS: Record<string, string> = {
+    geodnet_v1: 'text-orange-400',
+    hivemapper_v1: 'text-yellow-400',
+    helium_bme_v1: 'text-emerald-400',
+    dimo_v1: 'text-blue-400',
+    xnet_v1: 'text-red-400',
+    adaptive_elastic_v1: 'text-purple-400',
+    akash_v1: 'text-rose-400',
+    aleph_v1: 'text-cyan-400',
+    grass_v1: 'text-emerald-400',
+    ionet_v1: 'text-indigo-400',
+    nosana_v1: 'text-pink-400'
 };
+
+const PEER_LABELS: Record<string, string> = {
+    geodnet_v1: 'Geodnet',
+    hivemapper_v1: 'Hivemapper',
+    helium_bme_v1: 'Helium',
+    dimo_v1: 'DIMO',
+    xnet_v1: 'XNET',
+    adaptive_elastic_v1: 'Render',
+    akash_v1: 'Akash',
+    aleph_v1: 'Aleph.im',
+    grass_v1: 'Grass',
+    ionet_v1: 'io.net',
+    nosana_v1: 'Nosana'
+};
+
+const getPeerLabel = (peerId: string) => PEER_LABELS[peerId] || peerId;
 
 interface ComparativeMatrixProps {
     onocoyData: Record<string, number>;
@@ -83,9 +110,9 @@ export const ComparativeMatrix: React.FC<ComparativeMatrixProps> = ({
                             {selectedPeers.map(peer => (
                                 <th
                                     key={peer}
-                                    className={`px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider ${PEER_COLORS[peer]}`}
+                                    className={`px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider ${PEER_COLORS[peer] || 'text-slate-400'}`}
                                 >
-                                    {peer.charAt(0).toUpperCase() + peer.slice(1)}
+                                    {getPeerLabel(peer)}
                                 </th>
                             ))}
                         </tr>
@@ -97,7 +124,10 @@ export const ComparativeMatrix: React.FC<ComparativeMatrixProps> = ({
                             return (
                                 <tr key={metric.id} className="hover:bg-slate-800/30 transition-colors">
                                     <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-slate-300">
-                                        {metric.label}
+                                        <div className="flex items-center gap-2">
+                                            <span>{metric.label}</span>
+                                            <MetricEvidenceBadge evidence={metric.evidenceId ? getMetricEvidence(metric.evidenceId) : undefined} compact />
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-bold text-white bg-indigo-500/5 border-x border-indigo-500/10">
                                         {formatValue(onocoyVal, metric.unit)}

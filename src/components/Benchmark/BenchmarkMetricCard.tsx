@@ -1,5 +1,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { MetricEvidence } from '../../data/metricEvidence';
+import MetricEvidenceBadge from '../ui/MetricEvidenceBadge';
 
 interface BenchmarkMetricCardProps {
     label: string;
@@ -8,6 +10,7 @@ interface BenchmarkMetricCardProps {
     delta: number;
     deltaType: 'better' | 'worse' | 'parity';
     inverse?: boolean; // For metrics where lower is better (e.g., Payback)
+    evidence?: MetricEvidence;
 }
 
 export const BenchmarkMetricCard: React.FC<BenchmarkMetricCardProps> = ({
@@ -16,7 +19,8 @@ export const BenchmarkMetricCard: React.FC<BenchmarkMetricCardProps> = ({
     unit = '',
     delta,
     deltaType,
-    inverse = false
+    inverse = false,
+    evidence
 }) => {
     // Determine color and icon based on delta type
     const getStatusStyles = () => {
@@ -56,9 +60,12 @@ export const BenchmarkMetricCard: React.FC<BenchmarkMetricCardProps> = ({
             <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-bl-full -mr-2 -mt-2" />
 
             {/* Label */}
-            <dt className="text-xs font-medium text-slate-400 relative z-10">
-                {label}
-            </dt>
+            <div className="flex items-center justify-between gap-2 relative z-10">
+                <dt className="text-xs font-medium text-slate-400">
+                    {label}
+                </dt>
+                <MetricEvidenceBadge evidence={evidence} compact />
+            </div>
 
             {/* Value */}
             <dd className="mt-2 text-3xl font-bold text-white relative z-10">

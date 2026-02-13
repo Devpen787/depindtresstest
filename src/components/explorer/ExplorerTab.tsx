@@ -9,6 +9,7 @@ import { ProtocolProfileV1 } from '../../data/protocols';
 
 import { SolanaService, OnChainData } from '../../services/solana';
 import { NetworkStatus } from '../../model/solana';
+import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 
 interface ExplorerTabProps {
     onAnalyze: (protocolId: string) => void;
@@ -238,6 +239,10 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({ onAnalyze, onCompare, 
                             {cat}
                         </button>
                     ))}
+                </div>
+
+                <div className="mt-4">
+                    <MetricEvidenceLegend />
                 </div>
             </div>
 

@@ -18,6 +18,27 @@ import { SolvencyProjectionChart } from './SolvencyProjectionChart';
 import { HealthMetricsBarChart } from './HealthMetricsBarChart';
 import { StrategicEdgeRadar } from './StrategicEdgeRadar';
 import { PEER_GROUPS, BENCHMARK_PEERS } from '../../data/peerGroups';
+import { DecisionPromptCard } from '../ui/DecisionPromptCard';
+import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
+import { getMetricEvidence, withExtractionTimestamp } from '../../data/metricEvidence';
+import {
+    GUARDRAIL_BAND_LABELS,
+    PAYBACK_GUARDRAILS,
+    RETENTION_GUARDRAILS,
+    SUSTAINABILITY_GUARDRAILS
+} from '../../constants/guardrails';
+import {
+    benchmarkClamp,
+    calculateDemandCoveragePct,
+    calculateEfficiencyScore,
+    calculatePaybackMonths,
+    calculateRetentionFallback,
+    calculateSmoothedSolvencyIndex,
+    calculateWeeklyRetentionEstimate,
+    normalizePaybackMonths,
+    normalizeSustainabilityRatio,
+    toPaybackScore
+} from '../../audit/benchmarkViewMath';
 import ResearchView from './ResearchView';
 
 interface BenchmarkViewProps {
@@ -33,22 +54,31 @@ interface BenchmarkViewProps {
     activeScenarioId?: string | null;  // From Scenario Library
 }
 
-// Mock data for peer comparison (to be replaced with actual data sources)
-// Mock data for peer comparison (to be replaced with actual data sources)
-const MOCK_PEER_DATA: Record<string, Record<string, number>> = {
-    // Wireless & Location
-    geodnet_v1: { payback: 11.5, efficiency: 82, sustain: 1.1, retention: 96.0 },
-    hivemapper_v1: { payback: 8.5, efficiency: 88, sustain: 0.9, retention: 94.5 },
-    helium_bme_v1: { payback: 14.0, efficiency: 65, sustain: 0.8, retention: 92.0 },
-    dimo_v1: { payback: 10.0, efficiency: 75, sustain: 0.95, retention: 93.0 },
-    xnet_v1: { payback: 16.0, efficiency: 70, sustain: 0.85, retention: 90.0 },
-    // Compute & AI
-    adaptive_elastic_v1: { payback: 9.0, efficiency: 90, sustain: 1.2, retention: 95.0 }, // Render
-    akash_v1: { payback: 12.0, efficiency: 80, sustain: 1.0, retention: 91.0 },
-    aleph_v1: { payback: 11.0, efficiency: 78, sustain: 0.9, retention: 92.0 }, // Estimate
-    grass_v1: { payback: 2.0, efficiency: 95, sustain: 1.5, retention: 98.0 },
-    ionet_v1: { payback: 6.0, efficiency: 85, sustain: 1.1, retention: 89.0 },
-    nosana_v1: { payback: 7.0, efficiency: 88, sustain: 1.05, retention: 90.0 },
+interface ProtocolBenchmarkMetrics {
+    payback: number;
+    efficiency: number;
+    sustain: number;
+    retention: number;
+}
+
+interface SolvencyProjectionPoint {
+    week: number;
+    label: string;
+    onocoy: number;
+    [key: string]: number | string;
+}
+
+interface StrategicRadarPoint {
+    dimension: string;
+    onocoy: number;
+    fullMark: number;
+    [key: string]: number | string;
+}
+
+const ALL_BENCHMARK_PROTOCOL_IDS = Array.from(new Set(PEER_GROUPS.flatMap(group => group.members)));
+
+const getUtilizationMean = (point?: AggregateResult | null): number => {
+    return point?.utilization?.mean ?? (point as any)?.utilisation?.mean ?? 0;
 };
 
 export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
@@ -86,7 +116,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
             setActiveGroupId(groupId);
             // Default to first 2 peers in the new group (excluding Onocoy)
             const defaults = group.members
-                .filter(id => id !== 'ono_v3_calibrated')
+                .filter(id => id !== BENCHMARK_PEERS.primary)
                 .slice(0, 2);
             setSelectedPeers(defaults);
         }
@@ -100,60 +130,91 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
         );
     }, []);
 
-    // 4. Derive Onocoy Metrics (from simulation)
-    const onocoyData = useMemo(() => {
-        const p1 = BENCHMARK_PEERS.primary;
-        const s1 = viewModel.getSupplySide(p1);
-        const d1 = viewModel.getDemandSide(p1);
-        const t1 = viewModel.getTokenomics(p1);
+    // 4. Derive benchmark metrics for each protocol from simulation/live sources.
+    const peerMetrics = useMemo<Record<string, ProtocolBenchmarkMetrics>>(() => {
+        const out: Record<string, ProtocolBenchmarkMetrics> = {};
 
-        // 1. Payback Period = Hardware Cost / (Daily Revenue * 30)
-        // Annual Revenue is total for network. Rev per node = Annual / Nodes
-        const revPerNodeAnnual = s1.activeNodes > 0 ? d1.annualizedRevenue / s1.activeNodes : 0;
-        const revPerNodeMonthly = revPerNodeAnnual / 12;
-        const payback = (revPerNodeMonthly > 0 && s1.hardwareCost > 0)
-            ? s1.hardwareCost / revPerNodeMonthly
-            : 0;
+        ALL_BENCHMARK_PROTOCOL_IDS.forEach(protocolId => {
+            const supply = viewModel.getSupplySide(protocolId);
+            const demand = viewModel.getDemandSide(protocolId);
+            const tokenomics = viewModel.getTokenomics(protocolId);
+            const series = multiAggregated[protocolId] || [];
+            const lastPoint = series.length > 0 ? series[series.length - 1] : null;
+            const previousPoint = series.length > 1 ? series[series.length - 2] : null;
 
-        // 2. Efficiency (Coverage Score as proxy)
-        const efficiency = s1.coverageScore || 0; // Already normalized 0-100 in simulation? No, usually raw.
-        // Assuming coverageScore is roughly 0-1 (e.g. 0.85) -> 85%
-        // If it's raw, we might need to normalize. Let's assume % for now or clamp.
-        const effPct = Math.min(100, Math.max(0, efficiency * 100));
+            const rawPaybackMonths = calculatePaybackMonths(
+                supply.hardwareCost,
+                demand.annualizedRevenue,
+                supply.activeNodes
+            );
 
-        // 3. Sustainability (Burn / Mint)
-        const sustain = t1.sustainabilityRatio / 100; // converted from % to ratio (e.g. 120% -> 1.2x)
+            const providersSeries = series
+                .map(point => point.providers?.mean ?? 0)
+                .filter(v => Number.isFinite(v) && v > 0);
+            const finalProviders = providersSeries.length > 0
+                ? providersSeries[providersSeries.length - 1]
+                : supply.activeNodes;
+            const peakProviders = providersSeries.length > 0
+                ? Math.max(...providersSeries)
+                : Math.max(1, supply.activeNodes);
+            const retentionFallback = calculateRetentionFallback(finalProviders, peakProviders);
 
-        // 4. Retention (Weekly)
-        // Hard to derive exact retention from aggregate active nodes without individual churn data.
-        // But we can infer net retention or use a fixed high value if simulation assumes growing/sticky.
-        // Improving: Use `growthYoY` to infer health? No, specific Retention is better.
-        // Let's use the inverse of the churn parameter if available, or 98% base.
-        // Actually, let's look at `activeNodes` trend.
-        // For now, mapping to a high "simulated" retention as the engine churn is event-based.
-        const retention = 98.5; // Keeping this static as engine doesn't output distinct churn rate per week yet
+            const demandNow = lastPoint?.demand?.mean || 0;
+            const demandServedNow = lastPoint?.demand_served?.mean || 0;
+            const demandCoverage = calculateDemandCoveragePct(demandNow, demandServedNow);
+            const utilization = benchmarkClamp(getUtilizationMean(lastPoint), 0, 100);
+            const previousUtilization = previousPoint
+                ? benchmarkClamp(getUtilizationMean(previousPoint), 0, 100)
+                : undefined;
+            const efficiencyScore = calculateEfficiencyScore(utilization, demandCoverage, previousUtilization);
 
-        return {
-            payback: Number.isFinite(payback) ? payback : 0,
-            efficiency: Number.isFinite(effPct) ? effPct : 0,
-            sustain: Number.isFinite(sustain) ? sustain : 0,
-            retention: 98.5 // Placeholder for now until engine exports Churn Rate
-        };
-    }, [viewModel]);
-
-    // 5. Calculate Peer Median
-    const peerMedian = useMemo(() => {
-        if (selectedPeers.length === 0) {
-            return { payback: 12, efficiency: 78, sustain: 0.9, retention: 94 };
-        }
-        const metrics = ['payback', 'efficiency', 'sustain', 'retention'];
-        const result: Record<string, number> = {};
-        metrics.forEach(m => {
-            const values = selectedPeers.map(p => MOCK_PEER_DATA[p][m]);
-            result[m] = values.reduce((a, b) => a + b, 0) / values.length;
+            out[protocolId] = {
+                payback: normalizePaybackMonths(rawPaybackMonths),
+                efficiency: efficiencyScore,
+                sustain: normalizeSustainabilityRatio(tokenomics.sustainabilityRatio),
+                retention: calculateWeeklyRetentionEstimate(
+                    series.map(point => ({
+                        providers: point.providers?.mean ?? 0,
+                        churn: point.churnCount?.mean ?? 0
+                    })),
+                    retentionFallback
+                )
+            };
         });
+
+        return out;
+    }, [viewModel, multiAggregated]);
+
+    const onocoyData = useMemo<ProtocolBenchmarkMetrics>(() => {
+        return peerMetrics[BENCHMARK_PEERS.primary] || {
+            payback: 60,
+            efficiency: 0,
+            sustain: 0,
+            retention: 0
+        };
+    }, [peerMetrics]);
+
+    // 5. Calculate peer mean for selected cohort.
+    const peerMedian = useMemo<ProtocolBenchmarkMetrics>(() => {
+        if (selectedPeers.length === 0) {
+            return onocoyData;
+        }
+
+        const metricKeys: Array<keyof ProtocolBenchmarkMetrics> = ['payback', 'efficiency', 'sustain', 'retention'];
+        const result = { payback: 0, efficiency: 0, sustain: 0, retention: 0 };
+
+        metricKeys.forEach(metric => {
+            const values = selectedPeers
+                .map(peerId => peerMetrics[peerId]?.[metric])
+                .filter((value): value is number => Number.isFinite(value));
+
+            result[metric] = values.length > 0
+                ? values.reduce((sum, value) => sum + value, 0) / values.length
+                : onocoyData[metric];
+        });
+
         return result;
-    }, [selectedPeers]);
+    }, [selectedPeers, peerMetrics, onocoyData]);
 
     // 6. Derive deltas
     const deltas = useMemo(() => ({
@@ -163,7 +224,102 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
         retention: onocoyData.retention - peerMedian.retention
     }), [onocoyData, peerMedian]);
 
-    // 7. Scenario identification - prefer activeScenarioId prop, fallback to params inference
+    // 7. Solvency projection chart from simulation output (index = solvency ratio * 100).
+    const solvencyProjectionData = useMemo<SolvencyProjectionPoint[]>(() => {
+        const protocolIds = [BENCHMARK_PEERS.primary, ...selectedPeers];
+        const primarySeries = multiAggregated[BENCHMARK_PEERS.primary] || [];
+
+        if (primarySeries.length === 0) {
+            return [];
+        }
+
+        const maxLength = Math.max(
+            ...protocolIds.map(id => (multiAggregated[id] || []).length),
+            primarySeries.length
+        );
+
+        const sampledIndexSet = new Set<number>();
+        for (let idx = 0; idx < maxLength; idx += 4) sampledIndexSet.add(idx);
+        sampledIndexSet.add(maxLength - 1);
+
+        const sampleIndexes = Array.from(sampledIndexSet).sort((a, b) => a - b);
+
+        return sampleIndexes.map(idx => {
+            const point: SolvencyProjectionPoint = {
+                week: idx + 1,
+                label: idx === 0 ? 'Now' : `W${idx + 1}`,
+                onocoy: 0
+            };
+
+            protocolIds.forEach(protocolId => {
+                const series = multiAggregated[protocolId] || [];
+                if (series.length === 0) {
+                    if (protocolId !== BENCHMARK_PEERS.primary) point[protocolId] = 0;
+                    return;
+                }
+
+                const safeIndex = Math.min(idx, series.length - 1);
+                const solvencySeries = series.map(item => item?.solvencyScore?.mean || 0);
+                const value = calculateSmoothedSolvencyIndex(solvencySeries, safeIndex);
+
+                if (protocolId === BENCHMARK_PEERS.primary) {
+                    point.onocoy = value;
+                } else {
+                    point[protocolId] = value;
+                }
+            });
+
+            return point;
+        });
+    }, [multiAggregated, selectedPeers]);
+
+    // 8. Strategic radar from derived metrics and simulation output.
+    const strategicEdgeData = useMemo<StrategicRadarPoint[]>(() => {
+        const protocolIds = [BENCHMARK_PEERS.primary, ...selectedPeers];
+
+        const scoresByProtocol: Record<string, Record<string, number>> = {};
+        protocolIds.forEach(protocolId => {
+            const series = multiAggregated[protocolId] || [];
+            const last = series.length > 0 ? series[series.length - 1] : null;
+            const benchmark = peerMetrics[protocolId] || { payback: 60, efficiency: 0, sustain: 0, retention: 0 };
+
+            const demand = last?.demand?.mean || 0;
+            const demandServed = last?.demand_served?.mean || 0;
+            const demandCoverage = calculateDemandCoveragePct(demand, demandServed);
+
+            scoresByProtocol[protocolId] = {
+                roi: toPaybackScore(benchmark.payback),
+                solvency: benchmarkClamp((last?.solvencyScore?.mean || 0) * 100, 0, 100),
+                utilization: benchmarkClamp(getUtilizationMean(last), 0, 100),
+                retention: benchmarkClamp(benchmark.retention, 0, 100),
+                coverage: benchmarkClamp(demandCoverage, 0, 100)
+            };
+        });
+
+        const dimensions: Array<{ key: string; label: string }> = [
+            { key: 'roi', label: 'Provider ROI' },
+            { key: 'solvency', label: 'Solvency' },
+            { key: 'utilization', label: 'Utilization' },
+            { key: 'retention', label: 'Retention' },
+            { key: 'coverage', label: 'Demand Coverage' }
+        ];
+
+        return dimensions.map(({ key, label }) => {
+            const point: StrategicRadarPoint = {
+                dimension: label,
+                onocoy: scoresByProtocol[BENCHMARK_PEERS.primary]?.[key] || 0,
+                fullMark: 100
+            };
+
+            selectedPeers.forEach(peerId => {
+                point[peerId] = scoresByProtocol[peerId]?.[key] || 0;
+            });
+
+            return point;
+        });
+    }, [multiAggregated, peerMetrics, selectedPeers]);
+
+    // 9. Scenario identification - prefer activeScenarioId prop, fallback to params inference
     const scenarioId = useMemo(() => {
         if (activeScenarioId) return activeScenarioId; // Use actual scenario ID from library
         // Fallback inference for when no scenario is selected
@@ -187,11 +343,28 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
 
     const aiInsights = useMemo(() => generateInsights(scenarioId, onocoyData, peerMedian), [scenarioId, onocoyData, peerMedian]);
 
-    const isDataReady = Object.keys(multiAggregated).length > 0;
+    const isDataReady = (multiAggregated[BENCHMARK_PEERS.primary] || []).length > 0;
     const lastUpdatedIso = liveData[primaryId]?.lastUpdated || onChainData[primaryId]?.lastUpdated;
     const lastUpdated = lastUpdatedIso ? new Date(lastUpdatedIso) : undefined;
 
     const headToHeadMetrics = viewModel.getHeadToHeadMetrics();
+    const benchmarkEvidence = useMemo(() => ({
+        payback: withExtractionTimestamp(getMetricEvidence('benchmark_payback'), lastUpdatedIso),
+        efficiency: withExtractionTimestamp(getMetricEvidence('benchmark_efficiency'), lastUpdatedIso),
+        sustain: withExtractionTimestamp(getMetricEvidence('benchmark_sustain'), lastUpdatedIso),
+        retention: withExtractionTimestamp(getMetricEvidence('benchmark_retention'), lastUpdatedIso),
+    }), [lastUpdatedIso]);
+
+    const benchmarkStatus = useMemo(() => {
+        const paybackHealthy = onocoyData.payback <= PAYBACK_GUARDRAILS.healthyMaxMonths;
+        const sustainHealthy = onocoyData.sustain >= SUSTAINABILITY_GUARDRAILS.benchmarkMinRatio;
+        const retentionHealthy = onocoyData.retention >= RETENTION_GUARDRAILS.benchmarkMinPct;
+        const healthySignals = [paybackHealthy, sustainHealthy, retentionHealthy].filter(Boolean).length;
+
+        if (healthySignals <= 1) return { tone: 'critical' as const, label: GUARDRAIL_BAND_LABELS.intervention, detail: 'Multiple core guardrails are below target' };
+        if (healthySignals === 2) return { tone: 'caution' as const, label: GUARDRAIL_BAND_LABELS.watchlist, detail: 'One core guardrail is below target' };
+        return { tone: 'healthy' as const, label: GUARDRAIL_BAND_LABELS.healthy, detail: 'Core guardrails are inside target ranges' };
+    }, [onocoyData]);
 
     if (!activeProfile) return <div>Loading Profile...</div>;
 
@@ -247,6 +420,8 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                     />
                 ) : (
                     <>
+                        <MetricEvidenceLegend />
+
                         {/* Peer Selector */}
                         <PeerToggle
                             selectedPeers={selectedPeers}
@@ -270,6 +445,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                                         delta={deltas.payback}
                                         deltaType={deltas.payback < 0 ? 'better' : 'worse'}
                                         inverse={true}
+                                        evidence={benchmarkEvidence.payback}
                                     />
                                     <BenchmarkMetricCard
                                         label="Coverage Efficiency"
@@ -277,6 +453,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                                         unit="%"
                                         delta={deltas.efficiency}
                                         deltaType={deltas.efficiency > 0 ? 'better' : 'worse'}
+                                        evidence={benchmarkEvidence.efficiency}
                                     />
                                     <BenchmarkMetricCard
                                         label="Sustainability Ratio"
@@ -284,26 +461,46 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                                         unit="x"
                                         delta={deltas.sustain}
                                         deltaType={Math.abs(deltas.sustain) < 0.1 ? 'parity' : deltas.sustain > 0 ? 'better' : 'worse'}
+                                        evidence={benchmarkEvidence.sustain}
                                     />
                                     <BenchmarkMetricCard
-                                        label="Retention (Weekly)"
+                                        label="Retention (Est. Weekly)"
                                         value={onocoyData.retention.toFixed(1)}
                                         unit="%"
                                         delta={deltas.retention}
                                         deltaType={deltas.retention > 0 ? 'better' : 'worse'}
+                                        evidence={benchmarkEvidence.retention}
                                     />
                                 </div>
+
+                                <DecisionPromptCard
+                                    title="Benchmark Storyline"
+                                    tone={benchmarkStatus.tone}
+                                    statusLabel={benchmarkStatus.label}
+                                    statusDetail={benchmarkStatus.detail}
+                                    provenance={`Scenario: ${scenarioName} • Cohort: Onocoy vs ${selectedPeers.length} selected peers`}
+                                    decisions={[
+                                        `Should we optimize for faster payback (<${PAYBACK_GUARDRAILS.healthyMaxMonths} months) or higher long-run sustainability?`,
+                                        'Which peer gap matters most this quarter: efficiency, retention, or solvency trend?',
+                                        'Is current emission/burn policy sufficient under this scenario?'
+                                    ]}
+                                    questions={[
+                                        'If retention drops 3-5 points, which lever restores it without harming sustainability?',
+                                        'Are gains coming from real demand coverage or from temporary emissions support?',
+                                        'What guardrail breach should trigger a scenario re-run and governance review?'
+                                    ]}
+                                />
 
                                 {/* Charts Row */}
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                     <HealthMetricsBarChart
                                         selectedPeers={selectedPeers}
                                         onocoyData={onocoyData}
-                                        peerData={MOCK_PEER_DATA}
+                                        peerData={peerMetrics}
                                     />
                                     <SolvencyProjectionChart
+                                        data={solvencyProjectionData}
                                         selectedPeers={selectedPeers}
-                                        scenarioId={scenarioId}
                                     />
                                 </div>
 
@@ -313,7 +510,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                                     <div className="xl:col-span-2">
                                         <ComparativeMatrix
                                             onocoyData={onocoyData}
-                                            peerData={MOCK_PEER_DATA}
+                                            peerData={peerMetrics}
                                             selectedPeers={selectedPeers}
                                             onExport={() => {
                                                 // Export logic from existing BenchmarkExportButton
@@ -324,7 +521,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                                     {/* Radar (Span 1) */}
                                     <StrategicEdgeRadar
                                         selectedPeers={selectedPeers}
-                                        scenarioId={scenarioId}
+                                        data={strategicEdgeData}
                                     />
                                 </div>
 

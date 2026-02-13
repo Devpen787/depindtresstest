@@ -3,6 +3,8 @@ import { ResponsiveContainer } from 'recharts';
 import { Waves, HelpCircle, Maximize2, X, Binary, ShieldAlert, Settings2 } from 'lucide-react';
 import { CHART_INTERPRETATIONS } from '../../data/chartInterpretations';
 import { METRICS } from '../../data/MetricRegistry';
+import { MetricEvidence } from '../../data/metricEvidence';
+import MetricEvidenceBadge from './MetricEvidenceBadge';
 
 const BaseChartBox: React.FC<{
     title: string;
@@ -15,10 +17,11 @@ const BaseChartBox: React.FC<{
     driverColor?: string;
     tooltip?: string;
     source?: string;
+    evidence?: MetricEvidence;
     className?: string;
     heightClass?: string;
     children: React.ReactNode
-}> = ({ title, metricId, icon: Icon, color, onExpand, onConfigure, isDriver, driverColor = 'indigo', source, heightClass = "h-[380px]", children }) => {
+}> = ({ title, metricId, icon: Icon, color, onExpand, onConfigure, isDriver, driverColor = 'indigo', source, evidence, heightClass = "h-[380px]", children }) => {
     // Look up interpretation by ID (preferred) or fall back to finding by label
     const interp = metricId
         ? CHART_INTERPRETATIONS[metricId]
@@ -71,6 +74,7 @@ const BaseChartBox: React.FC<{
                             <Icon size={16} />
                         </div>
                         <h3 className="text-xs font-bold text-slate-300 uppercase tracking-tight">{title}</h3>
+                        <MetricEvidenceBadge evidence={evidence} compact />
                     </div>
                     <div className="flex items-center gap-1.5">
                         {onConfigure && (

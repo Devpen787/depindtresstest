@@ -7,6 +7,9 @@ import { LegacyAggregateResult as AggregateResult, LegacySimulationParams as Sim
 import { TokenMarketData } from '../../services/coingecko';
 import { calculateRegime } from '../../utils/regime';
 import { formatCompact } from '../../utils/format';
+import MetricEvidenceBadge from '../ui/MetricEvidenceBadge';
+import { getMetricEvidence } from '../../data/metricEvidence';
+import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 
 interface ComparisonViewProps {
     selectedProtocolIds: string[];
@@ -101,7 +104,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
 
             // Sustainability ratio (real revenue vs emissions)
             const totalRevenue = data.reduce((sum, d) => {
-                const served = d?.demandServed?.mean || 0;
+                // Support both legacy and new aggregate schemas.
+                const served = (d as any)?.demandServed?.mean ?? d?.demand_served?.mean ?? 0;
                 const svcPrice = d?.servicePrice?.mean || 0;
                 return sum + (served * svcPrice);
             }, 0);
@@ -142,7 +146,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
         format,
         goodDirection,
         getDelta,
-        hint
+        hint,
+        metricEvidenceId
     }: {
         icon: React.ReactNode;
         iconColor: string;
@@ -152,6 +157,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
         goodDirection: 'up' | 'down' | 'neutral';
         getDelta?: (m: typeof protocolMetrics[0], baseline: typeof protocolMetrics[0]) => number | null;
         hint?: string;
+        metricEvidenceId?: string;
     }) => {
         // 1. Calculate Min/Max for Heatmap
         const allValues = protocolMetrics.map(getValue);
@@ -166,6 +172,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                     <div className="flex items-center gap-2">
                         <span className={iconColor}>{icon}</span>
                         <span>{label}</span>
+                        <MetricEvidenceBadge evidence={metricEvidenceId ? getMetricEvidence(metricEvidenceId) : undefined} compact />
                         {hint && (
                             <span className="opacity-0 group-hover:opacity-100 text-[8px] text-slate-600 transition-opacity">
                                 {hint}
@@ -267,6 +274,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                 </div>
             )}
 
+            <MetricEvidenceLegend />
+
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
                 <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -301,24 +310,24 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                         <tbody>
                             {/* SECTION: TOKENOMICS */}
                             <SectionHeader icon={<Database size={12} />} iconColor="text-violet-400" title="Tokenomics" hint="Supply & Price dynamics" />
-                            <MetricRow label="Token Price (End)" icon={<DollarSign size={12} />} iconColor="text-slate-400" getValue={m => m.finalPrice} format={v => `$${formatCompact(v)}`} goodDirection="up" getDelta={(m, b) => ((m.finalPrice - b.finalPrice) / b.finalPrice) * 100} />
-                            <MetricRow label="Inflation (APY)" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.annualisedInflation} format={v => `${v.toFixed(1)}%`} goodDirection="down" getDelta={(m, b) => m.annualisedInflation - b.annualisedInflation} />
-                            <MetricRow label="Max Drawdown" icon={<TrendingDown size={12} />} iconColor="text-rose-400" getValue={m => m.maxDrawdown} format={v => `${v.toFixed(1)}%`} goodDirection="down" hint="Worst peak-to-trough drop" />
+                            <MetricRow label="Token Price (End)" icon={<DollarSign size={12} />} iconColor="text-slate-400" getValue={m => m.finalPrice} format={v => `$${formatCompact(v)}`} goodDirection="up" getDelta={(m, b) => ((m.finalPrice - b.finalPrice) / b.finalPrice) * 100} metricEvidenceId="comp_token_price_end" />
+                            <MetricRow label="Inflation (APY)" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.annualisedInflation} format={v => `${v.toFixed(1)}%`} goodDirection="down" getDelta={(m, b) => m.annualisedInflation - b.annualisedInflation} metricEvidenceId="comp_inflation_apy" />
+                            <MetricRow label="Max Drawdown" icon={<TrendingDown size={12} />} iconColor="text-rose-400" getValue={m => m.maxDrawdown} format={v => `${v.toFixed(1)}%`} goodDirection="down" hint="Worst peak-to-trough drop" metricEvidenceId="comp_max_drawdown" />
 
                             {/* SECTION: NETWORK GROWTH */}
                             <SectionHeader icon={<Users size={12} />} iconColor="text-emerald-400" title="Network Growth" hint="Physical/Digital Infrastructure" />
-                            <MetricRow label="Active Nodes (End)" icon={<Users size={12} />} iconColor="text-slate-400" getValue={m => m.finalProviders} format={formatCompact} goodDirection="up" getDelta={(m, b) => ((m.finalProviders - b.finalProviders) / b.finalProviders) * 100} />
-                            <MetricRow label="Churn Rate" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.churnRate} format={v => `${v.toFixed(1)}%`} goodDirection="down" getDelta={(m, b) => m.churnRate - b.churnRate} />
-                            <MetricRow label="Utilization" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.avgUtilisation} format={v => `${v.toFixed(1)}%`} goodDirection="up" getDelta={(m, b) => m.avgUtilisation - b.avgUtilisation} />
+                            <MetricRow label="Active Nodes (End)" icon={<Users size={12} />} iconColor="text-slate-400" getValue={m => m.finalProviders} format={formatCompact} goodDirection="up" getDelta={(m, b) => ((m.finalProviders - b.finalProviders) / b.finalProviders) * 100} metricEvidenceId="comp_active_nodes_end" />
+                            <MetricRow label="Churn Rate" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.churnRate} format={v => `${v.toFixed(1)}%`} goodDirection="down" getDelta={(m, b) => m.churnRate - b.churnRate} metricEvidenceId="comp_churn_rate" />
+                            <MetricRow label="Utilization" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.avgUtilisation} format={v => `${v.toFixed(1)}%`} goodDirection="up" getDelta={(m, b) => m.avgUtilisation - b.avgUtilisation} metricEvidenceId="comp_utilization" />
 
                             {/* SECTION: UNIT ECONOMICS */}
                             <SectionHeader icon={<Scale size={12} />} iconColor="text-amber-400" title="Miner Economics" hint="Profitability per Node" />
-                            <MetricRow label="Monthly Earnings" icon={<DollarSign size={12} />} iconColor="text-slate-400" getValue={m => m.monthlyEarnings} format={v => `$${formatCompact(v)}`} goodDirection="up" getDelta={(m, b) => ((m.monthlyEarnings - b.monthlyEarnings) / b.monthlyEarnings) * 100} />
-                            <MetricRow label="Payback Period" icon={<Clock size={12} />} iconColor="text-slate-400" getValue={m => m.paybackWeeks / 4.33} format={v => isFinite(v) ? `${v.toFixed(1)} mo` : 'Never'} goodDirection="down" getDelta={(m, b) => (m.paybackWeeks - b.paybackWeeks) / 4.33} />
+                            <MetricRow label="Monthly Earnings" icon={<DollarSign size={12} />} iconColor="text-slate-400" getValue={m => m.monthlyEarnings} format={v => `$${formatCompact(v)}`} goodDirection="up" getDelta={(m, b) => ((m.monthlyEarnings - b.monthlyEarnings) / b.monthlyEarnings) * 100} metricEvidenceId="comp_monthly_earnings" />
+                            <MetricRow label="Payback Period" icon={<Clock size={12} />} iconColor="text-slate-400" getValue={m => m.paybackWeeks / 4.33} format={v => isFinite(v) ? `${v.toFixed(1)} mo` : 'Never'} goodDirection="down" getDelta={(m, b) => (m.paybackWeeks - b.paybackWeeks) / 4.33} metricEvidenceId="comp_payback_period" />
 
                             {/* SECTION: SUSTAINABILITY */}
                             <SectionHeader icon={<Scale size={12} />} iconColor="text-blue-400" title="Sustainability" hint="Long-term viability" />
-                            <MetricRow label="Real Rev / Emissions" icon={<Scale size={12} />} iconColor="text-slate-400" getValue={m => m.sustainabilityRatio} format={v => `${v.toFixed(1)}%`} goodDirection="up" getDelta={(m, b) => m.sustainabilityRatio - b.sustainabilityRatio} hint="Protocol Revenue vs Token Incentives" />
+                            <MetricRow label="Real Rev / Emissions" icon={<Scale size={12} />} iconColor="text-slate-400" getValue={m => m.sustainabilityRatio} format={v => `${v.toFixed(1)}%`} goodDirection="up" getDelta={(m, b) => m.sustainabilityRatio - b.sustainabilityRatio} hint="Protocol Revenue vs Token Incentives" metricEvidenceId="comp_real_rev_emissions" />
                         </tbody>
                     </table>
                 </div>

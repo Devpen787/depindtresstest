@@ -13,6 +13,8 @@ import {
 import { HISTORICAL_EVENTS, HistoricalDataPoint } from '../../data/historical_events';
 import { LegacyAggregateResult as AggregateResult } from '../../model/legacy/engine';
 import { ArrowRight, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import MetricEvidenceBadge from '../ui/MetricEvidenceBadge';
+import { getMetricEvidence } from '../../data/metricEvidence';
 
 interface ResilienceScorecardProps {
     simulationResults: AggregateResult[];
@@ -103,9 +105,13 @@ export const ResilienceScorecard: React.FC<ResilienceScorecardProps> = ({
                         <span className="px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                             BACKTEST
                         </span>
+                        <MetricEvidenceBadge evidence={getMetricEvidence('historical_overlay_reference')} compact />
                     </h3>
                     <p className="text-sm text-slate-400 mt-1">
                         Compare your simulation against historical DePIN stress events.
+                    </p>
+                    <p className="text-[11px] text-amber-400/80 mt-1">
+                        Historical overlays are standardized reference curves (deterministic synthetic data), not raw on-chain exports.
                     </p>
                 </div>
 

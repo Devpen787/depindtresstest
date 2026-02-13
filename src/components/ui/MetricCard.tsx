@@ -1,4 +1,6 @@
 import React from 'react';
+import { MetricEvidence } from '../../data/metricEvidence';
+import MetricEvidenceBadge from './MetricEvidenceBadge';
 
 // Using any for icon as it was in original index.tsx, but ideally should be LucideIcon
 const MetricCard: React.FC<{
@@ -10,8 +12,9 @@ const MetricCard: React.FC<{
     tooltip?: string;
     formula?: string;
     source?: string;
+    evidence?: MetricEvidence;
     className?: string;
-}> = ({ title, value, subValue, subColor, icon: Icon, tooltip, formula, source, className }) => (
+}> = ({ title, value, subValue, subColor, icon: Icon, tooltip, formula, source, evidence, className }) => (
     <div className={`bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm group relative flex flex-col justify-between h-full ${className || ''}`}>
         <div>
             <div className="flex justify-between items-start mb-2">
@@ -28,6 +31,9 @@ const MetricCard: React.FC<{
             <div className="flex items-baseline gap-2">
                 <div className="text-2xl font-bold text-white tracking-tight">{value}</div>
                 {subValue && <div className={`text-[10px] font-bold ${subColor || 'text-rose-400'}`}>{subValue}</div>}
+            </div>
+            <div className="mt-2">
+                <MetricEvidenceBadge evidence={evidence} compact />
             </div>
         </div>
         {source && (

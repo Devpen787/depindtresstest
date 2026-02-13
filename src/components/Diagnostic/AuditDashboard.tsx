@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { ShieldAlert, Activity, Info } from 'lucide-react';
-import { DiagnosticInput, DiagnosticState, DiagnosticVerdict } from './types';
+// Duplicate imports removed
+import { DiagnosticInput, DiagnosticState } from './types';
 import { SignalsOfDeathPanel } from './SignalsOfDeathPanel';
 import { SubsidyTrapChart } from './SubsidyTrapChart';
 import { HexDegradationMap } from './HexDegradationMap';
@@ -11,8 +11,29 @@ import { HumanArchetypePanel } from './HumanArchetypePanel';
 import { PeerComparisonTable } from './PeerComparisonTable';
 import { StrategicRecommendationsPanel } from './StrategicRecommendationsPanel';
 
+import { MasterProofMatrix } from './MasterProofMatrix';
+import { SensitivityTornadoChart } from './SensitivityTornadoChart';
+import { SensitivityHeatmap } from './SensitivityHeatmap';
+import { InflationCapacityScatter } from './InflationCapacityScatter';
+import { SolvencyScorecard } from './SolvencyScorecard';
+import { AggregateResult, SimulationParams } from '../../model/types';
+import { ShieldAlert, Activity, Info, Skull } from 'lucide-react';
+import { calculateDiagnosticState } from '../../audit/diagnosticViewMath';
+import { DIAGNOSTIC_ARCHETYPE_TO_PROTOCOL_ID } from '../../data/diagnosticArchetypes';
+import { DecisionPromptCard } from '../ui/DecisionPromptCard';
+import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 
-export const AuditDashboard: React.FC = () => {
+
+interface Props {
+    simulationData?: AggregateResult[];
+    loading?: boolean;
+    profileName?: string;
+    onProtocolChange?: (id: string) => void;
+    onRunSensitivity?: () => { parameter: string, low: number, high: number, delta: number }[];
+    onParamChange?: (params: Partial<SimulationParams>) => void;
+}
+
+export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading = false, profileName = 'Unknown Protocol', onProtocolChange, onRunSensitivity, onParamChange }) => {
     // --- STATE: Diagnostic Inputs ---
     const [inputs, setInputs] = useState<DiagnosticInput>({
         minerProfile: 'Professional', // Default: Onocoy style
@@ -21,80 +42,41 @@ export const AuditDashboard: React.FC = () => {
         demandLag: 'High',
         priceShock: 'None',
         insiderOverhang: 'Low',
+        sybilResistance: 'Strong',
     });
 
     // --- LOGIC: Resilience Scorecard Algorithm ---
-    const diagnosticState = useMemo((): DiagnosticState => {
-        // 1. Calculate Base Metrics based on Inputs
+    const diagnosticState = useMemo((): DiagnosticState => calculateDiagnosticState(inputs), [inputs]);
 
-        // BER (Burn-to-Emission):
-        // Fixed emission + High Demand Lag = Low BER (Bad)
-        // Dynamic emission + Low Lag = High BER (Good)
-        let r_be = 0.8; // Baseline
-        if (inputs.emissionSchedule === 'Fixed') r_be -= 0.4;
-        if (inputs.demandLag === 'High') r_be -= 0.3;
-        if (inputs.emissionSchedule === 'Dynamic') r_be += 0.2;
-        r_be = Math.max(0.05, Math.min(1.5, r_be)); // Clamp
-
-        // NRR (Node Retention Rate):
-        // Mercenaries flee fast. Professionals stay.
-        let nrr = 98; // Baseline %
-        if (inputs.minerProfile === 'Mercenary') {
-            nrr = 85;
-            if (inputs.priceShock === 'Moderate') nrr = 60;
-            if (inputs.priceShock === 'Severe') nrr = 30; // Collapse
-        } else {
-            // Professionals
-            nrr = 95;
-            if (inputs.priceShock === 'Moderate') nrr = 92; // Sticky
-            if (inputs.priceShock === 'Severe') nrr = 85; // Resilient
-        }
-
-        // CPV (CapEx Payback Velocity): Months
-        let cpv = 12; // Baseline
-        if (inputs.minerProfile === 'Professional') cpv = 18; // Higher CapEx
-        if (inputs.minerProfile === 'Mercenary') cpv = 6; // Lower CapEx
-        if (inputs.emissionSchedule === 'Fixed' && inputs.demandLag === 'High') cpv += 12; // Dilution slows payback
-
-        // LUR (Liquidity Utilization): 
-        let lur_metric = 10;
-        if (inputs.insiderOverhang === 'High') lur_metric += 30; // Massive sell pressure
-        if (inputs.demandLag === 'High') lur_metric += 10; // Low buy pressure
-
-        // GovScore:
-        // Uncoordinated growth implies bad governance?
-        let govScore = 80;
-        if (inputs.growthCoordination === 'Uncoordinated') govScore -= 30;
-        if (inputs.emissionSchedule === 'Fixed') govScore -= 10; // Rigid
-
-        // 2. Weighted Score Calculation
-        // BER (40%) + NRR (20%) + LUR (20%) + GovScore (20%)
-        // Normalize to 0-100 scales
-        const s_ber = Math.min(100, (r_be / 1.0) * 100); // 1.0 BER = 100 score
-        const s_nrr = Math.max(0, (nrr - 50) * 2); // 100% = 100, 50% = 0. Scale steepness.
-        const s_lur = Math.max(0, 100 - (lur_metric * 2)); // 10% LUR = 80 score. 50% LUR = 0 score.
-
-        const finalScore = (s_ber * 0.4) + (s_nrr * 0.2) + (s_lur * 0.2) + (govScore * 0.2);
-
-        // 3. Verdict
-        let verdict: DiagnosticVerdict = 'Robust';
-        if (finalScore < 70) verdict = 'Fragile';
-        if (finalScore < 40) verdict = 'Zombie';
-        if (finalScore < 20) verdict = 'Insolvent';
-
-        return {
-            r_be,
-            lur: lur_metric,
-            nrr,
-            cpv,
-            govScore,
-            resilienceScore: Math.round(finalScore),
-            verdict
-        };
-    }, [inputs]);
+    const diagnosticTone = diagnosticState.verdict === 'Robust'
+        ? 'healthy'
+        : diagnosticState.verdict === 'Fragile'
+            ? 'caution'
+            : 'critical';
 
     return (
         <div className="bg-slate-950 min-h-full text-slate-200 p-6 lg:p-10 font-sans space-y-12">
+
+            {/* 0. MASTER PROOF MATRIX (Thesis Defense) */}
+            <section className="mb-12">
+                <MasterProofMatrix data={simulationData || []} loading={loading || false} profileName={profileName} />
+            </section>
+
+            {/* 0.5. SOLVENCY SCORECARD (New Framework) */}
+            <section className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-indigo-500/20 rounded-lg">
+                        <Activity className="text-indigo-400" size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">Solvency Scorecard</h2>
+                        <p className="text-slate-400 text-sm">Real-time simulation metrics for Coverage Insolvency, Capital Efficiency, and Network Hysteresis.</p>
+                    </div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+                    <SolvencyScorecard data={simulationData || []} />
+                </div>
+            </section>
 
             {/* 1. Header & Disclaimer */}
             <div className="space-y-4">
@@ -119,18 +101,23 @@ export const AuditDashboard: React.FC = () => {
                             onChange={(e) => {
                                 const val = e.target.value;
                                 const presets: Record<string, DiagnosticInput> = {
-                                    onocoy: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'None', insiderOverhang: 'Low', selectedArchetype: 'onocoy' },
-                                    render: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'Moderate', insiderOverhang: 'Low', selectedArchetype: 'render' },
-                                    ionet: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'Moderate', insiderOverhang: 'Low', selectedArchetype: 'ionet' },
-                                    nosana: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'Moderate', insiderOverhang: 'Low', selectedArchetype: 'nosana' },
-                                    geodnet: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'None', insiderOverhang: 'Low', selectedArchetype: 'geodnet' },
-                                    hivemapper: { minerProfile: 'Mercenary', emissionSchedule: 'Dynamic', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'Severe', insiderOverhang: 'High', selectedArchetype: 'hivemapper' },
-                                    grass: { minerProfile: 'Mercenary', emissionSchedule: 'Dynamic', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'Severe', insiderOverhang: 'High', selectedArchetype: 'grass' },
-                                    dimo: { minerProfile: 'Mercenary', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'High', priceShock: 'Moderate', insiderOverhang: 'Low', selectedArchetype: 'dimo' },
-                                    helium_mobile: { minerProfile: 'Mercenary', emissionSchedule: 'Fixed', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'Moderate', insiderOverhang: 'High', selectedArchetype: 'helium_mobile' },
-                                    helium_legacy: { minerProfile: 'Mercenary', emissionSchedule: 'Fixed', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'None', insiderOverhang: 'High', selectedArchetype: 'helium_legacy' },
+                                    onocoy: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'None', insiderOverhang: 'Low', sybilResistance: 'Strong', selectedArchetype: 'onocoy' },
+                                    render: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'Moderate', insiderOverhang: 'Low', sybilResistance: 'Strong', selectedArchetype: 'render' },
+                                    ionet: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'Moderate', insiderOverhang: 'Low', sybilResistance: 'Strong', selectedArchetype: 'ionet' },
+                                    nosana: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'Moderate', insiderOverhang: 'Low', sybilResistance: 'Strong', selectedArchetype: 'nosana' },
+                                    geodnet: { minerProfile: 'Professional', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'Low', priceShock: 'None', insiderOverhang: 'Low', sybilResistance: 'Strong', selectedArchetype: 'geodnet' },
+                                    hivemapper: { minerProfile: 'Mercenary', emissionSchedule: 'Dynamic', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'Severe', insiderOverhang: 'High', sybilResistance: 'Weak', selectedArchetype: 'hivemapper' },
+                                    grass: { minerProfile: 'Mercenary', emissionSchedule: 'Dynamic', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'Severe', insiderOverhang: 'High', sybilResistance: 'Weak', selectedArchetype: 'grass' },
+                                    dimo: { minerProfile: 'Mercenary', emissionSchedule: 'Dynamic', growthCoordination: 'Managed', demandLag: 'High', priceShock: 'Moderate', insiderOverhang: 'Low', sybilResistance: 'Weak', selectedArchetype: 'dimo' },
+                                    helium_mobile: { minerProfile: 'Mercenary', emissionSchedule: 'Fixed', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'Moderate', insiderOverhang: 'High', sybilResistance: 'Weak', selectedArchetype: 'helium_mobile' },
+                                    helium_legacy: { minerProfile: 'Mercenary', emissionSchedule: 'Fixed', growthCoordination: 'Uncoordinated', demandLag: 'High', priceShock: 'None', insiderOverhang: 'High', sybilResistance: 'Weak', selectedArchetype: 'helium_legacy' },
                                 };
                                 setInputs(presets[val] || presets.onocoy);
+
+                                // Trigger global simulation update if handler provided
+                                if (onProtocolChange && DIAGNOSTIC_ARCHETYPE_TO_PROTOCOL_ID[val]) {
+                                    onProtocolChange(DIAGNOSTIC_ARCHETYPE_TO_PROTOCOL_ID[val]);
+                                }
                             }}
                         >
                             <optgroup label="Robust (Professional)">
@@ -157,6 +144,8 @@ export const AuditDashboard: React.FC = () => {
                     archetypeId={inputs.selectedArchetype || 'onocoy'}
                 />
 
+                <MetricEvidenceLegend />
+
                 {/* Peer Comparison Table */}
                 <PeerComparisonTable
                     inputs={inputs}
@@ -174,6 +163,24 @@ export const AuditDashboard: React.FC = () => {
                         </p>
                     </div>
                 </div>
+
+                <DecisionPromptCard
+                    title="Diagnostic Storyline"
+                    tone={diagnosticTone}
+                    statusLabel={diagnosticState.verdict}
+                    statusDetail={`Resilience ${diagnosticState.resilienceScore}/100`}
+                    provenance={`Archetype: ${inputs.selectedArchetype || 'onocoy'} • Framework verdict from stress assumptions`}
+                    decisions={[
+                        'Do we change emission regime now or monitor one more cycle?',
+                        'Is the current miner profile resilient enough for the selected shock path?',
+                        'Should growth coordination become stricter under this risk profile?'
+                    ]}
+                    questions={[
+                        `Which signal drives most fragility right now: BER ${diagnosticState.r_be.toFixed(2)} or NRR ${diagnosticState.nrr}%?`,
+                        'What policy is least costly while still lifting the resilience score by 10+ points?',
+                        'What threshold should trigger immediate governance intervention?'
+                    ]}
+                />
             </div>
 
             {/* 2. Top Bar: Signals of Death */}
@@ -192,6 +199,22 @@ export const AuditDashboard: React.FC = () => {
                 </div>
                 <SignalsOfDeathPanel state={diagnosticState} />
             </section>
+
+            {/* 1.5. [NEW] Sensitivity Analysis */}
+            {onRunSensitivity && (
+                <section>
+                    <SensitivityTornadoChart onRunAnalysis={onRunSensitivity} />
+                    <div className="mt-8">
+                        <SensitivityHeatmap />
+                    </div>
+                    <div className="mt-8">
+                        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/50">
+                            <h4 className="text-sm font-bold text-slate-400 mb-4">Verification: Effective Network Time (Feedback Loop)</h4>
+                            <InflationCapacityScatter data={simulationData} />
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* Spacer */}
             <div className="h-px bg-slate-800 w-full" />
@@ -391,6 +414,92 @@ export const AuditDashboard: React.FC = () => {
                 </div>
                 <div className="lg:col-span-2">
                     <DensityTrapChart inputs={inputs} state={diagnosticState} />
+                </div>
+            </section>
+
+            {/* Spacer */}
+            <div className="h-px bg-slate-800 w-full" />
+
+            {/* 6. Failure Mode IV: Sybil Attack (Adversarial) */}
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1 space-y-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-white mb-2">IV. Adversarial Resilience</h3>
+                        <p className="text-sm text-slate-400 leading-relaxed">
+                            If Proof-of-Physical-Work is weak, Sybils extract value.
+                        </p>
+                    </div>
+
+                    {/* Control Panel */}
+                    <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase">Sybil Resistance</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {(['Weak', 'Strong'] as const).map(opt => (
+                                    <button
+                                        key={opt}
+                                        onClick={() => {
+                                            setInputs(p => ({ ...p, sybilResistance: opt }));
+                                            // Trigger Simulation Update
+                                            if (onParamChange) {
+                                                onParamChange({
+                                                    sybilAttackEnabled: opt === 'Weak',
+                                                    sybilSize: opt === 'Weak' ? 0.3 : 0.0 // Default 30% attack
+                                                });
+                                            }
+                                        }}
+                                        className={`text-xs py-2 rounded-lg font-bold border transition-all ${inputs.sybilResistance === opt
+                                            ? 'bg-rose-600 text-white border-rose-500'
+                                            : 'bg-slate-800 text-slate-400 border-transparent hover:bg-slate-700'
+                                            }`}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        {inputs.sybilResistance === 'Weak' && (
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase">Attack Magnitude</label>
+                                <input
+                                    type="range"
+                                    min="0" max="100" step="10"
+                                    defaultValue="30"
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value) / 100;
+                                        if (onParamChange) {
+                                            onParamChange({ sybilSize: val });
+                                        }
+                                    }}
+                                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                                />
+                                <div className="flex justify-between text-xs text-slate-500">
+                                    <span>0%</span>
+                                    <span>50%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Impact Translator */}
+                    <div className="bg-slate-800/50 p-4 rounded-xl border-l-4 border-indigo-500">
+                        <h4 className="text-xs font-bold text-indigo-400 uppercase mb-1">Impact Translator</h4>
+                        <p className="text-sm text-slate-300">
+                            {inputs.sybilResistance === 'Weak'
+                                ? "Weak resistance allows Sybils to dilute rewards. Incentive Efficiency drops."
+                                : "Strong resistance (PoPW) prevents value leakage."}
+                        </p>
+                    </div>
+                </div>
+                <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                    <Skull className={`mb-4 transition-all duration-500 ${inputs.sybilResistance === 'Weak' ? 'text-rose-500 scale-125' : 'text-slate-700'}`} size={48} />
+                    <h4 className="text-lg font-bold text-white mb-2">Adversarial Simulator</h4>
+                    <p className="text-sm text-slate-400 max-w-md">
+                        {inputs.sybilResistance === 'Weak'
+                            ? "Active Attack! Check 'Strategic Proof' chart above to see Mercenary/Sybil impact."
+                            : "System Secure. No Sybil capacity detected."}
+                    </p>
                 </div>
             </section>
 

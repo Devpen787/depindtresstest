@@ -15,10 +15,12 @@ import { SectionLayout } from '../SectionLayout';
 import MetricCard from '../ui/MetricCard';
 import BaseChartBox from '../ui/BaseChartBox';
 import { GeoCoverageView } from '../GeoCoverageView';
+import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 
 import { formatCompact, formatCurrency, formatPercent, getColourClass } from '../../utils/format';
 import { ChartInterpretation, CHART_INTERPRETATIONS } from '../../data/chartInterpretations';
 import { METRICS } from '../../data/MetricRegistry';
+import { getMetricEvidence } from '../../data/metricEvidence';
 import { generateInvestmentMemo, generateVerdict } from '../../utils/reportGenerator';
 import { MemoPreviewModal } from '../ui/MemoPreviewModal';
 import { ScenarioManager } from '../ui/ScenarioManager';
@@ -64,15 +66,31 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
         lastMetrics
     } = useSandboxViewModel(aggregated, params, playbackWeek, showBenchmark);
 
+    const resolveFocusedMetric = (value: string | null) => {
+        if (!value) return null;
+        return Object.values(METRICS).find((metric) => metric.id === value || metric.label === value) || null;
+    };
+
+    const calculatePaybackMonths = (point: any) => {
+        const providerCount = Math.max(1, point?.providers?.mean || 0);
+        const weeklyRevenue = ((point?.minted?.mean || 0) / providerCount) * (point?.price?.mean || 0);
+        const weeklyProfit = weeklyRevenue - params.providerCostPerWeek;
+
+        if (weeklyProfit <= 0) return 36;
+        return Math.min((params.hardwareCost / weeklyProfit) / 4.33, 36);
+    };
 
     const renderFocusChart = () => {
         if (!focusChart) return null;
-        const interp = CHART_INTERPRETATIONS[focusChart];
-        const isDriver = incentiveRegime.drivers.includes(focusChart);
+        const focusedMetric = resolveFocusedMetric(focusChart);
+        const focusedChartLabel = focusedMetric?.label || focusChart;
+        const focusedMetricId = focusedMetric?.id || focusChart;
+        const interp = CHART_INTERPRETATIONS[focusedMetricId];
+        const isDriver = incentiveRegime.drivers.includes(focusedChartLabel);
         const focusedCounterfactual = counterfactualData.slice(0, playbackWeek);
 
         const renderMainChart = () => {
-            switch (focusChart) {
+            switch (focusedChartLabel) {
                 // --- TIER 1: SURVIVAL ---
                 case METRICS.solvency_ratio.label:
                     return (
@@ -149,13 +167,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <ReferenceArea y1={24} y2={36} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
                             <Line
                                 type="monotone"
-                                dataKey={(d: any) => {
-                                    const weeklyRevenue = (d.minted.mean / d.providers.mean) * d.price.mean;
-                                    const profit = weeklyRevenue - params.providerCostPerWeek;
-                                    if (profit <= 0) return 36;
-                                    const payback = (500 / profit) / 4.33;
-                                    return Math.min(payback, 36);
-                                }}
+                                dataKey={calculatePaybackMonths}
                                 stroke="#f43f5e"
                                 strokeWidth={3}
                                 dot={false}
@@ -210,6 +222,43 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <Area type="monotone" dataKey="ruralCount.mean" stroke="#10b981" fill="#10b981" name="Rural (Low Sunk Cost)" />
                         </AreaChart>
                     );
+                case METRICS.quality_distribution.label:
+                    return (
+                        <AreaChart data={displayedData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+                            <XAxis dataKey="t" fontSize={11} minTickGap={30} />
+                            <YAxis fontSize={11} label={{ value: 'Nodes', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+                            <Area type="monotone" dataKey={(d: any) => Math.max(0, d.providers.mean - (d.proCount?.mean || 0))} stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.45} name="Basic (Low Cap)" />
+                            <Area type="monotone" dataKey={(d: any) => d.proCount?.mean || 0} stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.75} name="Pro (High Cap)" />
+                            <Legend verticalAlign="top" height={36} iconType="circle" />
+                        </AreaChart>
+                    );
+                case METRICS.supply_trajectory.label:
+                    return (
+                        <ComposedChart data={displayedData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+                            <XAxis dataKey="t" fontSize={11} minTickGap={30} />
+                            <YAxis fontSize={11} tickFormatter={formatCompact} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
+                            <Area type="monotone" dataKey={(d: any) => [d.supply.ci95_lower, d.supply.ci95_upper]} stroke="none" fill="#8b5cf6" fillOpacity={0.1} name="95% CI" />
+                            <Line type="monotone" dataKey={(d: any) => d?.supply?.mean} stroke="#8b5cf6" strokeWidth={3} dot={false} name="Supply" />
+                            <Legend verticalAlign="top" height={36} iconType="circle" />
+                        </ComposedChart>
+                    );
+                case METRICS.network_utilization.label:
+                    return (
+                        <AreaChart data={displayedData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+                            <XAxis dataKey="t" fontSize={11} minTickGap={30} />
+                            <YAxis domain={[0, 100]} fontSize={11} label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} formatter={(val: number) => `${val.toFixed(1)}%`} />
+                            <ReferenceLine y={60} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Healthy', fill: '#10b981', fontSize: 10 }} />
+                            <ReferenceLine y={10} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Critical', fill: '#ef4444', fontSize: 10 }} />
+                            <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.15} name="Utilization" />
+                            <Legend verticalAlign="top" height={36} iconType="circle" />
+                        </AreaChart>
+                    );
 
                 // --- LEGACY / UNGROUPED ---
                 case "Liquidity Shock Impact":
@@ -236,7 +285,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                     <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-950/50">
                         <div>
                             <h2 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-3">
-                                {focusChart}
+                                {focusedChartLabel}
                                 {isDriver && <span className={`px-2 py-0.5 rounded-full bg-${incentiveRegime.color}-500/20 text-${incentiveRegime.color}-400 text-[10px] uppercase font-bold tracking-widest border border-${incentiveRegime.color}-500/30`}>Primary Driver</span>}
                             </h2>
                             <p className="text-slate-400 text-sm mt-1">{interp?.subtitle || 'Detailed trend analysis.'}</p>
@@ -412,6 +461,10 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                     )}
                 </div>
 
+                <div className="mb-8">
+                    <MetricEvidenceLegend />
+                </div>
+
                 {/* TIER 1: SURVIVAL */}
                 <SectionLayout
                     id="tier-1-survival"
@@ -434,6 +487,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={Activity}
                                 tooltip={METRICS.solvency_ratio.description}
                                 formula={METRICS.solvency_ratio.formula}
+                                evidence={getMetricEvidence('solvency_ratio')}
                             />
                             <MetricCard
                                 title={METRICS.weekly_retention_rate.label}
@@ -443,6 +497,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={CheckCircle2}
                                 tooltip={METRICS.weekly_retention_rate.description}
                                 formula={METRICS.weekly_retention_rate.formula}
+                                evidence={getMetricEvidence('weekly_retention_rate')}
                             />
                             <MetricCard
                                 title={METRICS.treasury_balance.label}
@@ -452,6 +507,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={Wallet}
                                 tooltip={METRICS.treasury_balance.description}
                                 formula={METRICS.treasury_balance.formula}
+                                evidence={getMetricEvidence('treasury_balance')}
                             />
                         </div>
 
@@ -462,8 +518,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={TrendingDown}
                                 color="amber"
                                 source={METRICS.solvency_ratio.description}
+                                evidence={getMetricEvidence('solvency_ratio')}
                                 heightClass="h-[300px]"
-                                onExpand={() => setFocusChart(METRICS.solvency_ratio.label)}
+                                onExpand={() => setFocusChart(METRICS.solvency_ratio.id)}
                                 onConfigure={() => scrollToControl('tokenomics')}
                             >
                                 <ComposedChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
@@ -490,8 +547,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={ShieldAlert}
                                 color="emerald"
                                 source={METRICS.weekly_retention_rate.formula}
+                                evidence={getMetricEvidence('weekly_retention_rate')}
                                 heightClass="h-[300px]"
-                                onExpand={() => setFocusChart(METRICS.weekly_retention_rate.label)}
+                                onExpand={() => setFocusChart(METRICS.weekly_retention_rate.id)}
                                 onConfigure={() => scrollToControl('providers')}
                             >
                                 <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
@@ -511,8 +569,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={Layers}
                                 color="rose"
                                 source={METRICS.urban_density.description}
+                                evidence={getMetricEvidence('urban_density')}
                                 heightClass="h-[250px]"
-                                onExpand={() => setFocusChart(METRICS.urban_density.label)}
+                                onExpand={() => setFocusChart(METRICS.urban_density.id)}
                                 onConfigure={() => scrollToControl('providers')}
                             >
                                 <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
@@ -554,17 +613,15 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 value={(() => {
                                     const last = aggregated[aggregated.length - 1];
                                     if (!last) return '-';
-                                    const weeklyRev = (last.minted.mean / Math.max(1, last.providers.mean)) * last.price.mean;
-                                    const profit = weeklyRev - params.providerCostPerWeek;
-                                    if (profit <= 0) return '>36mo';
-                                    const months = (params.hardwareCost / profit) / 4.33;
-                                    return months > 60 ? '>5y' : `${months.toFixed(1)}mo`;
+                                    const months = calculatePaybackMonths(last);
+                                    return months >= 36 ? '>36mo' : `${months.toFixed(1)}mo`;
                                 })()}
                                 subValue="ROI Time"
                                 subColor="text-slate-500"
                                 icon={DollarSign}
                                 tooltip={METRICS.payback_period.description}
                                 formula={METRICS.payback_period.formula}
+                                evidence={getMetricEvidence('payback_period')}
                             />
                             <MetricCard
                                 title={METRICS.network_coverage_score.label}
@@ -574,6 +631,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={MapPin}
                                 tooltip={METRICS.network_coverage_score.description}
                                 formula={METRICS.network_coverage_score.formula}
+                                evidence={getMetricEvidence('network_coverage_score')}
                             />
                             <MetricCard
                                 title={METRICS.vampire_churn.label}
@@ -583,6 +641,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={Zap}
                                 tooltip={METRICS.vampire_churn.description}
                                 formula={METRICS.vampire_churn.formula}
+                                evidence={getMetricEvidence('vampire_churn')}
                             />
                         </div>
 
@@ -592,8 +651,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={DollarSign}
                                 color="rose"
                                 source={METRICS.payback_period.formula}
+                                evidence={getMetricEvidence('payback_period')}
                                 heightClass="h-[300px]"
-                                onExpand={() => setFocusChart(METRICS.payback_period.label)}
+                                onExpand={() => setFocusChart(METRICS.payback_period.id)}
                                 onConfigure={() => scrollToControl('providers')}
                             >
                                 <LineChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
@@ -602,13 +662,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                     <YAxis fontSize={9} domain={[0, 36]} allowDataOverflow={true} />
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} formatter={(val: number) => val >= 36 ? 'Never' : `${val.toFixed(1)} mo`} />
                                     <ReferenceLine y={12} stroke="#10b981" strokeDasharray="3 3" />
-                                    <Line type="monotone" dataKey={(d: any) => {
-                                        const weeklyRevenue = (d.minted.mean / d.providers.mean) * d.price.mean;
-                                        const profit = weeklyRevenue - params.providerCostPerWeek;
-                                        if (profit <= 0) return 36;
-                                        const payback = (500 / profit) / 4.33;
-                                        return Math.min(payback, 36);
-                                    }} stroke="#f43f5e" strokeWidth={2} dot={false} name="Payback" />
+                                    <Line type="monotone" dataKey={calculatePaybackMonths} stroke="#f43f5e" strokeWidth={2} dot={false} name="Payback" />
                                 </LineChart>
                             </BaseChartBox>
 
@@ -617,8 +671,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 icon={MapPin}
                                 color="indigo"
                                 source={METRICS.network_coverage_score.formula}
+                                evidence={getMetricEvidence('network_coverage_score')}
                                 heightClass="h-[300px]"
-                                onExpand={() => setFocusChart(METRICS.network_coverage_score.label)}
+                                onExpand={() => setFocusChart(METRICS.network_coverage_score.id)}
                                 onConfigure={() => scrollToControl('providers')}
                             >
                                 <AreaChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
@@ -662,8 +717,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             icon={Zap}
                             color="indigo"
                             source={METRICS.effective_capacity.description}
+                            evidence={getMetricEvidence('effective_capacity')}
                             heightClass="h-[300px]"
-                            onExpand={() => setFocusChart(METRICS.effective_capacity.label)}
+                            onExpand={() => setFocusChart(METRICS.effective_capacity.id)}
                             onConfigure={() => scrollToControl('demand')}
                         >
                             <ComposedChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
@@ -684,10 +740,11 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         title={METRICS.payback_period.label}
                         icon={DollarSign}
                         color="rose"
-                        onExpand={() => setFocusChart(METRICS.payback_period.label)}
+                        onExpand={() => setFocusChart(METRICS.payback_period.id)}
                         isDriver={incentiveRegime.drivers.includes('Service Pricing Proxy')}
                         driverColor={incentiveRegime.color}
                         source={METRICS.payback_period.formula}
+                        evidence={getMetricEvidence('payback_period')}
                         onConfigure={() => scrollToControl('providers')}
                     >
                         <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
@@ -697,17 +754,11 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} formatter={(val: number) => isFinite(val) ? `${val.toFixed(1)} mo` : 'Never'} labelFormatter={(label) => `Week ${label}`} />
                             <ReferenceArea y1={0} y2={12} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
                             <ReferenceArea y1={24} y2={36} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
-                            <Line type="monotone" dataKey={(d: any) => {
-                                const weeklyRevenue = (d.minted.mean / d.providers.mean) * d.price.mean;
-                                const profit = weeklyRevenue - params.providerCostPerWeek;
-                                if (profit <= 0) return 36;
-                                const payback = (params.hardwareCost / profit) / 4.33;
-                                return Math.min(payback, 36);
-                            }} stroke="#f43f5e" strokeWidth={2} dot={false} name="Payback Period" />
+                            <Line type="monotone" dataKey={calculatePaybackMonths} stroke="#f43f5e" strokeWidth={2} dot={false} name="Payback Period" />
                         </LineChart>
                     </BaseChartBox>
 
-                    <BaseChartBox title={METRICS.solvency_ratio.label} icon={Scale} color="amber" onExpand={() => setFocusChart(METRICS.solvency_ratio.label)} isDriver={incentiveRegime.drivers.includes('Burn vs Emissions')} driverColor={incentiveRegime.color} source={METRICS.solvency_ratio.formula}>
+                    <BaseChartBox title={METRICS.solvency_ratio.label} icon={Scale} color="amber" onExpand={() => setFocusChart(METRICS.solvency_ratio.id)} isDriver={incentiveRegime.drivers.includes('Burn vs Emissions')} driverColor={incentiveRegime.color} source={METRICS.solvency_ratio.formula} evidence={getMetricEvidence('solvency_ratio')}>
                         <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
@@ -719,7 +770,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         </ComposedChart>
                     </BaseChartBox>
 
-                    <BaseChartBox title={METRICS.urban_density.label} icon={ShieldAlert} color="emerald" onExpand={() => setFocusChart(METRICS.urban_density.label)} isDriver={incentiveRegime.drivers.includes('Provider Count')} driverColor={incentiveRegime.color} source={METRICS.urban_density.description}>
+                    <BaseChartBox title={METRICS.urban_density.label} icon={ShieldAlert} color="emerald" onExpand={() => setFocusChart(METRICS.urban_density.id)} isDriver={incentiveRegime.drivers.includes('Provider Count')} driverColor={incentiveRegime.color} source={METRICS.urban_density.description} evidence={getMetricEvidence('urban_density')}>
                         <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <defs>
@@ -740,7 +791,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         </AreaChart>
                     </BaseChartBox>
 
-                    <BaseChartBox title={METRICS.effective_capacity.label} icon={Activity} color="indigo" onExpand={() => setFocusChart(METRICS.effective_capacity.label)} isDriver={incentiveRegime.drivers.includes('Capacity vs Demand')} driverColor={incentiveRegime.color} source={METRICS.effective_capacity.description}>
+                    <BaseChartBox title={METRICS.effective_capacity.label} icon={Activity} color="indigo" onExpand={() => setFocusChart(METRICS.effective_capacity.id)} isDriver={incentiveRegime.drivers.includes('Capacity vs Demand')} driverColor={incentiveRegime.color} source={METRICS.effective_capacity.description} evidence={getMetricEvidence('effective_capacity')}>
                         <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
@@ -752,7 +803,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         </ComposedChart>
                     </BaseChartBox>
 
-                    <BaseChartBox title={METRICS.quality_distribution.label} icon={Swords} color="emerald" onExpand={() => setFocusChart(METRICS.quality_distribution.label)} isDriver={params.proTierPct > 0} driverColor="emerald" source={METRICS.quality_distribution.description}>
+                    <BaseChartBox title={METRICS.quality_distribution.label} icon={Swords} color="emerald" onExpand={() => setFocusChart(METRICS.quality_distribution.id)} isDriver={params.proTierPct > 0} driverColor="emerald" source={METRICS.quality_distribution.description} evidence={getMetricEvidence('quality_distribution')}>
                         <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
@@ -763,7 +814,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         </AreaChart>
                     </BaseChartBox>
 
-                    <BaseChartBox title={METRICS.supply_trajectory.label} icon={Database} color="violet" onExpand={() => setFocusChart(METRICS.supply_trajectory.label)} isDriver={incentiveRegime.drivers.includes('Supply Trajectory')} driverColor={incentiveRegime.color} source={METRICS.supply_trajectory.description}>
+                    <BaseChartBox title={METRICS.supply_trajectory.label} icon={Database} color="violet" onExpand={() => setFocusChart(METRICS.supply_trajectory.id)} isDriver={incentiveRegime.drivers.includes('Supply Trajectory')} driverColor={incentiveRegime.color} source={METRICS.supply_trajectory.description} evidence={getMetricEvidence('supply_trajectory')}>
                         <ComposedChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
@@ -774,7 +825,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         </ComposedChart>
                     </BaseChartBox>
 
-                    <BaseChartBox title={METRICS.network_utilization.label} icon={BarChart3} color="rose" onExpand={() => setFocusChart(METRICS.network_utilization.label)} isDriver={incentiveRegime.drivers.includes('Network Utilization (%)')} driverColor={incentiveRegime.color} source={METRICS.network_utilization.description}>
+                    <BaseChartBox title={METRICS.network_utilization.label} icon={BarChart3} color="rose" onExpand={() => setFocusChart(METRICS.network_utilization.id)} isDriver={incentiveRegime.drivers.includes('Network Utilization (%)')} driverColor={incentiveRegime.color} source={METRICS.network_utilization.description} evidence={getMetricEvidence('network_utilization')}>
                         <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
