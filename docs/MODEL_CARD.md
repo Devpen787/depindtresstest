@@ -28,7 +28,7 @@ An agent-based Monte Carlo simulation for stress-testing Decentralized Physical 
 | **Governance Attacks** | No modeling of malicious voting or protocol capture |
 | **Smart Contract Bugs** | Assumes contracts work as intended |
 | **Hardware Failures** | Providers don't experience equipment breakdowns |
-| **Network Effects** | Demand doesn't increase with provider count (Metcalfe) |
+| **Network Effects (Default Off)** | Optional toggle exists in Simulator; disabled by default |
 | **Geographic Constraints** | Location is probabilistic, not geospatial |
 | **Multi-Token Ecosystems** | Only single-token economics modeled |
 
@@ -60,8 +60,8 @@ An agent-based Monte Carlo simulation for stress-testing Decentralized Physical 
 | **Engine Adapter** | `src/model/SimulationAdapter.ts` - Unified interface to simulation engines |
 
 ## Version
-- **Model Version**: 2.0 (Tiered Resilience + Quality Scale + Statistical Rigor)
-- **Last Updated**: 2026-01-15
+- **Model Version**: 2.1 (Engine-mode docs + network-effects clarification)
+- **Last Updated**: 2026-02-15
 
 ## Contact
 For questions about this model, contact the development team.
