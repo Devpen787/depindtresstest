@@ -1,0 +1,162 @@
+[]Copy
+
+[]
+
+1.  1. INTRODUCTION
+
+What is onocoy?
+
+[]
+
+🛰️ What is onocoy?
+
+onocoy is a decentralized platform that enables the global,
+community-driven distribution of high-precision GNSS (Global Navigation
+Satellite System) correction data.
+
+It’s built on Web3 technologies (blockchain, tokens, smart contracts) to
+allow anyone—individuals, businesses, or institutions—to contribute to
+and benefit from a global network of GNSS reference stations.
+
+Find out everything about onocoy in the whitepaper — or in this
+documentation.
+
+[]
+
+5MB
+
+onocoy_whitepaper_301.pdf
+
+PDF
+
+[]Download
+
+[]Open
+
+onocoy whitepaper
+
+------------------------------------------------------------------------
+
+[]
+
+🌐 What Problem Is onocoy Solving?
+
+High-precision GNSS positioning (like centimeter-level GPS accuracy)
+requires correction data from Continuously Operating Reference Stations
+(CORS).
+
+Today’s issues:
+
+- 
+
+  Expensive and centralized infrastructure.
+
+- 
+
+  Limited coverage (mainly wealthy urban/agricultural areas).
+
+- 
+
+  Proprietary standards and vendor lock-ins.
+
+- 
+
+  Exclusion of developing regions from accessing this technology.
+
+------------------------------------------------------------------------
+
+[]
+
+💡 How Does onocoy Work?
+
+🧱 1. Decentralized GNSS Reference Stations
+
+Anyone can set up a GNSS station (a "miner") and stream correction data
+to onocoy.
+
+💰 2. Token-Based Incentives (ONO Token)
+
+Operators earn ONO tokens based on:
+
+- 
+
+  Quality of data,
+
+- 
+
+  Uptime,
+
+- 
+
+  Geographic location (under-served areas earn more),
+
+- 
+
+  Actual usage of their data.
+
+🔍 3. Validator Network
+
+To ensure only authentic, high-quality GNSS data is rewarded, onocoy
+uses a decentralized validator system to detect fake or low-quality
+signals.
+
+🔗 4. Web3 Infrastructure
+
+- 
+
+  Powered by the Solana blockchain.
+
+- 
+
+  Uses smart contracts for reward distribution and governance.
+
+- 
+
+  Supports open GNSS protocols (NTRIP, RTCM) to ensure interoperability.
+
+🧠 5. Community Governance
+
+onocoy is a non-profit Swiss association. Its direction is governed by
+token holders using square-root voting, ensuring a fair and
+decentralized decision-making process.
+
+------------------------------------------------------------------------
+
+[]
+
+🚀 What Makes onocoy Unique?
+
+- 
+
+  DePIN for GNSS: A decentralized physical infrastructure network for
+  location services.
+
+- 
+
+  Open and inclusive: Supports open standards, no vendor lock-in.
+
+- 
+
+  Mass-market ready: Enables affordable pay-per-use correction data for
+  everyone.
+
+- 
+
+  Equity and access: Brings high-precision positioning to under-served
+  and remote areas.
+
+------------------------------------------------------------------------
+
+[]
+
+🔮 Vision
+
+  onocoy wants to make high-precision positioning as ubiquitous and
+  accessible as Wi-Fi — for autonomous vehicles, smart agriculture,
+  disaster response, climate monitoring, and more.
+
+------------------------------------------------------------------------
+
+NextWhy GNSS matters?[]
+
+Last updated 6 months ago

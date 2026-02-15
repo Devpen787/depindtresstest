@@ -1,0 +1,222 @@
+[]Copy
+
+[]
+
+1.  8. FAQ / Troubleshooting[]
+2.  Top miner questions
+
+Explaining datum shifts
+
+Receiving onocoy corrections and your device gives you a different
+position than you are used to? Find out why.
+
+- 
+
+  My GNSS receiver provides a shifted position, why is that?
+
+The issue lies within different coordinate frames. Let us dig deeper to
+see why.
+
+Believe it or not the planet Earth crust is not solid, it moves and it
+has plasticity characteristics (it elongates and contracts) due to the
+forces and strains being applied to the different tectonic plates that
+compose our planet, that is called crustal dynamics.
+
+For practical purposes we will focus on a single example, the
+EuroAsiatic tectonic plate which the European continent is part of, but
+the conclusions are applicable to all the other tectonic plates of the
+planet.
+
+The Euroasiatic tectonic plate in Southern Europe displaces at a rate of
+2.6 centimeters every year towards the North East direction. This means
+that a point in space over Europe changes its location and coordinates
+by 2.6 centimeters every year when observed from the reference frame
+(also known as datum) that GPS constellations of satellites use. The
+reference frame for GPS constellations is known as World Geodetic System
+of year 1984 (WGS84) G2296 (realization performed in the GPS era week
+number 2296) or also known as International Terrestrial Reference Frame
+in its latest realization of year 2020 (ITRF20).
+
+As you can imagine, it is not ideal to measure coordinates in a
+reference frame that is not tied or locked to a tectonic plate (also
+known as being no-net-rotation reference frame) because that means that
+the coordinates of a given point in space located over a tectonic plate
+change over time. In fact, there are tectonic plates that move at an
+annual rate of up to 10 centimeters!
+
+- 
+
+  How can I fix that issue with my offsetted GNSS computed coordinates?
+
+As you can imagine, to create local maps (within a given tectonic plate)
+and other coordinate based documents it is very convenient to have a
+reference frame that is tied to the tectonic plate which means that the
+reference frame would displace along the displacement of the tectonic
+plate so that the coordinates within that tectonic plate / reference
+frame would not change any more.
+
+Continuing with our previous example about the European Continent and
+the Euroasiatic tectonic plate, this is exactly what the politicians and
+technicians of the European Union did in year 1989. A law was passed so
+that all the cartography created in the future had to be mandatorily
+made in the reference frame / datum tied to the Euroasiatic plate, hence
+the European Terrestrial Reference System of 1989 (ETRS89) was born.
+
+So going back to your problem of offsetted coordinates, if you are
+within the European Union borders you would want to use, instead of the
+coordinates in GPS’s native datum (WGS84 G2296 / ITRF20) you have to
+tell your receiver to transform your coordinates to the more desirable
+reference frame / datum ETRS89.
+
+Note that in this example we talked about the European case but if you
+are in the US you have to refer to the North American Datum of 1983
+(NAD83), in Australia to the Geocentric Datum of Australia 2020
+(GDA2020) and so on.
+
+The specifics on how to configure a GNSS regarding the datum receiver
+vary from manufacturer to manufacturer and onocoy can not provide
+technical support to third party manufacturers. Therefore you will have
+to gather the specifics either from the user manual of the receiver or
+alternatively from the technical support of that receiver manufacturer.
+
+[]
+
+New Feature: select a reference frame
+
+Now onocoy offers a new NTRIP client feature, the base station on the
+fly coordinate conversion.The coordinates of your RTK rover are provided
+in the reference frame that you manually select, in this way the end
+user has control of the RTK rover positioning solution reference frame.
+
+[]
+
+Select a reference frame in the options for your credentials.
+
+The default choice, ITRF2020, is the reference frame we have been
+providing the base station coordinates so far. The new option, ETRF2000,
+is aimed at our European users.
+
+Reference frame
+
+Epoch
+
+Aimed for region
+
+ITRF2020
+
+Current epoch
+
+Global, but without adaption to plate tectonics
+
+ETRF2000
+
+2010.0
+
+Europe
+
+The most acquainted users will realise that currently we are not
+allowing to manually select the epoch of the reference frame, it is
+fixed at year 2010.00. This has been a deliberate choice to simplify
+operations and provide a common ground between different countries'
+choices (2000.00, 2007.00, 2008.00 and 2017.00). Because the internal
+plate velocities for Europe in ETRS89 are small (few millimetres a year)
+for most of the continent, our expectation is that the difference
+between our epoch of choice and the local government officially enforced
+epoch is going to be a small difference (places with heightened crustal
+activity like Southern Italy and Greece may observe larger differences).
+
+- 
+
+  So that means that if I’m in Europe and I express my coordinates in
+  ETRS89 datum they will not move anymore right?
+
+Not quite, while the displacement of the coordinates will not be quite
+as significant as 2.5 centimeters per year, you are still likely to have
+small variations of 1 or 2 millimeters per year, you may be wondering,
+why is this? Didn’t we say that now the reference frame is tied to the
+tectonic plate? Yes, that is the principle but unfortunately tectonic
+plates are not solid pieces of crust, they do suffer local deformations
+due to internal strains causing that different parts of the plate move
+in slightly different directions and speeds.
+
+In any case, in a 10 year period, the coordinates in Europe would have
+shifted 25 centimeters when expressed in datum ITRF20 as opposed to 1
+centimeter in datum ETRS89.
+
+- 
+
+  So, in the European case, if I see an offset of around 1 meter between
+  the ITRF20 (default output of the GNSS receivers when using onocoy
+  base stations) and the ETRS89 coordinates (local cartography for
+  instance or non onocoy base stations), that is due to the difference
+  in datum, right?
+
+Right, in Europe the official networks of GNSS base stations are
+typically set up so that they already report their own coordinates in
+ETRS89 datum, that means that the RTK rover end user doesn’t even have
+to tell his/her receiver to shift datums because the base is already
+configured to provide positions in that ETRS89 destination datum meaning
+that the rover already outputs positions in the official European datum.
+
+Due to the global nature of onocoy service, the base stations are
+reporting, through their respective NTRIP streams in RTCMv3 format, in a
+global datum (ITRF20). This means that you have to either configure the
+rover receiver to output coordinates in the right datum (ETRS89 in
+Europe) or provide your own means to convert those ITRF20 coordinates.
+
+- 
+
+  If the current difference between ITRF20 and ETRS89 datums is around
+  one meter and is increasing by 2.6 centimeters every year, that means
+  that at some point the difference between those two datums was zero,
+  right?
+
+Yes, you are correct, at the moment of ETRS creation, in 1989, that
+difference was arbitrarily set to zero and has been steadily increasing
+until today at a rate of 2.6 centimeters per year.
+
+- 
+
+  For those acquainted in reference frames, aren't you mixing concepts,
+  ETRS is a system whereas ITRF is a realization, why are you doing
+  this?
+
+The reason the author of the present document has chosen to go this way
+is because GNSS receivers known to the author always output PVT
+solutions in the latest GPS realization or the latest PPP precise
+products, currently WGS84 G2296 or ITRF2020 in current epoch. On the
+other hand, while the European Terrestrial Reference System standardizes
+the reference frame in Europe to the point that states are legally
+obligated to provide their cartography and reference stations in its
+realization from year 2000 (ETRF00), the reference epoch is not
+standardized. Some countries use 2000.0, some countries use 2017.0, …
+therefore it is messy to refer to ETRS89 realizations because what is
+applicable for some countries / institutions is not applicable to
+others. From Dr. Zuheir Altamimi’s ETRS89 web page at:
+http://etrs89.ensg.ign.fr/[]: “(...) The same resolution also recognizes
+the diverse requirements regarding national implementations of ETRS89,
+and respects the different countries’ decisions on adopting their
+preferred ETRS89 realizations including the recommended ETRF2000.”
+
+- 
+
+  I’m a software developer and I would like to implement my own methods
+  to convert coordinates. Can you point me in the right direction?
+
+Our advice is to use the PROJ libraries in whatever programming language
+you are going to implement the source code (for instance pyproj for
+Python).
+
+If you want to dive further into the transformation matter, Dr. Zuheir
+Altamimi does publish PDF papers every time there is a new ITRF/ETRF
+realization with the 14 parameters required to perform the
+transformations. Find a good starting point resource here:
+http://etrs89.ensg.ign.fr/pub/EUREF-TN-1.pdf[]
+
+Regarding base station velocities in Europe you can use the closest
+velocity estimation available at the EUREF Permanent Network website
+(mind the different datums present in that web page).
+
+PreviousTop miner questions[]NextEphemeris RTCM stream[]
+
+Last updated 1 year ago

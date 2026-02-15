@@ -16,6 +16,10 @@ interface VerdictResult {
     color: string;
 }
 
+const getUtilizationMean = (point: any): number => {
+    return point?.utilization?.mean ?? point?.utilisation?.mean ?? 0;
+};
+
 /**
  * Analyze simulation results and generate a verdict
  */
@@ -34,7 +38,7 @@ export function generateVerdict(
     const priceChange = ((last.price.mean - first.price.mean) / first.price.mean) * 100;
     const providerRetention = (last.providers.mean / first.providers.mean) * 100;
     const solvencyScore = last.solvencyScore?.mean || 0;
-    const finalUtilization = last.utilisation?.mean || 0;
+    const finalUtilization = getUtilizationMean(last);
 
     // Verdict Logic
     if (priceChange < -70) {
@@ -92,7 +96,7 @@ export function generateWrapUpScript(
         ? (last.providers.mean / first.providers.mean) * 100
         : 0;
     const solvency = last.solvencyScore?.mean || 0;
-    const utilization = last.utilisation?.mean || 0;
+    const utilization = getUtilizationMean(last);
     const providers = last.providers.mean || 0;
     const weeklyReward = providers > 0 ? (last.minted.mean / providers) * (last.price.mean || 0) : 0;
     const weeklyProfit = weeklyReward - params.providerCostPerWeek;
@@ -223,7 +227,7 @@ The **${profile.metadata.name}** protocol was subjected to a ${params.T}-week si
 | **Token Price** | $${first.price.mean.toFixed(4)} | $${last.price.mean.toFixed(4)} | ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(1)}% |
 | **Provider Count** | ${first.providers.mean.toFixed(0)} | ${last.providers.mean.toFixed(0)} | ${(providerRetention - 100).toFixed(1)}% |
 | **Token Supply** | ${(first.supply.mean / 1e6).toFixed(2)}M | ${(last.supply.mean / 1e6).toFixed(2)}M | ${supplyChange > 0 ? '+' : ''}${supplyChange.toFixed(1)}% |
-| **Final Utilization** | — | ${(last.utilisation?.mean || 0).toFixed(1)}% | — |
+| **Final Utilization** | — | ${getUtilizationMean(last).toFixed(1)}% | — |
 | **Solvency Score** | — | ${(last.solvencyScore?.mean || 0).toFixed(2)} | — |
 
 ---

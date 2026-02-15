@@ -1,0 +1,180 @@
+[]Copy
+
+[]
+
+Decentralizing correction data
+
+onocoy contributes to the decentralization of GNSS correction data by
+fundamentally transforming how GNSS infrastructure is built, owned, and
+operated. Here’s a breakdown of how onocoy achieves this
+decentralization:
+
+------------------------------------------------------------------------
+
+[]
+
+🚀 1. Community-Powered GNSS Infrastructure
+
+Instead of relying on a few centralized correction service providers,
+onocoy enables anyone to operate a GNSS reference station (CORS) and
+stream correction data in exchange for tokens. This allows:
+
+- 
+
+  A broader geographic spread of stations.
+
+- 
+
+  Participation from individuals and organizations outside the
+  traditional GNSS industry.
+
+- 
+
+  Reduced infrastructure redundancy and costs, compared to centralized
+  models which often over-serve profitable areas and under-serve the
+  rest of the world.
+
+------------------------------------------------------------------------
+
+[]
+
+🧠 2. Use of Web3 and Blockchain for Trust & Coordination
+
+onocoy leverages blockchain and smart contracts to create a
+decentralized physical infrastructure network (DePIN):
+
+- 
+
+  Token incentives (ONO token) reward station operators and validators.
+
+- 
+
+  Smart contracts manage rewards, data validation, and governance
+  transparently.
+
+- 
+
+  Non-transferable data credits, pegged to fiat value, ensure
+  predictability for customers while separating speculation from service
+  access.
+
+------------------------------------------------------------------------
+
+[]
+
+🔍 3. Validator Network for Data Quality
+
+To prevent bad actors from submitting fake or synthetic GNSS data just
+to earn tokens, onocoy deploys a decentralized validator network that:
+
+- 
+
+  Monitors data quality using physical and statistical properties of
+  GNSS signals.
+
+- 
+
+  Validates measurements with real-time and post-processed checks.
+
+- 
+
+  Provides real-time alerts and quality scoring for reference station
+  operators.
+
+------------------------------------------------------------------------
+
+[]
+
+🔓 4. Open Standards for Interoperability
+
+Unlike many legacy providers who rely on proprietary protocols, onocoy:
+
+- 
+
+  Supports open standards (e.g., RTCM3 over NTRIP).
+
+- 
+
+  Avoids vendor lock-in.
+
+- 
+
+  Allows integration with existing and new equipment, fostering
+  compatibility and network growth.
+
+------------------------------------------------------------------------
+
+[]
+
+🧩 5. Separation of Infrastructure and Services
+
+Traditional GNSS correction services are vertically integrated—tying
+hardware, infrastructure, and services together. onocoy decouples these
+layers:
+
+- 
+
+  Reference stations become part of a shared infrastructure.
+
+- 
+
+  Correction service providers can use onocoy’s data without having to
+  build their own network.
+
+- 
+
+  This opens doors for mass-market and emerging region applications.
+
+------------------------------------------------------------------------
+
+[]
+
+🌍 6. Enabling Global Coverage and Equity
+
+onocoy’s model:
+
+- 
+
+  Lowers barriers to entry for contributors and users.
+
+- 
+
+  Creates potential for GNSS correction availability in under-served
+  regions like Africa, South America, and rural Asia.
+
+- 
+
+  Supports humanitarian and scientific applications such as earthquake
+  early warning, climate monitoring, and global navigation.
+
+------------------------------------------------------------------------
+
+[]
+
+📈 7. Progressive Decentralization & Governance
+
+onocoy’s governance includes:
+
+- 
+
+  Square-root voting to prevent power concentration.
+
+- 
+
+  Delegated voting by token holders.
+
+- 
+
+  Long-term goal of a fully community-controlled infrastructure via its
+  Swiss-based nonprofit association.
+
+------------------------------------------------------------------------
+
+In essence, onocoy democratizes the GNSS correction ecosystem, breaking
+the monopoly of legacy players and fostering a scalable, transparent,
+and collaborative alternative powered by community incentives and open
+protocols.
+
+PreviousDePIN for GNSS[]NextBenefits for users and miners?[]
+
+Last updated 8 months ago

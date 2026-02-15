@@ -1,0 +1,237 @@
+[]Copy
+
+[]
+
+Mining rewards breakdown
+
+[]
+
+Total rewards breakdown
+
+Reward
+
+Type
+
+Scales with
+
+Purpose
+
+Remarks
+
+Base Reward
+
+Performance
+
+Station performance
+
+Cover station operating costs
+
+Independent of data usage
+
+Streak Appreciation
+
+Performance
+
+Data availability and quality
+
+Incentivizes good long-term performance
+
+50% adder to base reward, infinite runtime
+
+High Value Area (HVA)
+
+Performance
+
+Importance of new installation
+
+Rapid installation of stations in areas with high user demand
+
+Adder to base reward, time limited
+
+Usage Rewards
+
+Usage
+
+Data usage in vicinity of station
+
+Provides upside potential for station owner and motivates local
+community to create demand
+
+Will become the dominant form of rewards in the future
+
+onocoy's mining rewards system is designed to incentivize both the
+rollout and maintenance of GNSS reference stations (called miners). The
+reward model includes four components, each based on different
+performance and network factors:
+
+[]
+
+1. Base Reward
+
+Every miner gets a base reward (in ONO) for participating—this is
+independent of actual usage and encourages early infrastructure
+deployment.
+
+Components of Base Reward:
+
+- 
+
+  Daily ONO Base Reward:
+
+  - 
+
+    Determined by the rewards commission
+
+  - 
+
+    Indicates the maximum amount of ONO a miner can earn within the Base
+    Reward
+
+  - 
+
+    Will be multiplied by the following factors:
+
+- 
+
+  Quality Scale:
+
+  - 
+
+    onocoy checks the quality of the submitted data daily
+
+  - 
+
+    The quality is based on:
+
+    - 
+
+      Supported GNSS constellations (e.g., GPS, Galileo, BeiDou, etc.)
+
+    - 
+
+      Frequency bands supported (e.g., L1, L2, L5, L6)
+
+    - 
+
+      Measurement metrics (e.g., cycle-slip-free epochs, signal noise)
+
+- 
+
+  Availability Scale:
+
+  - 
+
+    Data uptime and completeness
+
+  - 
+
+    Uptime must be ≥80% to earn any reward; scaling is exponential up to
+    100%
+
+- 
+
+  Location Scale:
+
+  - 
+
+    Rewards optimal distribution (not clustered)
+
+  - 
+
+    Penalties for redundancy over three stations within 15–50 km radius
+
+  - 
+
+    Rewards sparsely covered areas to encourage useful deployments
+
+- 
+
+  Early Mover Boost:
+
+  - 
+
+    Multiplier (initially 5×) applied to early adopters
+
+  - 
+
+    Declines over time
+
+------------------------------------------------------------------------
+
+[]
+
+2. Streak Appreciation
+
+Additional incentives to:
+
+- 
+
+  Reward early adoption
+
+- 
+
+  Keep up high performance
+
+- 
+
+  Drive infrastructure upgrades
+
+------------------------------------------------------------------------
+
+[]
+
+3. High Value Areas
+
+Additional incentives (temporary) to:
+
+- 
+
+  Support targeted network growth
+
+- 
+
+  Deploy new stations quickly in a highly demanded area
+
+------------------------------------------------------------------------
+
+[]
+
+4. Usage Rewards
+
+This is a bonus based on actual data consumption in a region. It is
+currently planned for the future and not active yet.
+
+- 
+
+  Shared among miners in a region based on:
+
+  - 
+
+    How often their data is accessed
+
+  - 
+
+    The improvement their data offers to users (e.g., signal quality)
+
+- 
+
+  Encourages regional collaboration: miners benefit more if the region
+  is actively used.
+
+Goal: Encourage miners to not just deploy anywhere, but to find
+high-impact, high-use locations.
+
+------------------------------------------------------------------------
+
+[]
+
+Reward System Summary
+
+[][]
+
+This graph shows a summary of all the reward components and its
+magnitude.
+
+PreviousTrading $ONO[]NextQuality Scale[]
+
+Last updated 2 months ago

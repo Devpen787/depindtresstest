@@ -15,12 +15,19 @@ export interface HistoricalEvent {
     data: HistoricalDataPoint[];
 }
 
+const seededNoise = (seed: number, index: number, amplitude: number): number => {
+    const x = Math.sin((seed * 9301 + index * 49297) % 233280) * 10000;
+    const normalized = x - Math.floor(x); // 0..1
+    return (normalized - 0.5) * amplitude;
+};
+
 // Helper to generate interpolated data for smoother charts
 const generateCurve = (
     start: number,
     end: number,
     weeks: number,
-    curveType: 'linear' | 'exponential_decay' | 'exponential_growth' | 'volatile'
+    curveType: 'linear' | 'exponential_decay' | 'exponential_growth' | 'volatile',
+    seed: number = 1
 ): number[] => {
     const points: number[] = [];
     for (let i = 0; i < weeks; i++) {
@@ -33,9 +40,9 @@ const generateCurve = (
         } else if (curveType === 'exponential_growth') {
             val = start * Math.pow(end / start, t);
         } else if (curveType === 'volatile') {
-            // Random walk with trend
+            // Seeded noise for deterministic, reproducible backtest overlays.
             const trend = start + (end - start) * t;
-            const noise = (Math.random() - 0.5) * (start * 0.1);
+            const noise = seededNoise(seed, i, start * 0.1);
             val = trend + noise;
         }
         points.push(val);
@@ -80,7 +87,7 @@ const geodDataset: HistoricalDataPoint[] = Array.from({ length: geodWeeks }).map
 // Hivemapper 2024: "Operational Resilience"
 // Context: Price volatile/down, Contributors +100% (Linear Growth).
 const hmWeeks = 52;
-const hmPrice = generateCurve(0.25, 0.09, hmWeeks, 'volatile'); // ~60% drop with volatility
+const hmPrice = generateCurve(0.25, 0.09, hmWeeks, 'volatile', 2024); // ~60% drop with volatility
 const hmNodes = generateCurve(30000, 60000, hmWeeks, 'linear'); // Doubled contributors
 const hmRev = generateCurve(50000, 150000, hmWeeks, 'exponential_growth'); // Revenue grew with partnerships
 

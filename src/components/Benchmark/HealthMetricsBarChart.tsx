@@ -11,8 +11,9 @@ import {
     Cell
 } from 'recharts';
 import { PeerId } from './PeerToggle';
+import { ChartContextHeader } from '../ui/ChartContextHeader';
+import { GUARDRAIL_COPY, PAYBACK_GUARDRAILS } from '../../constants/guardrails';
 
-// Peer colors matching PeerToggle
 // Peer colors matching PeerToggle
 const COLORS: Record<string, string> = {
     onocoy: '#6366f1', // Indigo
@@ -31,6 +32,23 @@ const COLORS: Record<string, string> = {
     nosana_v1: '#ec4899' // Pink
 };
 
+const PEER_LABELS: Record<string, string> = {
+    onocoy: 'Onocoy',
+    geodnet_v1: 'Geodnet',
+    hivemapper_v1: 'Hivemapper',
+    helium_bme_v1: 'Helium',
+    dimo_v1: 'DIMO',
+    xnet_v1: 'XNET',
+    adaptive_elastic_v1: 'Render',
+    akash_v1: 'Akash',
+    aleph_v1: 'Aleph.im',
+    grass_v1: 'Grass',
+    ionet_v1: 'io.net',
+    nosana_v1: 'Nosana'
+};
+
+const getPeerLabel = (peerId: string) => PEER_LABELS[peerId] || peerId;
+
 interface HealthMetricsBarChartProps {
     selectedPeers: PeerId[];
     onocoyData: Record<string, number>;
@@ -41,8 +59,8 @@ interface HealthMetricsBarChartProps {
 const normalizeMetric = (value: number, metric: string): number => {
     switch (metric) {
         case 'payback':
-            // Lower is better: 24 months = 0, 0 months = 100
-            return Math.max(0, Math.min(100, (24 - value) / 24 * 100));
+            // Lower is better: healthy threshold maps to 0, 0 months maps to 100.
+            return Math.max(0, Math.min(100, (PAYBACK_GUARDRAILS.healthyMaxMonths - value) / PAYBACK_GUARDRAILS.healthyMaxMonths * 100));
         case 'efficiency':
             // Already 0-100
             return value;
@@ -50,8 +68,8 @@ const normalizeMetric = (value: number, metric: string): number => {
             // 0x = 0, 2x = 100
             return Math.max(0, Math.min(100, value * 50));
         case 'retention':
-            // Scale 80-100 to 0-100 for better visualization
-            return Math.max(0, (value - 80) * 5);
+            // Retention tends to cluster high; spread 50-100 into full scale.
+            return Math.max(0, Math.min(100, (value - 50) * 2));
         default:
             return value;
     }
@@ -96,6 +114,15 @@ export const HealthMetricsBarChart: React.FC<HealthMetricsBarChartProps> = ({
                 </p>
             </div>
 
+            <ChartContextHeader
+                title="How To Read This"
+                what="Each bar is a normalized score so metrics with different units can be compared side-by-side."
+                why="Payback is inverted (lower months = higher score). Sustainability is scaled from ratio. Retention and efficiency are bounded to 0-100."
+                reference={GUARDRAIL_COPY.benchmarkRelativeScoreReference}
+                nextQuestion="Which single metric gap explains the overall benchmark disadvantage?"
+                className="mb-4"
+            />
+
             <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -133,7 +160,7 @@ export const HealthMetricsBarChart: React.FC<HealthMetricsBarChartProps> = ({
                             <Bar
                                 key={key}
                                 dataKey={key}
-                                name={key.charAt(0).toUpperCase() + key.slice(1)}
+                                name={getPeerLabel(key)}
                                 fill={COLORS[key]}
                                 radius={[4, 4, 0, 0]}
                             />

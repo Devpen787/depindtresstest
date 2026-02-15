@@ -1,0 +1,6 @@
+Title: AI-Driven GNSS Spoofing Detection in Community Reference Networks
+Source: Onocoy
+Type: Video transcript
+Captured: 2026-02-14
+
+My Name is Daniel, I'm the President of the onocoy Association, and in this project we are solving the problem of GNSS spoofing, where data could be broadcast which misleads users of GPS, and we're analyzing the data, we're using machine learning, in order to make sure, that the data that is actually being made available to robotics is usable. I'm Benedikt Soja, Assistant Professor of Space Geodesy here at ETH Zurich, and with my team we're looking forward to collecting a lot of GNSS data from different stations all over the world. We want to analyze the data in detail, and then use machine learning to detect if they were subject to fraud. With that we want to better understand, what the different fraud scenarios cause in terms of the data, and also how we can mitigate that in the future. So, my name is Rodrigo Leandro. I work at u-blox as Head of Technology for Services, and I also collaborate with onocoy. And we are here for working on a project for ESA where we are investing on artificial intelligence to detect fraud for GNSS data. And this should help us to improve the quality and the reliance of GNSS networks for high precision users out there.

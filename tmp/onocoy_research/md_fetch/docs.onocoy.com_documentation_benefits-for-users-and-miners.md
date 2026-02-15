@@ -1,0 +1,75 @@
+# Benefits for users and miners?
+
+### 👥 For RTCM Data Users (e.g. GNSS device users, service providers)
+
+#### ✅ **1. Global Access to High-Quality Data**
+
+* Access a **globally distributed** network of RTCM streams (based on open standards like RTCM3 over NTRIP).
+* Useful for applications like precision agriculture, autonomous vehicles, surveying, and more.
+* No need to deal with fragmented, regional providers.
+
+#### 💸 **2. Affordable Pay-Per-Use Model**
+
+* No expensive annual subscriptions (which can cost $200–$50,000/year/device).
+* onocoy uses **data credits** for pay-per-use pricing — perfect for scaling across mass-market devices and new geographies.
+
+#### 🟢 **3. Open and Interoperable**
+
+* Compatible with any standard GNSS hardware — no vendor lock-in.
+* Encourages modular system design (users can pick the best device and the best data source separately).
+
+#### 🔄 **4. Real-Time, Single-Base RTK Support**
+
+* Users get **low-latency, high-accuracy** corrections from the nearest station.
+* Especially valuable for use cases like robotic navigation, drone flight, or automated farming.
+
+#### 🌍 **5. Access in Under-Served Regions**
+
+* onocoy’s incentive model motivates miners to deploy stations in underrepresented areas (e.g., rural Africa or South America).
+* Users can benefit from **coverage where none existed before**.
+
+***
+
+### 🧑‍🌾 For Miners (GNSS station operators)
+
+#### 💰 **1. New Revenue Streams**
+
+* Earn **ONO tokens** based on:
+  * Signal quality
+  * Uptime
+  * Usage of the station
+  * Underserved location bonus
+* No need to build a user base — onocoy handles demand aggregation.
+
+#### 🛠 **2. Easy Integration**
+
+* Use existing GNSS hardware and standard protocols (NTRIP, RTCM).
+* No proprietary software or expensive new systems required.
+
+#### 🔍 **3. Real-Time Quality Monitoring**
+
+* Validators provide **automated feedback** on data quality, availability, and performance.
+* Helps miners maintain high standards and optimize station performance.
+
+#### 🗺 **4. Location-Based Incentives**
+
+* Miners are **rewarded more** for deploying stations in areas with low coverage or high potential demand.
+* This encourages **smart network growth**, not just clustering in profitable urban areas.
+
+#### 🌐 **5. Community and Ecosystem Participation**
+
+* Miners become part of a **global, decentralized GNSS infrastructure movement**.
+* Unlike being a cog in a closed system, onocoy allows miners to contribute to open, humanity-serving applications (e.g., disaster monitoring, climate tracking).
+
+***
+
+### 🧠 Summary: Win-Win Model
+
+| Benefit                       | RTCM Data Users            | Miners                                   |
+| ----------------------------- | -------------------------- | ---------------------------------------- |
+| **Affordable access**         | ✅                          | ✅ (mass-market demand)                   |
+| **Open standards**            | ✅                          | ✅                                        |
+| **No vendor lock-in**         | ✅                          | ✅                                        |
+| **Scalable network**          | ✅                          | ✅                                        |
+| **Incentivized deployment**   | ✅ (coverage in more areas) | ✅ (more rewards in under-served regions) |
+| **Real-time quality control** | ✅ (trusted data)           | ✅ (feedback loop)                        |

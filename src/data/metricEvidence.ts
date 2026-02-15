@@ -102,6 +102,33 @@ export const METRIC_EVIDENCE_REGISTRY: Record<string, MetricEvidence> = {
         timeWindow: 'simulation_horizon_weeks',
         reproducibilityStatus: 'runnable',
     },
+    onocoy_reward_fidelity: {
+        metricId: 'onocoy_reward_fidelity',
+        definition: 'Onocoy reward-fidelity proxy from protocol hook scaffolding (location, quality, availability factors).',
+        sourceUrlOrQueryId: 'model://src/protocols/onocoy/rewardModel.ts',
+        sourceGrade: 'proxy',
+        timeWindow: 'simulation_horizon_weeks',
+        reproducibilityStatus: 'runnable',
+        notes: 'Hook is active for Onocoy profile. Inputs remain model-derived until station-level primary exports are wired.',
+    },
+    onocoy_unlock_flow: {
+        metricId: 'onocoy_unlock_flow',
+        definition: 'Onocoy staged unlock-flow preview from protocol hook scaffolding.',
+        sourceUrlOrQueryId: 'model://src/protocols/onocoy/unlockFlow.ts',
+        sourceGrade: 'proxy',
+        timeWindow: 'simulation_horizon_weeks',
+        reproducibilityStatus: 'runnable',
+        notes: 'Scenarioized unlock preview, not canonical vesting-contract decode.',
+    },
+    onocoy_integrity_signals: {
+        metricId: 'onocoy_integrity_signals',
+        definition: 'Onocoy integrity-pressure proxy from hook scaffolding.',
+        sourceUrlOrQueryId: 'model://src/protocols/onocoy/integritySignals.ts',
+        sourceGrade: 'proxy',
+        timeWindow: 'simulation_horizon_weeks',
+        reproducibilityStatus: 'not_runnable',
+        notes: 'No direct spoofing/slashing/latency telemetry pipeline is wired yet; panel remains confidence-gated.',
+    },
 
     // Comparison view metrics
     comp_token_price_end: {

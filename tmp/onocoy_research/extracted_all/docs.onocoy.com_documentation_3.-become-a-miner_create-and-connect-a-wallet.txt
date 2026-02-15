@@ -1,0 +1,40 @@
+[]Copy
+
+[]
+
+1.  3. Become a Miner
+
+Create and connect a wallet
+
+A cryptocurrency wallet (or crypto wallet for short) is a tool -
+software or hardware - that allows you to allows you to store, send, and
+receive cryptocurrencies like ONOs and others.
+
+A crypto wallet serves the following purposes:
+
+- 
+
+  Stores your private keys – these are secret codes that give you access
+  to your cryptocurrency.
+
+- 
+
+  Manages your public keys and addresses – used to receive funds from
+  others.
+
+- 
+
+  Lets you send transactions – authorizing the movement of your crypto
+  using your private key.
+
+Currently onocoy explorer supports the following crypto wallet types:
+
+[]
+
+To guide you in the process of setting up your first crypto wallet in to
+onocoy explorer, here you have a tutorial based on Phantom wallet that
+could be extrapolated to the other wallet types:
+
+PreviousInstallation guide[]NextConnect your station to onocoy[]
+
+Last updated 8 months ago

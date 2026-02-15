@@ -12,8 +12,8 @@ import type {
   AggregateResult,
   MetricStats,
 } from './types';
-import { SeededRNG } from './rng';
-import { generateDemandSeries } from './demand';
+import { SeededRNG } from './rng.ts';
+import { generateDemandSeries } from './demand.ts';
 
 // ============================================================================
 // PROVIDER AGENT FUNCTIONS
@@ -205,8 +205,8 @@ function processProviderDecisions(
     );
   }
 
-  // Cap at 0 if negative
-  potentialJoins = Math.max(0, potentialJoins);
+  // Cap at 0 if negative, AND HARD BLOCK if average profit is negative (Death Spiral Prevention)
+  potentialJoins = avgProfit < 0 ? 0 : Math.max(0, potentialJoins);
 
   if (potentialJoins > 0) {
     for (let i = 0; i < potentialJoins; i++) {
@@ -350,17 +350,17 @@ export function processPanicEvents(
     // Panic Thresholds
     if (estimatedNewProfit < 0) {
       // Basic panic if underwater
-      panicProb = 0.2;
+      panicProb = 0.8; // Was 0.6. Increased to 80% base.
 
       // Severe panic if deeply underwater (Rev doesn't even cover half of cost)
       if (estimatedNewRevenue < provider.operationalCost * 0.5) {
-        panicProb = 0.8;
+        panicProb = 1.0; // Was 0.9. Guaranteed exit.
       }
 
       // Urban Sensitivity: Higher CAPEX/OPEX means "Sunk Cost Stability" -> They stay longer
       // Rural: Low cost entry -> Easy come, easy go
       if (provider.type === 'urban') {
-        panicProb -= 0.3; // Urban LESS likely to panic (Sunk Cost)
+        panicProb -= 0.4; // Urban LESS likely to panic (Sunk Cost)
       } else {
         panicProb += 0.1; // Rural MORE likely to panic (Low friction)
       }
@@ -368,7 +368,7 @@ export function processPanicEvents(
       // Hardware Tier Sensitivity
       // Pro users (Capitalized) are stickier than Basic users
       if (provider.hardwareTier === 'pro') {
-        panicProb -= 0.15;
+        panicProb -= 0.25;
       }
     }
 
@@ -541,7 +541,15 @@ export function simulateOne(
     // ========================================
     // PHASE 1: DEMAND & SERVICE (Micro Physics)
     // ========================================
-    const demand = demands[t];
+    // [THESIS GAP #4] Network Effects: Demand grows as network grows (Metcalfe-lite)
+    let demand = demands[t];
+    if (params.networkEffectsEnabled) {
+      // Midpoint: 100 nodes. Max Multiplier: 2.0x. Steepness: 0.05.
+      // Uses Micro-scale active count (50-500 nodes typically).
+      const activeCount = providerPool.active.length;
+      const utilityMultiplier = 1 + (1.5 / (1 + Math.exp(-0.05 * (activeCount - 100))));
+      demand = demand * utilityMultiplier;
+    }
     const totalCapacity = Math.max(1, getTotalCapacity(providerPool));
     const demandServed = Math.min(demand, totalCapacity);
     const utilisation = (demandServed / totalCapacity) * 100;
@@ -592,13 +600,36 @@ export function simulateOne(
     const scaledDemand = demand * scalingFactor;
 
     const emissionFactor = 0.6 + 0.4 * Math.tanh(scaledDemand / 15000.0) - 0.2 * saturation;
-    // params.maxMintWeekly is likely Global (e.g. 1M tokens/week).
-    const mintedMacro = Math.max(0, Math.min(params.maxMintWeekly, params.maxMintWeekly * emissionFactor));
+    const rawMintBudget = Math.max(0, Math.min(params.maxMintWeekly, params.maxMintWeekly * emissionFactor));
+
+    // Calibration guardrails:
+    // 1) demand-backed cap keeps emissions proportional to utility burn.
+    // 2) inflation cap prevents runaway weekly dilution across all profiles.
+    const baseMintAllowance = params.maxMintWeekly * 0.15;
+    const demandBackedMintCap = (burnedMacro * 2.0) + baseMintAllowance + (tokenSupply * 0.0005);
+    const inflationHeadroom = Math.min(0.003, (params.maxMintWeekly / Math.max(tokenSupply, 1)) * 0.5);
+    const inflationMintCap = tokenSupply * (0.003 + inflationHeadroom);
+    const mintedMacro = Math.max(0, Math.min(rawMintBudget, demandBackedMintCap, inflationMintCap));
 
     // Micro Rewards for Agents: Share of the Global Mint
     // RewardPerUnit = GlobalMint / GlobalCapacity
     const scaledTotalCapacity = totalCapacity * scalingFactor;
-    const rewardPerCapacityUnit = mintedMacro / Math.max(scaledTotalCapacity, 1);
+
+    // [MODULE 6] SYBIL ATTACK SIMULATION
+    // Sybil nodes inflate capacity but provide zero utility.
+    // They dilute the reward pool, reducing rewards for honest nodes.
+    let effectiveNetworkCapacity = scaledTotalCapacity;
+    let sybilCapacity = 0;
+
+    if (params.sybilAttackEnabled && params.sybilSize > 0) {
+      // Sybil Size is % of honest network (e.g. 0.3 = 30% additional fake capacity)
+      sybilCapacity = scaledTotalCapacity * params.sybilSize;
+      effectiveNetworkCapacity += sybilCapacity;
+    }
+
+    // Diluted Reward (Honest nodes get less)
+    const rewardPerCapacityUnit = mintedMacro / Math.max(effectiveNetworkCapacity, 1);
+
 
     // ========================================
     // PHASE 4: PROVIDER ECONOMICS (Micro Agents)
@@ -708,21 +739,16 @@ export function simulateOne(
 
         const demandPressure = params.kDemandPrice * Math.tanh(scarcityEffective);
 
-        // Dilution should compare Mint vs Supply (Dilution of Market Cap)
-        // BOOSTED Sensitivity: Multiplied by 50 to make 'Max Mint' control visible
-        const dilutionPressure = -params.kMintPrice * 50.0 * (mintedMacro / tokenSupply) * 100;
-
-        // Deflationary Pressure (Burn)
-        // Use kMintPrice coefficient as proxy for 'Supply Awareness'
-        const deflationPressure = params.kMintPrice * 50.0 * (burnedMacro / tokenSupply) * 100;
+        // Net emission pressure: bounded to avoid universal collapse while preserving tokenomics sensitivity.
+        const netEmissionRatio = (mintedMacro - burnedMacro) / Math.max(tokenSupply, 1);
+        const emissionPressure = -params.kMintPrice * Math.tanh(netEmissionRatio * 80);
 
         const logReturn =
           mu +
           buyPressureEffect +
           sellPressureEffect +
           demandPressure +
-          dilutionPressure +
-          deflationPressure +
+          emissionPressure +
           sigma * rng.normal();
 
         // CIRCUIT BREAKER: Clamp weekly volatility to prevent infinite spirals
@@ -748,6 +774,16 @@ export function simulateOne(
     // ========================================
     // RECORD RESULTS (Scale UP Micro metrics)
     // ========================================
+    // Solvency Scorecard Logic
+    const underwaterCount = providerPool.active.filter(p => p.consecutiveLossWeeks > 0).length * scalingFactor;
+    const costPerCapacity = mintedMacro / Math.max(scaledTotalCapacity, 0.1);
+    const revenuePerCapacity = (demandServed * scalingFactor * servicePrice) / Math.max(scaledTotalCapacity, 0.1);
+
+    // Identify if Hysteresis Barrier was active
+    // Condition: avgProfit < (threshold + hardwareCost) AND we didn't have a mass join event
+    const weeklyHardwareCost = params.hardwareCost / 52;
+    const isBarrierActive = avgProfit < (params.profitThresholdToJoin + weeklyHardwareCost);
+
     results.push({
       t,
       price: tokenPrice,
@@ -779,8 +815,15 @@ export function simulateOne(
       weightedCoverage: providerPool.active.reduce((sum, p) => sum + p.locationScale, 0) * scalingFactor,
       proCount: providerPool.active.filter(p => p.hardwareTier === 'pro').length * scalingFactor,
       // Module 4
+      mercenaryCount: providerPool.active.filter(p => p.hardwareTier !== 'pro').length * scalingFactor,
+      // Accumulate Treasury
       treasuryBalance: (treasuryTokens + (params.revenueStrategy === 'reserve' ? burnedMacro : 0)) * tokenPrice,
       vampireChurn: vampireChars * scalingFactor,
+      // Solvency Scorecard
+      underwaterCount,
+      costPerCapacity,
+      revenuePerCapacity,
+      entryBarrierActive: isBarrierActive ? 1 : 0
     });
 
     // Accumulate Treasury
@@ -889,6 +932,11 @@ export function runSimulation(params: SimulationParams): AggregateResult[] {
     'weightedCoverage',
     'treasuryBalance',
     'vampireChurn',
+    'mercenaryCount',
+    'proCount',
+    'entryBarrierActive',
+    'costPerCapacity',
+    'revenuePerCapacity'
   ];
 
   for (let t = 0; t < params.T; t++) {

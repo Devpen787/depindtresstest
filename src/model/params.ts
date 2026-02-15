@@ -63,6 +63,20 @@ export const DEFAULT_PARAMS: SimulationParams = {
   nSims: 100,                           // 100 Monte Carlo runs
   seed: 42,                             // Default seed
   scenario: 'baseline',                 // Default scenario
+  competitorYield: 0,
+  emissionModel: 'fixed',
+  revenueStrategy: 'burn',
+  networkEffectsEnabled: false,
+  hardwareCost: 800,
+  growthCallEventWeek: undefined,
+  growthCallEventPct: undefined,
+  proTierPct: 0.2, // 20% Pro
+  proTierEfficiency: 1.5, // 1.5x Efficiency
+
+  // Sybil
+  sybilAttackEnabled: false,
+  sybilSize: 0.0,
+
 };
 
 // ============================================================================
@@ -443,6 +457,120 @@ export const PARAM_DOCS: Record<keyof SimulationParams, ParamDocumentation> = {
     impact: 'Change to explore different random scenarios.',
     category: 'simulation',
   },
+
+  competitorYield: {
+    name: 'Competitor Yield Advantage',
+    description: 'Percentage yield advantage of a competitor network.',
+    unit: 'percent',
+    min: 0,
+    max: 200,
+    default: 0,
+    impact: 'High values trigger vampire attacks and churn.',
+    category: 'simulation',
+  },
+  emissionModel: {
+    name: 'Emission Model',
+    description: 'Type of emission schedule.',
+    unit: 'enum',
+    min: 0,
+    max: 0,
+    default: 0,
+    impact: 'Fixed or Demand-based.',
+    category: 'tokenomics',
+  },
+  revenueStrategy: {
+    name: 'Revenue Strategy',
+    description: 'How revenue is used.',
+    unit: 'enum',
+    min: 0,
+    max: 0,
+    default: 0,
+    impact: 'Burn or Treasury.',
+    category: 'tokenomics',
+  },
+  networkEffectsEnabled: {
+    name: 'Network Effects',
+    description: 'Enable Metcalfe-lite demand growth.',
+    unit: 'boolean',
+    min: 0,
+    max: 1,
+    default: 0,
+    impact: 'Boosts demand as nodes grow.',
+    category: 'demand',
+  },
+  hardwareCost: {
+    name: 'Hardware Cost',
+    description: 'Cost of hardware for ROI calc.',
+    unit: 'USD',
+    min: 0,
+    max: 5000,
+    default: 800,
+    impact: 'Affects payback period.',
+    category: 'provider',
+  },
+  growthCallEventWeek: {
+    name: 'Growth Call Event Week',
+    description: 'Week of growth shock.',
+    unit: 'week',
+    min: 0,
+    max: 52,
+    default: 0,
+    impact: 'Triggers mass join.',
+    category: 'simulation',
+  },
+  growthCallEventPct: {
+    name: 'Growth Call Event %',
+    description: 'Size of growth shock.',
+    unit: 'decimal',
+    min: 0,
+    max: 1,
+    default: 0,
+    impact: 'Magnitude of join spike.',
+    category: 'simulation',
+  },
+  proTierPct: {
+    name: 'Pro Tier %',
+    description: 'Percentage of new nodes that are Pro.',
+    unit: 'decimal',
+    min: 0,
+    max: 1,
+    default: 0.2,
+    impact: 'Affects network quality.',
+    category: 'provider',
+  },
+  proTierEfficiency: {
+    name: 'Pro Tier Efficiency',
+    description: 'Reward multiplier for Pro nodes.',
+    unit: 'multiplier',
+    min: 1,
+    max: 5,
+    default: 1.5,
+    impact: 'Affects reward distribution.',
+    category: 'provider',
+  },
+
+  sybilAttackEnabled: {
+    name: 'Sybil Attack Active',
+    description: 'Simulates adversarial nodes that provide fake capacity to farm tokens.',
+    unit: 'boolean',
+    min: 0,
+    max: 1,
+    default: 0,
+    impact: 'Enables capacity inflation without utility.',
+    category: 'simulation',
+  },
+
+  sybilSize: {
+    name: 'Sybil Attack Size',
+    description: 'Magnitude of Sybil attack relative to honest network size.',
+    unit: 'decimal',
+    min: 0,
+    max: 1,
+    default: 0,
+    impact: 'Dilutes rewards for honest miners, reducing capital efficiency.',
+    category: 'simulation',
+  },
+
 };
 
 // ============================================================================

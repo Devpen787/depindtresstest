@@ -1,0 +1,91 @@
+[]Copy
+
+[]
+
+Service levels
+
+[]
+
+Onocoy RTK
+
+[]
+
+Characteristics
+
+- 
+
+  Applications: Perfect for professional surveyors, various applications
+  in agriculture and construction, precise navigation of UAVs and
+  robotics, and more
+
+- 
+
+  Mode: Single base RTK service, offering access to the nearest
+  reference station with seamless handover and fallback capabilities.
+
+- 
+
+  Data access: Via NTRIP 1.0 / 2.0 HTTP Plain and Encrypted access
+  available.
+
+- 
+
+  Frequency bands: Supports L1, L2, and L5.
+
+- 
+
+  Data format: RTCM 3.x MSM4 or higher.
+
+- 
+
+  GNSS compatibility: Works with GPS, Galileo, GLONASS, and BeiDou.
+
+- 
+
+  Position accuracy: 1 centimeter + 1 part per million of the rover to
+  base baseline length
+
+[]
+
+Multi-device usage
+
+Multiple users/devices may share an account, provided they work for the
+same employer and use it for the same employer-related purposes. This
+way you save on the base fee and pay only for the PPU for each
+additional device.
+
+[]
+
+Key features
+
+NRBY_ADV is a roaming mountpoint. That means:
+
+- 
+
+  Your rover receiver will automatically connect to the nearest station
+
+- 
+
+  It will only connect to those stations fulfilling your signal band
+  requirements
+
+  - 
+
+    For example, if you choose signal Galileo E5 as a must for you, you
+    will only receive correction data from base stations tracking E5.
+
+- 
+
+  If you move further than 20 km from the original base station and
+  another suitable station is closer, the receiver will automatically
+  change the base station to the closer one.
+
+[]
+
+Onocoy STREAM
+
+Service pending to be released.
+
+PreviousConfigure the GNSS receiver[]NextTokenomics[]
+
+Last updated 9 months ago

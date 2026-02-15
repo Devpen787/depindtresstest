@@ -1,0 +1,424 @@
+{
+  "generatedAtIso": "2026-02-11T16:55:46.185Z",
+  "runsPerCell": 30,
+  "failureThreshold": 0.01,
+  "debtRatios": [
+    0.25,
+    0.5,
+    0.75,
+    1,
+    1.25
+  ],
+  "demandVolatilityLevels": [
+    0.03,
+    0.1,
+    0.2,
+    0.35,
+    0.5
+  ],
+  "cells": [
+    {
+      "debtRatio": 0.25,
+      "demandVolatility": 0.03,
+      "runCount": 30,
+      "liquidatableFailureRate": 0.9666666666666667,
+      "insolvencyFailureRate": 0.9333333333333333,
+      "avgMaxUnderwaterShare": 0.021139019762954778,
+      "avgFinalSolvencyDeficit": 0.9999711466653162,
+      "avgFinalProviderCollapseShare": 0.33890000000000003,
+      "avgFinalSolvencyScore": 0.00002885333468377482,
+      "avgFinalPrice": 1.009465060322447,
+      "avgFinalProviders": 676.7666666666667
+    },
+    {
+      "debtRatio": 0.5,
+      "demandVolatility": 0.03,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.7666666666666667,
+      "avgMaxUnderwaterShare": 0.00471396781067111,
+      "avgFinalSolvencyDeficit": 0.9999780980570961,
+      "avgFinalProviderCollapseShare": 0.1977666666666667,
+      "avgFinalSolvencyScore": 0.00002190194290371227,
+      "avgFinalPrice": 1.01909611316866,
+      "avgFinalProviders": 848.3
+    },
+    {
+      "debtRatio": 0.75,
+      "demandVolatility": 0.03,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.36666666666666664,
+      "avgMaxUnderwaterShare": 0.0029604748511271746,
+      "avgFinalSolvencyDeficit": 0.9999844355517874,
+      "avgFinalProviderCollapseShare": 0.0703,
+      "avgFinalSolvencyScore": 0.000015564448212715514,
+      "avgFinalPrice": 1.2802225287073623,
+      "avgFinalProviders": 1249.2
+    },
+    {
+      "debtRatio": 1,
+      "demandVolatility": 0.03,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.03333333333333333,
+      "avgMaxUnderwaterShare": 0.0024798189390171604,
+      "avgFinalSolvencyDeficit": 0.9999870595223989,
+      "avgFinalProviderCollapseShare": 0.009466666666666668,
+      "avgFinalSolvencyScore": 0.000012940477601092584,
+      "avgFinalPrice": 1.2008849854000787,
+      "avgFinalProviders": 1413.5666666666666
+    },
+    {
+      "debtRatio": 1.25,
+      "demandVolatility": 0.03,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.13333333333333333,
+      "avgMaxUnderwaterShare": 0.0026472695580619728,
+      "avgFinalSolvencyDeficit": 0.9999869377296513,
+      "avgFinalProviderCollapseShare": 0.019866666666666664,
+      "avgFinalSolvencyScore": 0.00001306227034892507,
+      "avgFinalPrice": 1.0509027645112539,
+      "avgFinalProviders": 1443.2
+    },
+    {
+      "debtRatio": 0.25,
+      "demandVolatility": 0.1,
+      "runCount": 30,
+      "liquidatableFailureRate": 1,
+      "insolvencyFailureRate": 0.8,
+      "avgMaxUnderwaterShare": 0.019747535536250693,
+      "avgFinalSolvencyDeficit": 0.9999755027400128,
+      "avgFinalProviderCollapseShare": 0.27230000000000004,
+      "avgFinalSolvencyScore": 0.00002449725998701029,
+      "avgFinalPrice": 1.2100452881347077,
+      "avgFinalProviders": 755.7
+    },
+    {
+      "debtRatio": 0.5,
+      "demandVolatility": 0.1,
+      "runCount": 30,
+      "liquidatableFailureRate": 0.03333333333333333,
+      "insolvencyFailureRate": 0.36666666666666664,
+      "avgMaxUnderwaterShare": 0.004414636597657521,
+      "avgFinalSolvencyDeficit": 0.9999832096909362,
+      "avgFinalProviderCollapseShare": 0.09556666666666665,
+      "avgFinalSolvencyScore": 0.000016790309063687447,
+      "avgFinalPrice": 1.424007219839189,
+      "avgFinalProviders": 1146.8333333333333
+    },
+    {
+      "debtRatio": 0.75,
+      "demandVolatility": 0.1,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.4,
+      "avgMaxUnderwaterShare": 0.003448488357547927,
+      "avgFinalSolvencyDeficit": 0.99998325829672,
+      "avgFinalProviderCollapseShare": 0.10313333333333333,
+      "avgFinalSolvencyScore": 0.000016741703279931274,
+      "avgFinalPrice": 1.1211194543250451,
+      "avgFinalProviders": 1109
+    },
+    {
+      "debtRatio": 1,
+      "demandVolatility": 0.1,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.16666666666666666,
+      "avgMaxUnderwaterShare": 0.002666585005119466,
+      "avgFinalSolvencyDeficit": 0.999986800946567,
+      "avgFinalProviderCollapseShare": 0.01976666666666667,
+      "avgFinalSolvencyScore": 0.00001319905343319052,
+      "avgFinalPrice": 1.2099471991482984,
+      "avgFinalProviders": 1416.0666666666666
+    },
+    {
+      "debtRatio": 1.25,
+      "demandVolatility": 0.1,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.16666666666666666,
+      "avgMaxUnderwaterShare": 0.0023893969051660157,
+      "avgFinalSolvencyDeficit": 0.9999870931808303,
+      "avgFinalProviderCollapseShare": 0.019333333333333334,
+      "avgFinalSolvencyScore": 0.0000129068191697967,
+      "avgFinalPrice": 1.0955092545771747,
+      "avgFinalProviders": 1481.2333333333333
+    },
+    {
+      "debtRatio": 0.25,
+      "demandVolatility": 0.2,
+      "runCount": 30,
+      "liquidatableFailureRate": 0.9666666666666667,
+      "insolvencyFailureRate": 0.7666666666666667,
+      "avgMaxUnderwaterShare": 0.01821927384405092,
+      "avgFinalSolvencyDeficit": 0.9999746104113342,
+      "avgFinalProviderCollapseShare": 0.2627333333333334,
+      "avgFinalSolvencyScore": 0.00002538958866579308,
+      "avgFinalPrice": 1.2051573155673259,
+      "avgFinalProviders": 763.2333333333333
+    },
+    {
+      "debtRatio": 0.5,
+      "demandVolatility": 0.2,
+      "runCount": 30,
+      "liquidatableFailureRate": 0.03333333333333333,
+      "insolvencyFailureRate": 0.6,
+      "avgMaxUnderwaterShare": 0.005186124586934673,
+      "avgFinalSolvencyDeficit": 0.9999795265298208,
+      "avgFinalProviderCollapseShare": 0.16943333333333338,
+      "avgFinalSolvencyScore": 0.000020473470179199264,
+      "avgFinalPrice": 1.1672829704046137,
+      "avgFinalProviders": 932.7
+    },
+    {
+      "debtRatio": 0.75,
+      "demandVolatility": 0.2,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.4,
+      "avgMaxUnderwaterShare": 0.003048305672876717,
+      "avgFinalSolvencyDeficit": 0.9999831787347822,
+      "avgFinalProviderCollapseShare": 0.0793,
+      "avgFinalSolvencyScore": 0.000016821265217926743,
+      "avgFinalPrice": 1.1590478642055653,
+      "avgFinalProviders": 1152.5
+    },
+    {
+      "debtRatio": 1,
+      "demandVolatility": 0.2,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.23333333333333334,
+      "avgMaxUnderwaterShare": 0.002843988070273454,
+      "avgFinalSolvencyDeficit": 0.9999856453525982,
+      "avgFinalProviderCollapseShare": 0.0284,
+      "avgFinalSolvencyScore": 0.000014354647401811109,
+      "avgFinalPrice": 1.0703152342805342,
+      "avgFinalProviders": 1224.8
+    },
+    {
+      "debtRatio": 1.25,
+      "demandVolatility": 0.2,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.13333333333333333,
+      "avgMaxUnderwaterShare": 0.0025714699885156455,
+      "avgFinalSolvencyDeficit": 0.9999873508079105,
+      "avgFinalProviderCollapseShare": 0.014733333333333331,
+      "avgFinalSolvencyScore": 0.000012649192089403923,
+      "avgFinalPrice": 1.1181948289357284,
+      "avgFinalProviders": 1506.3333333333333
+    },
+    {
+      "debtRatio": 0.25,
+      "demandVolatility": 0.35,
+      "runCount": 30,
+      "liquidatableFailureRate": 0.9333333333333333,
+      "insolvencyFailureRate": 0.8,
+      "avgMaxUnderwaterShare": 0.018591728033634902,
+      "avgFinalSolvencyDeficit": 0.9999747712877751,
+      "avgFinalProviderCollapseShare": 0.30056666666666665,
+      "avgFinalSolvencyScore": 0.000025228712225112583,
+      "avgFinalPrice": 1.142168361502267,
+      "avgFinalProviders": 729.2333333333333
+    },
+    {
+      "debtRatio": 0.5,
+      "demandVolatility": 0.35,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.5333333333333333,
+      "avgMaxUnderwaterShare": 0.004436097726952886,
+      "avgFinalSolvencyDeficit": 0.9999815814530106,
+      "avgFinalProviderCollapseShare": 0.11573333333333331,
+      "avgFinalSolvencyScore": 0.000018418546989225306,
+      "avgFinalPrice": 1.1667329575703094,
+      "avgFinalProviders": 952.5666666666667
+    },
+    {
+      "debtRatio": 0.75,
+      "demandVolatility": 0.35,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.3,
+      "avgMaxUnderwaterShare": 0.0028218124569583977,
+      "avgFinalSolvencyDeficit": 0.9999864558970394,
+      "avgFinalProviderCollapseShare": 0.04526666666666667,
+      "avgFinalSolvencyScore": 0.000013544102960288849,
+      "avgFinalPrice": 1.3199600173294477,
+      "avgFinalProviders": 1302.1666666666667
+    },
+    {
+      "debtRatio": 1,
+      "demandVolatility": 0.35,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.26666666666666666,
+      "avgMaxUnderwaterShare": 0.002562264164794989,
+      "avgFinalSolvencyDeficit": 0.999985509712693,
+      "avgFinalProviderCollapseShare": 0.0452,
+      "avgFinalSolvencyScore": 0.00001449028730695585,
+      "avgFinalPrice": 1.1508034605335085,
+      "avgFinalProviders": 1311.2
+    },
+    {
+      "debtRatio": 1.25,
+      "demandVolatility": 0.35,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.13333333333333333,
+      "avgMaxUnderwaterShare": 0.0020946329059075555,
+      "avgFinalSolvencyDeficit": 0.9999879593961688,
+      "avgFinalProviderCollapseShare": 0.025566666666666668,
+      "avgFinalSolvencyScore": 0.000012040603831103442,
+      "avgFinalPrice": 1.2013255785029198,
+      "avgFinalProviders": 1580.8
+    },
+    {
+      "debtRatio": 0.25,
+      "demandVolatility": 0.5,
+      "runCount": 30,
+      "liquidatableFailureRate": 1,
+      "insolvencyFailureRate": 0.7333333333333333,
+      "avgMaxUnderwaterShare": 0.019739856908987226,
+      "avgFinalSolvencyDeficit": 0.9999796855120593,
+      "avgFinalProviderCollapseShare": 0.21063333333333337,
+      "avgFinalSolvencyScore": 0.00002031448794074532,
+      "avgFinalPrice": 1.351653174347873,
+      "avgFinalProviders": 843
+    },
+    {
+      "debtRatio": 0.5,
+      "demandVolatility": 0.5,
+      "runCount": 30,
+      "liquidatableFailureRate": 0.03333333333333333,
+      "insolvencyFailureRate": 0.5666666666666667,
+      "avgMaxUnderwaterShare": 0.004742564765222785,
+      "avgFinalSolvencyDeficit": 0.9999811632755833,
+      "avgFinalProviderCollapseShare": 0.1364,
+      "avgFinalSolvencyScore": 0.00001883672441673324,
+      "avgFinalPrice": 1.1518477019458857,
+      "avgFinalProviders": 940.1666666666666
+    },
+    {
+      "debtRatio": 0.75,
+      "demandVolatility": 0.5,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.3,
+      "avgMaxUnderwaterShare": 0.0031277336268648996,
+      "avgFinalSolvencyDeficit": 0.9999851591363278,
+      "avgFinalProviderCollapseShare": 0.0593,
+      "avgFinalSolvencyScore": 0.000014840863672399466,
+      "avgFinalPrice": 1.2643735228430075,
+      "avgFinalProviders": 1248.2333333333333
+    },
+    {
+      "debtRatio": 1,
+      "demandVolatility": 0.5,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.26666666666666666,
+      "avgMaxUnderwaterShare": 0.0027579745172976104,
+      "avgFinalSolvencyDeficit": 0.999985541539705,
+      "avgFinalProviderCollapseShare": 0.0508,
+      "avgFinalSolvencyScore": 0.000014458460295201016,
+      "avgFinalPrice": 1.086321663263496,
+      "avgFinalProviders": 1254.8
+    },
+    {
+      "debtRatio": 1.25,
+      "demandVolatility": 0.5,
+      "runCount": 30,
+      "liquidatableFailureRate": 0,
+      "insolvencyFailureRate": 0.13333333333333333,
+      "avgMaxUnderwaterShare": 0.002530967457256306,
+      "avgFinalSolvencyDeficit": 0.9999876038590657,
+      "avgFinalProviderCollapseShare": 0.02173333333333333,
+      "avgFinalSolvencyScore": 0.000012396140933903216,
+      "avgFinalPrice": 1.0802583558340162,
+      "avgFinalProviders": 1484.1666666666667
+    }
+  ],
+  "liquidatableHeatmap": [
+    [
+      0.9666666666666667,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0.03333333333333333,
+      0,
+      0,
+      0
+    ],
+    [
+      0.9666666666666667,
+      0.03333333333333333,
+      0,
+      0,
+      0
+    ],
+    [
+      0.9333333333333333,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0.03333333333333333,
+      0,
+      0,
+      0
+    ]
+  ],
+  "insolvencyHeatmap": [
+    [
+      0.9333333333333333,
+      0.7666666666666667,
+      0.36666666666666664,
+      0.03333333333333333,
+      0.13333333333333333
+    ],
+    [
+      0.8,
+      0.36666666666666664,
+      0.4,
+      0.16666666666666666,
+      0.16666666666666666
+    ],
+    [
+      0.7666666666666667,
+      0.6,
+      0.4,
+      0.23333333333333334,
+      0.13333333333333333
+    ],
+    [
+      0.8,
+      0.5333333333333333,
+      0.3,
+      0.26666666666666666,
+      0.13333333333333333
+    ],
+    [
+      0.7333333333333333,
+      0.5666666666666667,
+      0.3,
+      0.26666666666666666,
+      0.13333333333333333
+    ]
+  ],
+  "safeOperatingPoint": {
+    "maxSafeVolatilityAtDebt1": 0.03,
+    "maxSafeDebtAtVol20": null
+  }
+}

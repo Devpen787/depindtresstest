@@ -2,6 +2,7 @@ import React from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { DiagnosticInput, DiagnosticState } from './types';
+import { calculateSubsidyTrapSeries } from '../../audit/diagnosticViewMath';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -11,36 +12,8 @@ interface Props {
 }
 
 export const SubsidyTrapChart: React.FC<Props> = ({ inputs, state }) => {
-    // Generate SIMULATED data for Year 1 to Year 5
-    // Emissions:
-    // Fixed: Starts high, decays 16% per year (Halving-ish logic? Or typically fixed schedule).
-    // Dynamic: Linked to Burn + buffer.
-
     const years = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
-
-    const emissions = [];
-    const burn = [];
-
-    let currentEmission = 100;
-    let currentBurn = 10; // Starts low
-
-    for (let i = 0; i < 5; i++) {
-        // 1. Emission Logic
-        if (inputs.emissionSchedule === 'Fixed') {
-            currentEmission = currentEmission * 0.84; // 16% decay
-        } else {
-            // Dynamic: Follows demand + 20% subsidy buffer
-            currentEmission = (currentBurn * 1.2) + 20;
-        }
-
-        // 2. Burn Logic (Demand)
-        // Low Demand Lag = Fast growth. High Lag = Slow growth.
-        const growthRate = inputs.demandLag === 'Low' ? 1.5 : 1.1;
-        currentBurn = currentBurn * growthRate;
-
-        emissions.push(Math.round(currentEmission));
-        burn.push(Math.round(currentBurn));
-    }
+    const { emissions, burn } = calculateSubsidyTrapSeries(inputs, 5);
 
     const data = {
         labels: years,

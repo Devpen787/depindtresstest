@@ -16,6 +16,7 @@ import MetricCard from '../ui/MetricCard';
 import BaseChartBox from '../ui/BaseChartBox';
 import { GeoCoverageView } from '../GeoCoverageView';
 import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
+import MetricEvidenceBadge from '../ui/MetricEvidenceBadge';
 
 import { formatCompact, formatCurrency, formatPercent, getColourClass } from '../../utils/format';
 import { ChartInterpretation, CHART_INTERPRETATIONS } from '../../data/chartInterpretations';
@@ -27,12 +28,14 @@ import { ScenarioManager } from '../ui/ScenarioManager';
 import { ScenarioComparisonPanel } from '../ui/ScenarioComparisonPanel';
 import { useSandboxViewModel } from '../../viewmodels/SandboxViewModel';
 import { seededRandom, initGlobalRng } from '../../utils/seededRandom';
+import type { OnocoyProtocolHookSnapshot } from '../../hooks/useSimulationRunner';
 
 interface SandboxViewProps {
     activeProfile: ProtocolProfileV1;
     params: SimulationParams;
     setParams: React.Dispatch<React.SetStateAction<SimulationParams>>;
     aggregated: AggregateResult[];
+    onocoyHookSnapshot?: OnocoyProtocolHookSnapshot;
     playbackWeek: number;
     incentiveRegime: IncentiveRegime;
     scrollToControl: (section: string) => void;
@@ -45,6 +48,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
     params,
     setParams,
     aggregated,
+    onocoyHookSnapshot,
     playbackWeek,
     incentiveRegime,
     scrollToControl,
@@ -464,6 +468,58 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                 <div className="mb-8">
                     <MetricEvidenceLegend />
                 </div>
+
+                {onocoyHookSnapshot && (
+                    <div className="mb-8 bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+                        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                            <div>
+                                <h3 className="text-[11px] font-black text-white uppercase tracking-widest">Onocoy Hook Layer</h3>
+                                <p className="text-[11px] text-slate-400">
+                                    Protocol-specific scaffolds are active for this profile. Values remain gated as model/proxy until primary telemetry is wired.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {onocoyHookSnapshot.sourceTagIds.map((tagId) => (
+                                    <MetricEvidenceBadge key={tagId} evidence={getMetricEvidence(tagId)} compact />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400">Reward Fidelity Proxy</p>
+                                <p className="text-sm font-semibold text-white mt-1">
+                                    {(onocoyHookSnapshot.rewardProxy.rewardTokens * 100).toFixed(1)}%
+                                </p>
+                                <p className="text-[10px] text-slate-500 mt-1">
+                                    Location {(onocoyHookSnapshot.rewardProxy.locationScale * 100).toFixed(0)}% ·
+                                    Quality {(onocoyHookSnapshot.rewardProxy.qualityScale * 100).toFixed(0)}% ·
+                                    Availability {(onocoyHookSnapshot.rewardProxy.availabilityScale * 100).toFixed(0)}%
+                                </p>
+                            </div>
+                            <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400">Unlock Curve Preview</p>
+                                <p className="text-sm font-semibold text-white mt-1">
+                                    {onocoyHookSnapshot.unlockPreview.length} points
+                                </p>
+                                <p className="text-[10px] text-slate-500 mt-1">
+                                    Cliff week {onocoyHookSnapshot.unlockPreview[0]?.week ?? '-'} ·
+                                    Last week {onocoyHookSnapshot.unlockPreview[onocoyHookSnapshot.unlockPreview.length - 1]?.week ?? '-'}
+                                </p>
+                            </div>
+                            <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400">Integrity Pressure Proxy</p>
+                                <p className="text-sm font-semibold text-white mt-1">
+                                    {onocoyHookSnapshot.integrityProxy.integrityPressureScore.toFixed(2)}
+                                </p>
+                                <p className="text-[10px] text-slate-500 mt-1">
+                                    Spoof {onocoyHookSnapshot.integrityProxy.spoofingRatePct.toFixed(2)}% ·
+                                    Slash {onocoyHookSnapshot.integrityProxy.slashingRatePct.toFixed(2)}% ·
+                                    Latency {onocoyHookSnapshot.integrityProxy.latencyBreachRatePct.toFixed(2)}%
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* TIER 1: SURVIVAL */}
                 <SectionLayout

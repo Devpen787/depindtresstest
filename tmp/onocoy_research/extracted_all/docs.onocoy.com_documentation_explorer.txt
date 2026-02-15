@@ -1,0 +1,108 @@
+[]Copy
+
+[]
+
+Explorer
+
+[]
+
+The heatmap shows which areas are well covered to receive GNSS
+correction data.
+
+The explorer[] is a tool to discover the coverage of onocoy's GNSS
+corrections. It is very useful for miners and clients equally.
+
+Open the explorer and you will find a map of the earth with a heatmap on
+where to find coverage. Zoom in and out to inspect your different areas
+of interest.
+
+If you zoom in enough, you can click on a specific miner. You will see
+more detailed information about the station.
+
+[]
+
+- 
+
+  Mountpoint: unique name of the station. It consists of the following
+  name parts:
+
+[]
+
+Mountpoint name explanation
+
+- 
+
+  Location: An approximate location of the station that has been
+  validated. The format is in latitude, longitude. A flag indicates the
+  country of the station. Learn about why we don't show the exact
+  location here.
+
+- 
+
+  Rewards earned: Total number of rewards for this station since setup.
+  Only applicable if the station owner has registered it on the stream.
+
+- 
+
+  Created at: First timestamp of the station being online.
+
+- 
+
+  Validation: Status of the validation procedure. If the station has a
+  checkmark, it means it passed the Data Validation process.
+
+- 
+
+  Up since: Time the station has continuously been online without
+  interruption.
+
+On the bottom of the page, choose a graph from the following:
+
+- 
+
+  Satellites: Total number of satellites tracked on average for the
+  given timeframe.
+
+- 
+
+  Signals: Total number of signals provided. Find more information about
+  GNSS signals in the signals section of What is GNSS?.
+
+- 
+
+  Quality scale: Percentage of the station's reward based on the
+  signals, their quality and on the location of the station.
+
+- 
+
+  Rewards: Estimated rewards earned per day.
+
+[]
+
+Click on the 3 bars on the left to choose a chart.
+
+Select the tab Signals to see which satellite constellations and
+frequencies the station is tracking.
+
+[]
+
+Example for a station with a high number of signals
+
+[]
+
+Example for a station with a low number of signals
+
+- 
+
+  Constellations: Provided GNSS constellations. Check out the codes for
+  the different constellations in the panel What is GNSS?.
+
+- 
+
+  Frequencies: If a frequency is tracked by the receiver, it is marked
+  with a filled circle. For more info on signals, check out the signal
+  section in the panel What is GNSS?.
+
+PreviousData Validation[]NextSky Map[]
+
+Last updated 1 year ago

@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-02-07T14:16:05.591Z",
+  "hasAbsoluteBtn": false,
+  "hasPercentileBtn": false,
+  "hasRelativeCopy": false,
+  "hasPercentileValues": false,
+  "hasRawContext": false,
+  "riskChecks": {
+    "hasTailRiskScoreLabel": true,
+    "hasTailRiskProbabilityLabel": false,
+    "hasInsolvencyExposure": true,
+    "hasFinalSolvency": true
+  }
+}

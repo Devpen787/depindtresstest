@@ -4,6 +4,18 @@ import { TokenMarketData } from '../services/coingecko';
 import { BENCHMARK_PEERS } from '../data/peerGroups';
 import { ProtocolMetrics } from '../hooks/useProtocolMetrics';
 import { HISTORICAL_EVENTS, HistoricalDataPoint } from '../data/historical_events';
+import {
+    calculateAnnualGrowthYoY,
+    calculateAnnualizedRevenue,
+    calculateDemandDataSource,
+    calculateHardwareRoiPct,
+    calculateRevenuePerNode,
+    calculateSustainabilityRatioPct,
+    calculateWeeklyBurn,
+    resolveSourceLabel,
+    safeAbsoluteDelta,
+    safePercentDelta
+} from '../audit/benchmarkViewMath';
 
 // --- Benchmark Schemas ---
 
@@ -84,36 +96,6 @@ export const useBenchmarkViewModel = (
         return iso.slice(0, 10);
     };
 
-    const safePercentDelta = (a: number, b: number) => {
-        if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) {
-            return { delta: 0, isValid: false };
-        }
-        return { delta: ((a - b) / b) * 100, isValid: true };
-    };
-
-    const safeAbsoluteDelta = (a: number, b: number) => {
-        if (!Number.isFinite(a) || !Number.isFinite(b)) {
-            return { delta: 0, isValid: false };
-        }
-        return { delta: a - b, isValid: true };
-    };
-
-    const resolveSourceLabel = (sources: Array<'simulated' | 'live' | 'mixed'>) => {
-        const hasLive = sources.includes('live');
-        const hasMixed = sources.includes('mixed');
-        const hasSim = sources.includes('simulated');
-
-        if (hasLive && !hasMixed && !hasSim) {
-            return { label: 'Live Data' as const, isProjected: false };
-        }
-
-        if (hasLive || hasMixed) {
-            return { label: 'Anchored' as const, isProjected: false };
-        }
-
-        return { label: 'Simulated' as const, isProjected: true };
-    };
-
     // 1. Supply Side Derivation
     const getSupplySide = (protocolId: string): SupplySideBenchmark => {
         const last = getLastPoint(protocolId);
@@ -136,16 +118,9 @@ export const useBenchmarkViewModel = (
 
         // Calculate CAGR / Growth if possible, else 0
         const results = multiAggregated[protocolId] || [];
-        let growthYoY = 0;
-        if (results.length > 0) {
-            const startNodes = results[0]?.providers?.mean || 1;
-            const endNodes = last?.providers?.mean || 1;
-            const weeks = results.length;
-            if (weeks > 0 && startNodes > 0) {
-                const weeklyGrowth = Math.pow(endNodes / startNodes, 1 / weeks) - 1;
-                growthYoY = (Math.pow(1 + weeklyGrowth, 52) - 1) * 100;
-            }
-        }
+        const startNodes = results[0]?.providers?.mean || 1;
+        const endNodes = last?.providers?.mean || 1;
+        const growthYoY = calculateAnnualGrowthYoY(startNodes, endNodes, results.length);
 
         // Live Override for Active Nodes
         const useLiveNodes = chain && chain.activeNodesTotal > 0;
@@ -190,18 +165,28 @@ export const useBenchmarkViewModel = (
             sourceRefs: []
         };
 
-        // Revenue: Use Live/OnChain if available, else projected annualized
-        const useLiveRev = chain && chain.revenueUSD7d > 0;
-        const revenueAnnual = useLiveRev
-            ? chain.revenueUSD7d * 52
-            : ((last?.demand_served?.mean || 0) * (last?.servicePrice?.mean || 0)) * 52;
+        // Revenue/Burn source resolution:
+        // - live: both revenue and burn come from on-chain/live inputs
+        // - mixed: exactly one side is live
+        // - simulated: both sides are simulated
+        const hasLiveRevenue = !!(chain && chain.revenueUSD7d > 0);
+        const hasLiveBurn = !!(chain && chain.tokenBurned7d > 0);
 
-        const useLiveBurn = chain && chain.tokenBurned7d > 0;
-        const burnWeekly = useLiveBurn
-            ? chain.tokenBurned7d
-            : (last?.burned?.mean || 0);
+        const revenueAnnual = calculateAnnualizedRevenue(
+            hasLiveRevenue,
+            chain?.revenueUSD7d || 0,
+            last?.demand_served?.mean || 0,
+            last?.servicePrice?.mean || 0
+        );
 
-        const sourceLabel = useLiveRev ? (chain?.sourceType === 'snapshot' ? 'Snapshot' : 'Dune') : engineLabel;
+        const burnWeekly = calculateWeeklyBurn(
+            hasLiveBurn,
+            chain?.tokenBurned7d || 0,
+            last?.burned?.mean || 0
+        );
+
+        const chainSource = chain?.sourceType === 'snapshot' ? 'Snapshot' : 'Dune';
+        const dataSource: DemandSideBenchmark['dataSource'] = calculateDemandDataSource(hasLiveRevenue, hasLiveBurn);
 
         const pricingMechanism = profile.metadata.mechanism || 'Standard';
 
@@ -212,8 +197,11 @@ export const useBenchmarkViewModel = (
             burnRateWeekly: burnWeekly,
             burnRatePeriod: 'weekly',
             pricingModel: pricingMechanism,
-            dataSource: useLiveRev ? 'mixed' : 'simulated',
-            sourceRefs: [sourceLabel]
+            dataSource,
+            sourceRefs: [
+                hasLiveRevenue ? `${chainSource} revenue` : `${engineLabel} revenue`,
+                hasLiveBurn ? `${chainSource} burn` : `${engineLabel} burn`
+            ]
         };
     };
 
@@ -235,15 +223,14 @@ export const useBenchmarkViewModel = (
             sourceRefs: []
         };
 
-        // Sustainability Ratio = (Tokens Burned * Price) / (Tokens Minted * Price)
-        // ... simplified to val / val
-        const emissionsVal = (last?.minted?.mean || 0) * (last?.price?.mean || 0);
-        // Burn value: use Live burn if available * Live price if available
-        const burnAmt = chain ? chain.tokenBurned7d : (last?.burned?.mean || 0);
-        const price = live ? live.currentPrice : (last?.price?.mean || 0);
-        const burnVal = burnAmt * price;
-
-        const ratio = emissionsVal > 0 ? burnVal / emissionsVal : 0;
+        const burnAmt = chain?.tokenBurned7d || (last?.burned?.mean || 0);
+        const price = live?.currentPrice || (last?.price?.mean || 0);
+        const sustainabilityRatio = calculateSustainabilityRatioPct(
+            last?.minted?.mean || 0,
+            last?.price?.mean || 0,
+            burnAmt,
+            price
+        );
 
         const isHybrid = !!(live || chain);
         const chainSource = chain?.sourceType === 'snapshot' ? 'Snapshot' : 'Dune';
@@ -255,7 +242,7 @@ export const useBenchmarkViewModel = (
             circulatingSupply: last?.supply?.mean || live?.circulatingSupply || 0,
             emissionSchedule: `${formatLarge(profile.parameters.emissions.value || 0)}/wk`,
             burnPolicy: `${(profile.parameters.burn_fraction.value || 0) * 100}%`,
-            sustainabilityRatio: ratio * 100, // Percentage
+            sustainabilityRatio, // Percentage
             dataSource: isHybrid ? 'mixed' : 'simulated',
             sourceRefs: isHybrid
                 ? ['CoinGecko', chain ? chainSource : null, engineLabel].filter(Boolean) as string[]
@@ -280,13 +267,13 @@ export const useBenchmarkViewModel = (
         const sustainabilityDelta = safeAbsoluteDelta(t1.sustainabilityRatio, t2.sustainabilityRatio);
         const hardwareDelta = safeAbsoluteDelta(s1.hardwareCost, s2.hardwareCost);
 
-        const revenuePerNode1 = s1.activeNodes > 0 ? d1.annualizedRevenue / s1.activeNodes : 0;
-        const revenuePerNode2 = s2.activeNodes > 0 ? d2.annualizedRevenue / s2.activeNodes : 0;
+        const revenuePerNode1 = calculateRevenuePerNode(d1.annualizedRevenue, s1.activeNodes);
+        const revenuePerNode2 = calculateRevenuePerNode(d2.annualizedRevenue, s2.activeNodes);
         const revenuePerNodeValid = s1.activeNodes > 0 && s2.activeNodes > 0;
         const revenuePerNodeDelta = safeAbsoluteDelta(revenuePerNode1, revenuePerNode2);
 
-        const roi1 = s1.hardwareCost > 0 ? (revenuePerNode1 / s1.hardwareCost) * 100 : 0;
-        const roi2 = s2.hardwareCost > 0 ? (revenuePerNode2 / s2.hardwareCost) * 100 : 0;
+        const roi1 = calculateHardwareRoiPct(revenuePerNode1, s1.hardwareCost);
+        const roi2 = calculateHardwareRoiPct(revenuePerNode2, s2.hardwareCost);
         const roiValid = revenuePerNodeValid && s1.hardwareCost > 0 && s2.hardwareCost > 0;
         const roiDelta = safeAbsoluteDelta(roi1, roi2);
 

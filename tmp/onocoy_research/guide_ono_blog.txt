@@ -1,0 +1,254 @@
+[]
+
+Services
+
+[]
+
+Contribute
+
+[]
+
+$ONO
+
+Read Docs
+
+Explore
+
+[]
+
+Services
+
+[]
+
+Contribute
+
+[]
+
+$ONO
+
+Read Docs
+
+Explore
+
+Your Guide to Understanding the $ONO Token
+
+Sep 9, 2025
+
+[]
+
+[]
+
+At the time of designing the tokenomics, onocoy aimed to build a stable
+system that would serve all stakeholders well for years to come, while
+providing the necessary incentives to get through the critical start-up
+phase.
+
+This led to the following principles:
+
+1. The system must be economically viable and attractive to all
+stakeholders
+
+2. Users must have stable service prices. And they need ease of use
+similar to their past experiences.
+
+3. Reference station operators (aka miners) must have a strong incentive
+to provide data in the quality and availability required by users
+
+4. Miners are de facto small investors and must participate in the
+long-term success of onocoy
+
+[]
+
+Tokenomics
+
+These principles are translated into onocoy's tokenomics through a
+dual-token model with a capped, deflationary $ONO utility token and Data
+Credits for network utility payments.
+
+1. $ONO drives miner incentives and governance
+
+2. Data Credits (uncapped, fiat-pegged, non-transferable) are used for
+stable utility payments - purchased for accessing GNSS reference station
+data and burned after use
+
+How Does the Value Flow Into the System?
+
+onocoy's GNSS services are available to users in exchange for Data
+Credits, which are purchased with FIAT and burned after the service is
+used. This generates recurring revenue from real-world usage, which is
+the key driver for the tokenomics. onocoy uses these revenues to finance
+operations and it may buyback and burn tokens.
+
+How Do Reference Station Operators Get Value?
+
+Miners provide data to onocoy in return for $ONO tokens. The amount of
+the $ONO reward is dependent on data quality, availability and location
+uniqueness. By correctly setting miner incentives, onocoy makes sure
+miners provide data the way users need them.
+
+And since $ONO is listed on crypto exchange(s), miners can eventually
+convert their tokens into stablecoins (or FIAT).
+
+$ONO’s deflationary token design
+
+A stable tokenomics mandates a capped token supply and deflationary
+elements to incentive miners to buy and operates reference stations well
+before demand from users has pickedup:
+
+1. $ONO has a capped supply of 810M.
+
+2. The release of tokens follows a deflationary factor of 16%, which
+equals a halving every 4 years. This is perfectly tuned to the needs of
+an infrastructure project (and yet somewhat similar to Bitcoin)
+
+3. A percentage of the tokens bought back from the exchange are burned,
+which adds yet another deflationary element by making the total supply
+scarcer.
+
+The release of $ONO get scarcer over time (halving) while burning
+increases as the network grows (more users = more demand = more burn).
+Together, this creates long-term upward value pressure on the $ONO token
+while users still benefit from pay stable service prices through Data
+Credits.
+
+TL;DR
+
+$ONO was designed with capped supply and deflationary elements to create
+systematic long-term upward pressure on the price. This is the basis for
+encouraging miners, investors, and the team to contribute to onocoy well
+before sufficient customer revenue flows into the system (tokenomics)
+for break-even. Due to its status as a non-profit association under
+Swiss law, onocoy cannot distribute profits. The only legally sound way
+to dispose profits is through token buybacks and burns. This further
+increases upward price pressure on $ONO.
+
+However, in order to benefit from this upward pressure, the stakeholders
+listed above must take a sufficiently long-term view. Fortunately,
+onocoy has already generated its first revenues, which shows that there
+is demand for onocoy's services. In addition, onocoy has also bought
+back and burned tokens on a smaller scale.
+
+Acknowledgments
+
+Our colleagues Mark Ballandies and Uroš Kalabić for designing and
+documenting the tokenomics of onocoy and for their rigorous analyses.
+
+@Francesco, @DeFiScribbler and @GatorGreen for inspiring us to write
+this blog.
+
+‹ New Interview with onocoy Co-founder Thomas Nigg: Bitcourier covers
+onocoy's story
+
+onocoy to Launch Dune Dashboards for Transparent, On-Chain Metrics ›
+
+[]
+
+info@onocoy.com
+
+Services
+
+Overview
+
+onocoy RTK
+
+How to buy
+
+Coverage map
+
+Contribute
+
+Become a miner
+
+Mining hardware
+
+Partners
+
+Opportunity map
+
+$ONO
+
+About
+
+Team
+
+News & Blog
+
+Whitepaper
+
+Read docs
+
+Get in touch
+
+Subscribe for onocoy news and updates
+
+© onocoy Association. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+© onocoy Services AG. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+Terms of Use
+
+Terms of Service
+
+Privacy Policy
+
+Terms of Data Provisioning
+
+[]
+
+info@onocoy.com
+
+Services
+
+Overview
+
+onocoy RTK
+
+How to buy
+
+Coverage map
+
+Contribute
+
+Mining hardware
+
+Opportunity map
+
+Become a miner
+
+Partners
+
+$ONO
+
+About
+
+Team
+
+News & Blog
+
+Whitepaper
+
+Read docs
+
+Get in touch
+
+Subscribe for onocoy news and updates
+
+© onocoy Association. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+© onocoy Services AG. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+Terms of Use
+
+Terms of Service
+
+Privacy Policy
+
+Terms of Data
+
+Provisioning
+
+[] []

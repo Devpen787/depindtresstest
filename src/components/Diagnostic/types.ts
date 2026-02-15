@@ -8,6 +8,7 @@ export interface DiagnosticInput {
     demandLag: 'Low' | 'High';
     priceShock: 'None' | 'Moderate' | 'Severe';
     insiderOverhang: 'Low' | 'High';
+    sybilResistance: 'Weak' | 'Strong'; // New
     selectedArchetype?: string;
 }
 

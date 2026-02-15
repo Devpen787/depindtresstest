@@ -1,5 +1,5 @@
 import { runSimulation } from './index';
-import { SimulationParams } from './types';
+import { SimulationParams, AggregateResult } from './types';
 
 export class Optimizer {
     /**
@@ -116,5 +116,62 @@ export class Optimizer {
             }
         }
         return Math.floor(bestEmission);
+    }
+
+    /**
+     * [THESIS GAP #1] Sensitivity Analysis (Tornado Chart)
+     * Sweeps key parameters +/- 20% to measure impact on Solvency.
+     * Enforces nSims=1 for performance.
+     */
+    static runSensitivitySweep(baseParams: SimulationParams): { parameter: string; low: number; high: number; delta: number }[] {
+        const factors = [
+            { key: 'hardwareCost', label: 'Hardware CapEx' },
+            { key: 'churnThreshold', label: 'Churn Sensitivity' },
+            { key: 'maxMintWeekly', label: 'Emission Cap' },
+            { key: 'kBuyPressure', label: 'Demand Strength' },
+            { key: 'kMintPrice', label: 'Dilution Sensitivity' }
+        ];
+
+        // 1. Calculate Base solvency magnitude
+        // 1. Calculate Base metric (Payback Period in Months)
+        const fastParams = { ...baseParams, nSims: 1 };
+        const runBase = runSimulation(fastParams);
+        const lastResultBase = runBase[runBase.length - 1]; // Single Run result
+
+        // 2. Metric: Impact on Solvency (Survival)
+        const getMetric = (run: AggregateResult[]) => {
+            // Use Average Solvency to capture duration/health even if it eventually crashes
+            const sum = run.reduce((acc, r) => acc + r.solvencyScore.mean, 0);
+            return sum / run.length;
+        };
+
+        const baseMetric = getMetric(runBase);
+
+        const results = [];
+
+        for (const factor of factors) {
+            // Test Low (-20%)
+            const paramsLow = { ...fastParams, [factor.key]: (baseParams as any)[factor.key] * 0.8 };
+            const runLow = runSimulation(paramsLow);
+            const lowMetric = getMetric(runLow);
+
+            // Test High (+20%)
+            const paramsHigh = { ...fastParams, [factor.key]: (baseParams as any)[factor.key] * 1.2 };
+            const runHigh = runSimulation(paramsHigh);
+            const highMetric = getMetric(runHigh);
+
+            // Delta is the absolute range of impact
+            const delta = Math.abs(highMetric - lowMetric);
+
+            results.push({
+                parameter: factor.label,
+                low: lowMetric,
+                high: highMetric,
+                delta: parseFloat(delta.toFixed(2))
+            });
+        }
+
+        // Sort by impact (highest delta first)
+        return results.sort((a, b) => b.delta - a.delta);
     }
 }

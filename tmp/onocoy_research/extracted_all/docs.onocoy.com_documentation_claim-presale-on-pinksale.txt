@@ -1,0 +1,89 @@
+[]Copy
+
+[]
+
+Claim Presale on PinkSale
+
+onocoy held its token presale on PinkSale in July 2025. Here are the
+instructions how to claim your tokens from the presale.
+
+[]
+
+How to Claim
+
+[]
+
+Manually Claim ONO Tokens to Your Wallet
+
+As a recipient, you can easily withdraw your unlocked ONO tokens from a
+vesting or payment contract directly to your wallet. 10% of the $ONOs
+from the presale will be unlocked at TGE, and from then on 1% is
+unlocked every day. Don't worry, you don't have to claim every day,
+whenever you claim you will get the amount that has built up.
+
+Note: You have to expect a fee from the provider of 0.01 SOL per claim.
+Once the contract has completed, all remaining ONO tokens will be
+automatically claimed to the recipient’s wallet.
+
+[]
+
+Step 1: Go to the Streamflow Website or App
+
+Visit the Streamflow website[] or App and select either "Vesting" or
+"Payments".
+
+[]
+
+[]
+
+Step 2: View Your Contracts
+
+You’ll see a list of your active contracts. Click on the one associated
+with your ONO tokens to access the contract details.
+
+[]
+
+[]
+
+Step 3: Claim Tokens
+
+On the contract details page, locate the "Claim Now" button at the top
+right corner. Click it to open the claim modal.
+
+[]
+
+[]
+
+Step 4: Enter Claim Amount
+
+Input the amount of ONO tokens you’d like to claim.
+
+[]
+
+[]
+
+Step 5: Confirm the Transaction
+
+Approve the transaction in your wallet. Once completed, a confirmation
+will display indicating that your ONO tokens have been successfully
+claimed.
+
+[]
+
+[]
+
+Auto-Claim ONO Tokens to Your Wallet
+
+With Auto-Claim, there’s no need to manually claim your ONO tokens as
+they unlock. Instead, they are automatically sent to your wallet, with
+the sender covering the transaction fees.
+
+[]
+
+🗣 Important: If the recipient’s wallet address is from a centralized
+exchange, activating Auto-Claim is mandatory to ensure proper delivery
+of ONO tokens.
+
+PreviousSwapping BONO to ONO[]NextPartners[]
+
+Last updated 3 months ago

@@ -1,0 +1,95 @@
+[]Copy
+
+[]
+
+1.  3. Become a Miner
+
+Installation guide
+
+[]
+
+Now that you have your device, it's time to install it.
+
+[]
+
+Assemble your station
+
+Follow the station-specific instructions to assemble the receiver and
+antenna.
+
+Have an NTRIP-X? Then follow this installation guide[].
+
+[]
+
+Which location is optimal?
+
+- 
+
+  Choose an installation location in an area no closer than 20km to the
+  next onocoy station.
+
+- 
+
+  With 3 or more stations in close proximity, rewarding will be scaled
+  down for those stations.
+
+- 
+
+  You can easily check the distance to the next onocoy station for any
+  location with the Explore[] function.
+
+[]
+
+What should the surroundings be like?
+
+- 
+
+  Ideally, the antenna has a 360-degree view of the sky, with no
+  obstructions (buildings, trees, mountains) above an elevation of 10
+  degrees.
+
+- 
+
+  A simple way to check this is to make a fist and stretch the arm
+  horizontally. Hold the lower side of the fist in line with the
+  horizon, and the upper side indicates about 10 degrees above the
+  horizon when the arm is held perfectly horizontal.
+
+- 
+
+  If sky visibility is limited or there is a lot of multipath in the
+  signal, rewards will be scaled down.
+
+- 
+
+  Please note that the antenna must be rigidly mounted. Even under heavy
+  weather conditions, it shouldn't move more than 1-2 millimeters. The
+  location of the antenna is continuously monitored by the onocoy
+  validators. If there are too many vibrations or the antenna is moved,
+  rewards will be paused.
+
+[]
+
+What about the internet connection?
+
+- 
+
+  You need a stable, permanent connection to the Internet.
+
+- 
+
+  The bandwidth requirements are quite low. A well-configured receiver
+  should not require more than around 1 kB/s.
+
+- 
+
+  There is no inbound traffic.
+
+- 
+
+  With typical firewalls, no ports need to be opened, as the connections
+  are established inside-out.
+
+PreviousHardware recommendations[]NextCreate and connect a wallet[]
+
+Last updated 8 months ago

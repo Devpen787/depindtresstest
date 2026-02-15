@@ -2,6 +2,8 @@ import React from 'react';
 import { BookOpen, Database, Cpu, TrendingUp, ExternalLink, AlertTriangle, CheckCircle } from 'lucide-react';
 import { DiagnosticInput } from './types';
 import { verifiedProjects, VerifiedProject } from '../../data/verifiedProjectData';
+import { GENERATED_PROTOCOL_VERIFICATION_SUMMARY } from '../../data/generated/protocolVerificationSummary.generated';
+import { resolveDiagnosticProtocolId } from '../../data/diagnosticArchetypes';
 
 interface Props {
     inputs: DiagnosticInput;
@@ -9,7 +11,13 @@ interface Props {
 }
 
 export const ArchetypeLogicPanel: React.FC<Props> = ({ inputs, archetypeId }) => {
-    const project = verifiedProjects[archetypeId] || verifiedProjects['onocoy'];
+    const protocolId = resolveDiagnosticProtocolId(archetypeId);
+    const verificationSummary = GENERATED_PROTOCOL_VERIFICATION_SUMMARY[protocolId];
+    const project = (
+        verifiedProjects[archetypeId] ||
+        (verificationSummary?.diagnosticProjectId ? verifiedProjects[verificationSummary.diagnosticProjectId] : undefined) ||
+        verifiedProjects['onocoy']
+    ) as VerifiedProject;
 
     // Build assumptions from verified data
     const assumptions = [
@@ -39,7 +47,14 @@ export const ArchetypeLogicPanel: React.FC<Props> = ({ inputs, archetypeId }) =>
         }
     ];
 
-    const allVerified = assumptions.every(a => a.isVerified);
+    const allVerified = verificationSummary
+        ? verificationSummary.allCorePointsVerified
+        : assumptions.every(a => a.isVerified);
+    const riskLevel = verificationSummary?.riskLevel && verificationSummary.riskLevel !== 'unknown'
+        ? verificationSummary.riskLevel
+        : project.riskLevel;
+    const riskLabel = `${riskLevel.toUpperCase()} RISK`;
+    const categoryLabel = verificationSummary?.category || project.category;
 
     return (
         <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 my-4">
@@ -60,7 +75,7 @@ export const ArchetypeLogicPanel: React.FC<Props> = ({ inputs, archetypeId }) =>
                             </span>
                         )}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">{project.category}</p>
+                    <p className="text-xs text-slate-400 mt-1">{categoryLabel}</p>
                 </div>
             </div>
 
@@ -100,12 +115,13 @@ export const ArchetypeLogicPanel: React.FC<Props> = ({ inputs, archetypeId }) =>
                 <p className="text-xs text-slate-500">
                     <span className="font-bold">Critical Flaw:</span> {project.criticalFlaw || 'None identified'}
                 </p>
-                <div className={`text-[10px] px-2 py-0.5 rounded font-bold ${project.riskLevel === 'low' ? 'bg-emerald-500/10 text-emerald-400' :
-                        project.riskLevel === 'moderate' ? 'bg-yellow-500/10 text-yellow-400' :
-                            project.riskLevel === 'high' ? 'bg-orange-500/10 text-orange-400' :
-                                'bg-red-500/10 text-red-400'
+                <div className={`text-[10px] px-2 py-0.5 rounded font-bold ${riskLevel === 'low' ? 'bg-emerald-500/10 text-emerald-400' :
+                        riskLevel === 'moderate' ? 'bg-yellow-500/10 text-yellow-400' :
+                            riskLevel === 'high' ? 'bg-orange-500/10 text-orange-400' :
+                                riskLevel === 'extreme' ? 'bg-red-500/10 text-red-400' :
+                                    'bg-slate-500/10 text-slate-300'
                     }`}>
-                    {project.riskLevel.toUpperCase()} RISK
+                    {riskLabel}
                 </div>
             </div>
         </div>

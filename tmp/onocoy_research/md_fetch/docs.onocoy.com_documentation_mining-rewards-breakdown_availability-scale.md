@@ -1,0 +1,95 @@
+# Availability Scale
+
+### What it is
+
+A daily metric that shows how reliably your station delivers data. It blends:
+
+* Uptime&#x20;
+* Data completeness while connected (“Data rate”).
+
+Result: a score between 0 and 1. Higher is better.
+
+### How it works
+
+Availability Scale = Uptime Score × Data rate
+
+#### Uptime Score:
+
+* 0 at 80% uptime and lower
+* 1 at 100% uptime
+* Increases exponentially between 80% and 100%.&#x20;
+
+A daily Uptime Grant is awarded to all miners. See Daily Uptime Grant below.&#x20;
+
+#### Data rate:
+
+* Completeness during connected periods
+* Data rate = valid received epochs(\*) / expected epochs
+* Result between 0 and 1
+
+\* Epochs which include satellite measurements and properly terminated epochs.
+
+This keeps the metric fair: uptime captures liveness; data rate captures delivery quality while you’re live.
+
+### Daily Uptime Grant
+
+We always add a minimum of 5 minutes on top of your daily uptime to account for brief maintenance periods. onocoy measures its own downtime, so this can be more in case of longer outages.&#x20;
+
+Here is the calculation (one day has 86400 seconds):
+
+* Uptime\_graced = (Uptime in seconds + 300 seconds) / 86400 seconds
+
+Note: Uptime\_graced can never be higher than 1.&#x20;
+
+Short story: if you’re close to perfect, the grant simply ensures minor hiccups don’t tank your score. If you’re far from perfect, the grant won’t mask real downtime.
+
+### Uptime Score mapping&#x20;
+
+The uptime is now mapped to a score that represents the value for the onocoy network.
+
+* If Uptime\_graced ≤ 80% → Uptime Score = 0 (insufficient liveness)
+* If Uptime\_graced = 100% → Uptime Score = 1 (perfect)
+* Between 80% and 100% → UptimeScore grows exponentially from 0 toward 1 with increasing sensitivity near 100%. Here are some examples:
+  * 0.25 at 90% uptime
+  * 0.90 at 99% uptime
+  * 0.98 at 99.8% uptime
+
+### Example calculation
+
+Uptime:
+
+* Day length: 86,400s
+* Actual online time: T\_onl = 85,000s
+* Add uptime grant: T\_onl\_graced = min(86,400; 85,000 + 300) = 85,300s
+* Uptime\_graced = 85,300 / 86,400 = 98.7%&#x20;
+* Mapping to Uptime Score: 98.7% uptime → 0.877 Uptime Score
+
+Data rate:
+
+* Expected are 85,000 valid epochs to be received
+* Received are 84,000 epochs
+* Datarate = 85,000 / 84,000 = 0.9882
+
+Availability Scale:
+
+* Availability = Uptime Score × Data Rate = 0.877 × 0.9882 = **0.867**
+
+This is your final Availability Scale.
+
+### Where to find it
+
+Open [your Reference Station on the explorer](https://console.onocoy.com/servers) to see the Availability in your “Base Reward” chart.
+
+### Tips to improve
+
+* Stable power and internet
+* Good antenna placement and receiver settings
+* Avoid restarts&#x20;
+* Watch your connected-time completeness (Data rate) and minimize packet loss
+
+### Notes
+
+* Parameters (e.g., grace, curve shape) may be adjusted to keep incentives sustainable; watch official updates.
+* Data rate only measures completeness while connected; uptime already accounts for offline time.
+
+<br>

@@ -1,0 +1,63 @@
+[]Copy
+
+[]
+
+1.  Explorer
+
+Sky Map
+
+The Sky Visibility Map provides a historical representation of the
+visibility of the GNSS satellites of a given reference station across
+the sky in the previous 24 hours.
+
+The Sky Visibility Map color coding indicates how good the satellite
+observation is within a given sky sector. Shades of green indicate a
+reasonably good / ideal visibility, shades of yellow indicate less
+optimal visibility and shades of red indicate sub optimal visibility,
+which can indicate sky obstructions caused by buildings, trees,
+mountains, etc. in the vicinity.
+
+Plain white sectors are areas where no satellites were observed nor
+expected at all. It is normal to have an area in the sky where no
+satellite signals are received. That area is called polar hole and it
+exists because GNSS orbits do not cover Earth's poles, leaving a blank
+area in the Northern part of the sky in the northern Earth hemisphere or
+a blank area in the southern part of the sky in the southern Earth
+hemisphere.
+
+The visibility is calculated based on how many satellites were visible
+in a given sector vs. how many satellites were expected to be visible in
+that sector (i.e. when a satellite is known to be there but the station
+did not observe it).
+
+The map is split into 149 sectors which are spread across 9 elevation
+ranges from horizon (0°) to zenith (+90°) and can help to identify areas
+where the sky is obstructed.
+
+Here's an example of a station with good visibility. The only bad
+visibility is in low elevations of the Southeast for a patch of the sky
+where a building obstructs the sky. Note that the white areas in the
+north region are expected for stations on the northern hemisphere.
+
+[]
+
+Station has good visibility all over except for a patch in the SE, at
+lower elevation where a building is known to be blocking the sky.
+
+On the other hand, here is an example of a station placed on a window
+sill. Half the sky is completely blocked by the building where the
+antenna is located while the other half has somewhat acceptable
+reception (with low elevation satellite tracking being bad across the
+whole horizon):
+
+[]
+
+Station placed on a window sill showing bad sky visibility.
+
+With the help of the sky map, you can identify obstructions at your
+antenna location. If possible, you can then improve the satellite signal
+reception by changing the environment.
+
+PreviousExplorer[]NextGetting data credits[]
+
+Last updated 1 year ago

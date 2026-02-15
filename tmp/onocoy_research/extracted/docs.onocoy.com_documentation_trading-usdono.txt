@@ -1,0 +1,54 @@
+[]Copy
+
+[]
+
+Trading $ONO
+
+To begin trading $ONO, you first need a compatible cryptocurrency wallet
+to store your tokens securely. Fill you wallet with $USDC or $SOL to
+start trading.
+
+Trading platforms:
+
+- 
+
+  Orca (ONO / USDC)[]
+
+- 
+
+  Orca (ONO / SOL)[]
+
+- 
+
+  Jupiter[]
+
+- 
+
+  Coingecko[]
+
+- 
+
+  CoinMarketCap[]
+
+ONO token address:
+
+- 
+
+  onoyC1ZjHNtT2tShqvVSg5WEcQDbu5zht6sdU9Nwjrc
+
+- 
+
+  View on Solana explorer[]
+
+The contract address for the $ONO token serves as its unique identifier
+on the blockchain, ensuring secure and verifiable transactions. It's
+crucial to double-check the contract address before proceeding with any
+transaction to avoid errors or scams. Always ensure you are on
+legitimate and approved platforms when dealing with cryptocurrency
+transactions.
+
+The BONO token address is CzYSquESBM4qVQiFas6pSMgeFRG4JLiYyNYHQUcNxudc
+
+PreviousTokenomics[]NextMining rewards breakdown[]
+
+Last updated 5 months ago

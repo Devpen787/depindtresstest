@@ -1,0 +1,323 @@
+[]Copy
+
+[]
+
+Ambassador Program
+
+Welcome to the onocoy Ambassador Program — our way of empowering early
+contributors who want to support the future of decentralized positioning
+infrastructure (DePIN). This program activates passionate community
+members across three key verticals: Tech, Brand, and Community.
+
+Purpose
+
+The Ambassador Program is designed to:
+
+- 
+
+  Grow a trusted group of contributors across technical, marketing, and
+  community areas.
+
+- 
+
+  Increase awareness, credibility, and traction in the DePIN and Web3
+  infra ecosystems.
+
+- 
+
+  Reward high-value contributors with recognition, tokens, and early
+  access.
+
+We use a tiered system with defined roles, tracked KPIs, and a
+structured onboarding process. Entry is open but selective: we
+prioritize commitment, quality, and alignment.
+
+What We Provide
+
+All onocoy Ambassadors receive access to the resources, tools, and
+support they need to succeed in their role:
+
+- 
+
+  Templates & Assets: Co-branded visuals, guide templates, and content
+  resources.
+
+- 
+
+  Tracking Tools: KPI submission forms, dashboards, and performance
+  logs.
+
+- 
+
+  Communication Channels: Group chats with the core team and fellow
+  ambassadors.
+
+- 
+
+  Guides & Documentation: Onboarding scripts, FAQs, and moderation
+  guidelines (as applicable).
+
+- 
+
+  Platform Access: Role-specific permissions on Discord, X/Twitter
+  tools, and analytics trackers.
+
+Additional role-specific materials (like setup verification or referral
+links) are shared during onboarding
+
+[]
+
+🔧 Tech Ambassador
+
+Primary Platform: Discord Ideal Profile: Technically savvy users with
+experience in hardware setups, GNSS systems, or node deployment. Likely
+already deploying onocoy miners.
+
+[]
+
+📢 Responsibilities
+
+- 
+
+  Help users set up onocoy miners (hardware + software).
+
+- 
+
+  Create guides (written, video, images).
+
+- 
+
+  Share personal setup photos, results, and best practices.
+
+- 
+
+  Join weekly tech threads on Discord.
+
+- 
+
+  Provide feedback on onboarding and documentation.
+
+[]
+
+📊 KPIs
+
+- 
+
+  Number of support interactions.
+
+- 
+
+  Guides/tutorials created (video, written, visual).
+
+- 
+
+  Onboarded users with successful setups.
+
+- 
+
+  Uptime of personal onocoy miners.
+
+- 
+
+  Feedback contributions to GitHub or docs.
+
+[]
+
+📣 Brand Ambassador
+
+Primary Platform: X (Twitter) Ideal Profile: Content creators with an
+audience. Strong storytellers who can simplify technical concepts and
+drive awareness.
+
+[]
+
+📢 Responsibilities
+
+- 
+
+  Share 1–2 educational/promotional posts per week.
+
+- 
+
+  Use tracking links to measure engagement.
+
+- 
+
+  Amplify onocoy content via replies and shares.
+
+- 
+
+  Join or host Twitter Spaces.
+
+- 
+
+  Cross-engage with related projects.
+
+[]
+
+📊 KPIs
+
+- 
+
+  Weekly content output (threads, posts).
+
+- 
+
+  Engagement metrics: likes, RTs, comments.
+
+- 
+
+  Audience growth and mentions.
+
+- 
+
+  Use of hashtags and campaign tracking.
+
+[]
+
+🌍 Community Ambassador
+
+Primary Platforms: X + Discord Ideal Profile: Friendly, helpful, and
+active users who enjoy welcoming others and fostering a strong community
+vibe.
+
+[]
+
+💬 Responsibilities
+
+- 
+
+  Greet and assist new Discord members.
+
+- 
+
+  Moderate chat channels (language optional).
+
+- 
+
+  Track onboarding of new users.
+
+- 
+
+  Post community polls, updates, and fun prompts.
+
+- 
+
+  Monitor and report spam or scams.
+
+[]
+
+📊 KPIs
+
+- 
+
+  Number of users welcomed/onboarded.
+
+- 
+
+  Moderation actions taken.
+
+- 
+
+  Engagement rate (reactions, replies).
+
+- 
+
+  Members invited or referred.
+
+- 
+
+  Activity points via Discord bots (Combot/Statbot).
+
+[]
+
+Ambassador Journey
+
+All new participants begin with a 4-week trial period as Ambassadors.
+During this time, their activity, contributions, and overall engagement
+are monitored through tracked KPIs. After successfully completing this
+trial with consistent performance, they become eligible for promotion to
+Senior Ambassador. Senior Ambassadors take on greater responsibilities,
+including managing task groups, reviewing submissions, mentoring new
+Ambassadors, and participating in early strategy discussions and beta
+testing. Advancement is based on demonstrated leadership, initiative,
+high-quality work, and a positive overall impact.
+
+[]
+
+Join us now
+
+This program is the backbone of onocoy’s early community traction. If
+you’re passionate about DePIN, enjoy helping others, and want to be part
+of something early and meaningful — we’d love to have you.
+
+Join. Build. Share. Decentralize. → Apply now to become an onocoy
+Ambassador.
+
+[]
+
+Step 1: Fill in the application form[]
+
+[]
+
+Step 2: Team Review
+
+[]
+
+Step 3: Approval
+
+[]
+
+Rewards & Incentives
+
+[]
+
+Base Rewards (All Ambassadors)
+
+- 
+
+  Custom Discord role and banner.
+
+- 
+
+  “onocoy Ambassador” tag for bios.
+
+- 
+
+  $ONO token rewards:
+
+  - 
+
+    Fixed base reward.
+
+  - 
+
+    Variable bonus based on KPIs.
+
+  - 
+
+    Early access to features and releases.
+
+  - 
+
+    Recognition via leaderboard.
+
+[]
+
+Bonus Perks
+
+- 
+
+  X Pro subscription (for Brand Ambassadors).
+
+- 
+
+  onocoy merch (shirts, stickers, flags).
+
+- 
+
+  Travel/ticket support for IRL events (for top contributors).
+
+PreviousPartners[]NextDAO & voting[]
+
+Last updated 7 months ago

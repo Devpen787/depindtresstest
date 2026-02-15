@@ -1,11 +1,10 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
     RadarChart,
     PolarGrid,
     PolarAngleAxis,
     PolarRadiusAxis,
     Radar,
-    Legend,
     ResponsiveContainer,
     Tooltip
 } from 'recharts';
@@ -29,6 +28,21 @@ const COLORS: Record<string, string> = {
     nosana_v1: '#ec4899' // Pink
 };
 
+const PEER_LABELS: Record<string, string> = {
+    onocoy: 'Onocoy',
+    geodnet_v1: 'Geodnet',
+    hivemapper_v1: 'Hivemapper',
+    helium_bme_v1: 'Helium',
+    dimo_v1: 'DIMO',
+    xnet_v1: 'XNET',
+    adaptive_elastic_v1: 'Render',
+    akash_v1: 'Akash',
+    aleph_v1: 'Aleph.im',
+    grass_v1: 'Grass',
+    ionet_v1: 'io.net',
+    nosana_v1: 'Nosana'
+};
+
 interface RadarDataPoint {
     dimension: string;
     onocoy: number;
@@ -38,79 +52,32 @@ interface RadarDataPoint {
 
 interface StrategicEdgeRadarProps {
     selectedPeers: PeerId[];
-    scenarioId: string;
+    data: RadarDataPoint[];
 }
 
-// Helper for consistent mock radar data
-const getRadarMock = (base: number) => {
-    return {
-        geodnet_v1: base * 0.95,
-        hivemapper_v1: base * 0.9,
-        helium_bme_v1: base * 0.85,
-        dimo_v1: base * 0.92,
-        xnet_v1: base * 0.88,
-        adaptive_elastic_v1: base * 1.05,
-        akash_v1: base * 0.9,
-        aleph_v1: base * 0.94,
-        grass_v1: base * 1.1,
-        ionet_v1: base * 0.98,
-        nosana_v1: base * 0.92,
-    };
-};
-
-// Mock radar data by scenario (keyed by scenario.id)
-const SCENARIO_RADAR: Record<string, RadarDataPoint[]> = {
-    baseline: [
-        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(85) },
-        { dimension: 'Solvency', onocoy: 85, fullMark: 100, ...getRadarMock(80) },
-        { dimension: 'Coverage', onocoy: 75, fullMark: 100, ...getRadarMock(90) },
-        { dimension: 'Community', onocoy: 80, fullMark: 100, ...getRadarMock(75) },
-        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(70) }
-    ],
-    death_spiral: [
-        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(70) },
-        { dimension: 'Solvency', onocoy: 80, fullMark: 100, ...getRadarMock(60) },
-        { dimension: 'Coverage', onocoy: 70, fullMark: 100, ...getRadarMock(75) },
-        { dimension: 'Community', onocoy: 75, fullMark: 100, ...getRadarMock(65) },
-        { dimension: 'Ease of Use', onocoy: 80, fullMark: 100, ...getRadarMock(70) }
-    ],
-    infinite_subsidy: [
-        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(80) },
-        { dimension: 'Solvency', onocoy: 65, fullMark: 100, ...getRadarMock(60) },
-        { dimension: 'Coverage', onocoy: 75, fullMark: 100, ...getRadarMock(85) },
-        { dimension: 'Community', onocoy: 70, fullMark: 100, ...getRadarMock(70) },
-        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(75) }
-    ],
-    vampire_attack: [
-        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(80) },
-        { dimension: 'Solvency', onocoy: 88, fullMark: 100, ...getRadarMock(75) },
-        { dimension: 'Coverage', onocoy: 70, fullMark: 100, ...getRadarMock(85) },
-        { dimension: 'Community', onocoy: 75, fullMark: 100, ...getRadarMock(60) },
-        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(80) }
-    ],
-    growth_shock: [
-        { dimension: 'Tech Stack', onocoy: 90, fullMark: 100, ...getRadarMock(90) },
-        { dimension: 'Solvency', onocoy: 95, fullMark: 100, ...getRadarMock(95) },
-        { dimension: 'Coverage', onocoy: 80, fullMark: 100, ...getRadarMock(90) },
-        { dimension: 'Community', onocoy: 90, fullMark: 100, ...getRadarMock(85) },
-        { dimension: 'Ease of Use', onocoy: 85, fullMark: 100, ...getRadarMock(80) }
-    ]
+const formatPeerName = (peerId: string) => {
+    return PEER_LABELS[peerId] || peerId;
 };
 
 export const StrategicEdgeRadar: React.FC<StrategicEdgeRadarProps> = ({
     selectedPeers,
-    scenarioId
+    data
 }) => {
-    const data = useMemo(() => {
-        return SCENARIO_RADAR[scenarioId] || SCENARIO_RADAR.baseline;
-    }, [scenarioId]);
+    if (data.length === 0) {
+        return (
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
+                <h3 className="text-sm font-bold text-white">Strategic Edge</h3>
+                <p className="text-xs text-slate-400 mt-2">No simulation data available for this view yet.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
             <div className="mb-2">
-                <h3 className="text-sm font-bold text-white">Strategic "Edge"</h3>
+                <h3 className="text-sm font-bold text-white">Strategic Edge</h3>
                 <p className="text-xs text-slate-400 mt-1">
-                    Relative strengths vs Peer Set.
+                    Derived from simulation outcomes and benchmark metrics.
                 </p>
             </div>
 
@@ -124,9 +91,9 @@ export const StrategicEdgeRadar: React.FC<StrategicEdgeRadarProps> = ({
                         />
                         <PolarRadiusAxis
                             angle={90}
-                            domain={[50, 100]}
+                            domain={[0, 100]}
                             tick={{ fill: '#64748b', fontSize: 8 }}
-                            tickCount={3}
+                            tickCount={6}
                         />
                         <Tooltip
                             contentStyle={{
@@ -135,11 +102,12 @@ export const StrategicEdgeRadar: React.FC<StrategicEdgeRadarProps> = ({
                                 borderRadius: '8px',
                                 fontSize: 12
                             }}
+                            formatter={(value: number) => [value.toFixed(1), 'Score']}
                         />
 
                         {/* Onocoy (Always shown, emphasized) */}
                         <Radar
-                            name="Onocoy"
+                            name={formatPeerName('onocoy')}
                             dataKey="onocoy"
                             stroke={COLORS.onocoy}
                             fill={COLORS.onocoy}
@@ -151,7 +119,7 @@ export const StrategicEdgeRadar: React.FC<StrategicEdgeRadarProps> = ({
                         {selectedPeers.map(peerId => (
                             <Radar
                                 key={peerId}
-                                name={peerId.replace('_v1', '').replace('_bme', '').replace('adaptive_elastic', 'Render').toUpperCase()}
+                                name={formatPeerName(peerId)}
                                 dataKey={peerId}
                                 stroke={COLORS[peerId] || '#94a3b8'}
                                 fill={COLORS[peerId] || '#94a3b8'}
@@ -165,5 +133,3 @@ export const StrategicEdgeRadar: React.FC<StrategicEdgeRadarProps> = ({
         </div>
     );
 };
-
-

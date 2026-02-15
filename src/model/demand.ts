@@ -3,8 +3,8 @@
  * Functions for generating stochastic demand series
  */
 
-import type { DemandType } from './types';
-import { SeededRNG } from './rng';
+import type { DemandType } from './types.ts';
+import { SeededRNG } from './rng.ts';
 
 /**
  * Generate a demand time series based on demand type

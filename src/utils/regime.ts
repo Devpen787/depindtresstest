@@ -16,7 +16,7 @@ export const calculateRegime = (data: AggregateResult[], profile: ProtocolProfil
 
     const retention = (last.providers?.mean || 30) / 30;
     const burnRatio = (last.burned?.mean || 0) / Math.max(last.minted?.mean || 0, 0.0001);
-    const utilization = last.utilization?.mean || 0;
+    const utilization = last.utilization?.mean || (last as any).utilisation?.mean || 0;
     const profit = last.profit?.mean || 0;
     const churnThreshold = profile.parameters.provider_economics.churn_threshold.value;
 

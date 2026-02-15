@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-02-07T14:05:54.887Z",
+  "wizard": {
+    "onocoy": {
+      "solvency": "1.12x",
+      "minSolvency": null,
+      "payback": "< 0.1 mo",
+      "utilization": "100.0%",
+      "resilience": "58/100"
+    },
+    "render": {
+      "solvency": "1.12x",
+      "minSolvency": null,
+      "payback": "0.2 mo",
+      "utilization": "100.0%",
+      "resilience": "58/100"
+    },
+    "hivemapper": {
+      "solvency": "0.56x",
+      "minSolvency": null,
+      "payback": "> 10y",
+      "utilization": "22.6%",
+      "resilience": "37/100"
+    }
+  },
+  "utility": {
+    "hasCoverageCard": true,
+    "hasOverprovisionNote": true,
+    "hasLowSampleNote": false
+  }
+}

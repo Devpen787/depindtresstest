@@ -60,6 +60,13 @@ export interface LegacySimResult {
     joinCount: number;
     treasuryBalance: number;  // Module 4: Accumulated Sinking Fund
     vampireChurn: number;     // Module 4: Churn from competitor yield
+    mercenaryCount: number;   // [NEW] Cohort tracking
+    proCount: number;         // [NEW] Cohort tracking
+    // Solvency Scorecard Compatibility
+    underwaterCount: number;
+    costPerCapacity: number;
+    revenuePerCapacity: number;
+    entryBarrierActive: number;
 }
 
 export interface LegacyAggregateResult {
@@ -86,6 +93,13 @@ export interface LegacyAggregateResult {
     joinCount: MetricStats;
     treasuryBalance: MetricStats;  // Module 4: Accumulated Sinking Fund
     vampireChurn: MetricStats;     // Module 4: Churn from competitor yield
+    mercenaryCount: MetricStats;   // [NEW] Cohort tracking
+    proCount: MetricStats;         // [NEW] Cohort tracking
+    // Solvency Scorecard Compatibility
+    underwaterCount: MetricStats;
+    costPerCapacity: MetricStats;
+    revenuePerCapacity: MetricStats;
+    entryBarrierActive: MetricStats;
 }
 
 export function getDemandSeries(T: number, base: number, type: DemandType, rng: SeededRNG): number[] {
@@ -103,6 +117,7 @@ export function getDemandSeries(T: number, base: number, type: DemandType, rng: 
 
 export function simulateOne(params: LegacySimulationParams, simSeed: number): LegacySimResult[] {
     const rng = new SeededRNG(simSeed);
+    // Modifying simulateOne to track Cohorts
     const { T, initialSupply, initialPrice, initialProviders, maxMintWeekly, burnPct, demandType, macro,
         providerCostPerWeek, baseCapacityPerProvider, kDemandPrice, kMintPrice, rewardLagWeeks, churnThreshold,
         initialLiquidity, investorUnlockWeek, investorSellPct,
@@ -119,7 +134,14 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
 
     let currentSupply = initialSupply;
     let currentPrice = initialPrice;
-    let currentProviders = initialProviders || 30; // Fallback to 30 if undefined
+
+    // COHORT INITIALIZATION
+    // "The Great Flush" Tuning: 60% Mercenaries to ensure visible capitulation
+    const MERCENARY_RATIO = 0.60;
+    let activeMercenaries = (initialProviders || 30) * MERCENARY_RATIO;
+    let activePros = (initialProviders || 30) * (1 - MERCENARY_RATIO);
+    let currentProviders = activeMercenaries + activePros;
+
     let currentServicePrice = 0.5;
 
     let poolUsd = initialLiquidity;
@@ -127,6 +149,9 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
     const kAmm = poolUsd * poolTokens;
 
     let consecutiveLowProfitWeeks = 0;
+    // Track price history for "Panic" logic
+    const priceHistory: number[] = [];
+
     // Initialize reward history array properly for TS
     const rewardHistory: number[] = new Array(Math.max(1, rewardLagWeeks)).fill(params.providerCostPerWeek * 1.5);
 
@@ -134,6 +159,7 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
     let treasuryBalance = 0;
 
     for (let t = 0; t < T; t++) {
+        priceHistory.push(currentPrice);
         const demand = demands[t];
         const capacity = Math.max(0.001, currentProviders * baseCapacityPerProvider);
         const demand_served = Math.min(demand, capacity);
@@ -148,15 +174,13 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
         const burnedRaw = burnPct * tokensSpent;
         const burned = Math.min(currentSupply * 0.95, burnedRaw);
 
-        // Emissions sigmoid growth + saturation dampening
+        // Emissions: Simplified Halving vs Dynamic logic
         const saturation = Math.min(1.0, currentProviders / 5000.0);
         let emissionFactor = 0.6 + 0.4 * Math.tanh(demand / 15000.0) - (0.2 * saturation);
 
-        // Module 4: KPI-Based Emissions - reduce emissions during low utilization/bear market
         if (emissionModel === 'kpi') {
             const utilizationRatio = Math.min(1, demand_served / capacity);
-            emissionFactor *= Math.max(0.3, utilizationRatio); // Scale by utilization
-            // In bear market (low price), reduce emissions further to preserve value
+            emissionFactor *= Math.max(0.3, utilizationRatio);
             if (currentPrice < initialPrice * 0.8) {
                 emissionFactor *= 0.6;
             }
@@ -173,40 +197,62 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
         const profit = delayedReward - providerCostPerWeek;
         const incentive = profit / providerCostPerWeek;
 
-        if (profit < churnThreshold) {
-            consecutiveLowProfitWeeks++;
-        } else {
-            consecutiveLowProfitWeeks = Math.max(0, consecutiveLowProfitWeeks - 1);
+        // ---------- COHORT LOGIC ----------
+        // 1. Mercenary Churn (Panic Driven)
+        let mercenaryChurnRate = 0;
+
+        // PANIC TRIGGER: Price < 80% of price 8 weeks ago (approx 2 months)
+        if (t > 8) {
+            const price2MonthsAgo = priceHistory[t - 8];
+            if (currentPrice < price2MonthsAgo * 0.8) {
+                // PANIC MODE: Dump 20% of remaining mercenaries per week (~80% in a month approx)
+                mercenaryChurnRate = 0.20;
+            } else if (profit < 0) {
+                // Standard unprofitability churn (faster than pros)
+                mercenaryChurnRate = 0.05;
+            }
         }
 
-        let churnMultiplier = 1.0;
-        if (consecutiveLowProfitWeeks > 2) churnMultiplier = 1.8;
-        if (consecutiveLowProfitWeeks > 5) churnMultiplier = 4.0;
+        // 2. Pro Churn (Sticky)
+        let proChurnRate = 0;
+        if (profit < -providerCostPerWeek * 0.5) {
+            // Only leave if losing MASSIVE money (deeply unprofitable)
+            proChurnRate = 0.01;
+        }
 
-        // Dampen provider growth (Max 15% growth per week to simulate hardware leads)
+        // Apply Churn
+        const mercsLeaving = activeMercenaries * mercenaryChurnRate;
+        const prosLeaving = activePros * proChurnRate;
+        activeMercenaries = Math.max(0, activeMercenaries - mercsLeaving);
+        activePros = Math.max(0, activePros - prosLeaving);
+
+        // Growth (New Entrants) - Split 50/50 for simplicity for now
         const maxGrowth = currentProviders * 0.15;
-        const rawDelta = (incentive * 4.5 * churnMultiplier) + rng.normal() * 0.5;
-        let delta = Math.max(-currentProviders * 0.1, Math.min(maxGrowth, rawDelta));
+        const rawDelta = (incentive * 4.5) + rng.normal() * 0.5;
+        let totalGrowth = Math.max(-currentProviders * 0.1, Math.min(maxGrowth, rawDelta));
 
-        // Module 4: Vampire Attack - competitor yield stealing nodes
+        // Only grow if incentive is positive
+        if (totalGrowth > 0) {
+            activeMercenaries += totalGrowth * 0.5;
+            activePros += totalGrowth * 0.5;
+        }
+
+        currentProviders = activeMercenaries + activePros;
+        // ----------------------------------
+
+        // Module 4: Vampire Attack logic (Simplified applied to Total)
         let vampireChurnAmount = 0;
         if (competitorYield > 0.2) {
-            // Extra churn: 2.5% of providers per 100% yield difference (scaled for weekly, was 10%/month)
-            vampireChurnAmount = currentProviders * competitorYield * 0.025;
-            delta -= vampireChurnAmount;
+            // Vampires steal MERCENARIES primarily
+            vampireChurnAmount = activeMercenaries * competitorYield * 0.05;
+            activeMercenaries = Math.max(0, activeMercenaries - vampireChurnAmount);
+            currentProviders = activeMercenaries + activePros;
         }
-
-        // Module 4: ROI-based churn (payback period triggers)
-        const weeklyRewardUsd = instantRewardValue;
-        const paybackMonths = weeklyRewardUsd > 0 ? params.hardwareCost / (weeklyRewardUsd * 4.33) : 999;
-        if (paybackMonths > 24) delta -= currentProviders * 0.0125; // +5%/month = 1.25%/week
-        if (paybackMonths > 36) delta -= currentProviders * 0.025;  // +10%/month additional
 
         let netFlow = 0;
         let nextPrice = currentPrice;
 
         if (t === investorUnlockWeek) {
-            // SHOCK EVENT
             const unlockAmount = currentSupply * investorSellPct;
             const newPoolTokens = poolTokens + unlockAmount;
             const newPoolUsd = kAmm / newPoolTokens;
@@ -216,18 +262,13 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
             nextPrice = poolUsd / poolTokens;
             netFlow = -unlockAmount;
 
-            // Massive panic churn (Dynamic V1 Approximation)
-            // Instead of hardcoded 30%, scale by price drop magnitude * sensitivity (1.5x)
-            const priceDropPct = Math.max(0, 1 - (nextPrice / currentPrice));
-            const panicChurn = currentProviders * priceDropPct * 1.5;
-            delta -= panicChurn;
+            // Investor dump triggers panic churn automatically via priceHistory check next week
         } else {
             const demandPressure = kDemandPrice * Math.tanh(scarcity);
             const dilutionPressure = -kMintPrice * (minted / currentSupply) * 100;
             const logRet = mu + demandPressure + dilutionPressure + sigma * rng.normal();
             nextPrice = Math.max(0.01, currentPrice * Math.exp(logRet));
 
-            // Re-sync AMM pool depth to price
             poolUsd = Math.sqrt(kAmm * nextPrice);
             poolTokens = Math.sqrt(kAmm / nextPrice);
         }
@@ -235,19 +276,15 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
         const dailyMintUsd = (minted / 7) * currentPrice;
         const dailyBurnUsd = (burned / 7) * currentPrice;
         let netDailyLoss = dailyBurnUsd - dailyMintUsd;
-        const solvencyScore = dailyMintUsd > 0 ? dailyBurnUsd / dailyMintUsd : 10; // Default to healthy if no minting
+        const solvencyScore = dailyMintUsd > 0 ? dailyBurnUsd / dailyMintUsd : 10;
 
-        // Module 4: Sinking Fund - accumulate treasury and dampen price drops
         if (revenueStrategy === 'reserve') {
-            // Accumulate 10% of emission value as reserve
             treasuryBalance += minted * currentPrice * 0.1;
-            // Dampen negative price movements by 50%
             if (nextPrice < currentPrice) {
                 const priceDrop = currentPrice - nextPrice;
                 nextPrice = currentPrice - (priceDrop * 0.5);
             }
         } else {
-            // Burn strategy: slight price bump (0.1%/week ≈ 5.3%/year)
             nextPrice = nextPrice * 1.001;
         }
 
@@ -256,12 +293,24 @@ export function simulateOne(params: LegacySimulationParams, simSeed: number): Le
             providers: currentProviders, capacity, servicePrice: currentServicePrice,
             minted, burned, utilization, profit, scarcity, incentive,
             solvencyScore, netDailyLoss, dailyMintUsd, dailyBurnUsd,
-            netFlow, churnCount: delta < 0 ? Math.abs(delta) : 0, joinCount: delta > 0 ? delta : 0,
-            treasuryBalance, vampireChurn: vampireChurnAmount
+            netFlow, churnCount: mercsLeaving + prosLeaving, joinCount: totalGrowth > 0 ? totalGrowth : 0,
+            treasuryBalance, vampireChurn: vampireChurnAmount,
+            // [NEW] Cohort Data
+            mercenaryCount: activeMercenaries,
+            proCount: activePros,
+            underwaterCount: profit < churnThreshold ? currentProviders : 0,
+
+            costPerCapacity: (minted * currentPrice) / Math.max(capacity, 0.1),
+            revenuePerCapacity: (demand_served * currentServicePrice) / Math.max(capacity, 0.1),
+            // Legacy Hysteresis: We don't have a strict 'barrier' flag, but we have the condition.
+            // Condition: totalGrowth (joinCount) <= 0 AND incentive is high enough? 
+            // Actually, in legacy, growth is: let totalGrowth = ...; if (totalGrowth > 0) ...
+            // The barrier logic is implicit in `totalGrowth` calculation.
+            // Let's replicate the check:
+            entryBarrierActive: (incentive * 4.5 < 0) ? 1 : 0 // heuristic for legacy
         } as LegacySimResult);
 
         currentPrice = nextPrice;
-        currentProviders = Math.max(2, currentProviders + delta);
     }
     return results;
 }

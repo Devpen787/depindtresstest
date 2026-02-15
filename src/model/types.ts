@@ -108,6 +108,7 @@ export interface SimulationParams {
   competitorYield: number;             // 0.0 to 2.0 (Competitor yield advantage)
   emissionModel: 'fixed' | 'kpi';      // Fixed schedule vs demand-driven
   revenueStrategy: 'burn' | 'reserve'; // Buy & Burn vs Sinking Fund
+  networkEffectsEnabled?: boolean;     // [THESIS GAP] Endogenous growth toggle
   hardwareCost: number;                // New for payback calc
 
   // Module 5: Report-Aligned Scenarios
@@ -117,6 +118,11 @@ export interface SimulationParams {
   // Quality Scale
   proTierPct: number;                  // % of new providers that are Pro (0.0 - 1.0)
   proTierEfficiency: number;           // Efficiency multiplier for Pro nodes (e.g. 1.5)
+
+  // Module 6: Sybil Attack (Adversarial Resilience)
+  sybilAttackEnabled: boolean;         // Whether Sybil attackers are active
+  sybilSize: number;                   // Size of Sybil attack as % of authentic network scope (0.0 - 1.0)
+
 }
 
 // ============================================================================
@@ -207,6 +213,13 @@ export interface SimResult {
   // Module 4: Competitive Resilience
   treasuryBalance: number;
   vampireChurn: number;
+  mercenaryCount: number; // [NEW]
+
+  // Solvency Scorecard
+  underwaterCount: number;     // Providers with consecutive losses
+  costPerCapacity: number;     // Incentives per GB
+  revenuePerCapacity: number;  // Revenue per GB
+  entryBarrierActive: number;  // 1 if active, 0 if not (for aggregation)
 }
 
 /**
@@ -264,6 +277,13 @@ export interface AggregateResult {
   // Module 4: Competitive Resilience
   treasuryBalance: MetricStats;
   vampireChurn: MetricStats;
+  mercenaryCount: MetricStats; // [NEW] Cohort tracking
+
+  // Solvency Scorecard
+  underwaterCount: MetricStats;
+  costPerCapacity: MetricStats;
+  revenuePerCapacity: MetricStats;
+  entryBarrierActive: MetricStats;
 }
 
 // ============================================================================
@@ -307,6 +327,7 @@ export interface DerivedMetrics {
 // PROTOCOL PROFILES
 // ============================================================================
 
+// Reverted changes
 export interface ProtocolProfileV1 {
   version: string;
   metadata: {

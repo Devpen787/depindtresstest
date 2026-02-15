@@ -1,0 +1,5068 @@
+{
+  "default_tolerance": 1e-09,
+  "metadata": {
+    "generated_at_utc": "2026-02-11T16:53:53.205559+00:00",
+    "generator": "src/audit/python/generate_golden_vectors.py",
+    "schema_version": "1.2.0"
+  },
+  "scalar_cases": [
+    {
+      "expected": 0.0,
+      "formula": "trap_door_growth",
+      "id": "trap_door_profit_10",
+      "inputs": {
+        "barrier": 20.0,
+        "profit": 10.0,
+        "sensitivity": 0.5
+      }
+    },
+    {
+      "expected": 0.005000000000000782,
+      "formula": "trap_door_growth",
+      "id": "trap_door_profit_20_01",
+      "inputs": {
+        "barrier": 20.0,
+        "profit": 20.01,
+        "sensitivity": 0.5
+      }
+    },
+    {
+      "expected": 5.0,
+      "formula": "trap_door_growth",
+      "id": "trap_door_profit_30",
+      "inputs": {
+        "barrier": 20.0,
+        "profit": 30.0,
+        "sensitivity": 0.5
+      }
+    },
+    {
+      "expected": 0.07585818002124355,
+      "formula": "mercenary_churn",
+      "id": "mercenary_churn_price_1_5",
+      "inputs": {
+        "k": 5.0,
+        "price": 1.5,
+        "threshold": 1.0
+      }
+    },
+    {
+      "expected": 0.5,
+      "formula": "mercenary_churn",
+      "id": "mercenary_churn_price_1_0",
+      "inputs": {
+        "k": 5.0,
+        "price": 1.0,
+        "threshold": 1.0
+      }
+    },
+    {
+      "expected": 0.9241418199787566,
+      "formula": "mercenary_churn",
+      "id": "mercenary_churn_price_0_5",
+      "inputs": {
+        "k": 5.0,
+        "price": 0.5,
+        "threshold": 1.0
+      }
+    },
+    {
+      "expected": 0.07615941559557649,
+      "formula": "price_impact_function",
+      "id": "price_impact_50_liq_5000",
+      "inputs": {
+        "k": 0.1,
+        "liquidity": 5000.0,
+        "pressure": 50.0
+      }
+    },
+    {
+      "expected": 0.1,
+      "formula": "price_impact_function",
+      "id": "price_impact_50000_liq_5000",
+      "inputs": {
+        "k": 0.1,
+        "liquidity": 5000.0,
+        "pressure": 50000.0
+      }
+    },
+    {
+      "expected": 2.0,
+      "formula": "calculate_r_be",
+      "id": "r_be_price_0_2",
+      "inputs": {
+        "cost": 10.0,
+        "emission": 100.0,
+        "token_price": 0.2
+      }
+    },
+    {
+      "expected": 1.0,
+      "formula": "calculate_r_be",
+      "id": "r_be_price_0_1",
+      "inputs": {
+        "cost": 10.0,
+        "emission": 100.0,
+        "token_price": 0.1
+      }
+    },
+    {
+      "expected": 0.5,
+      "formula": "calculate_r_be",
+      "id": "r_be_price_0_05",
+      "inputs": {
+        "cost": 10.0,
+        "emission": 100.0,
+        "token_price": 0.05
+      }
+    },
+    {
+      "expected": 1.0,
+      "formula": "gauntlet_cost_per_gb",
+      "id": "gauntlet_cost_week_0",
+      "inputs": {
+        "capacity": 1000.0,
+        "decay": 0.05,
+        "initial_price": 5.0,
+        "minted_tokens": 200.0,
+        "week": 0
+      }
+    },
+    {
+      "expected": 0.09536916221554961,
+      "formula": "gauntlet_cost_per_gb",
+      "id": "gauntlet_cost_week_47",
+      "inputs": {
+        "capacity": 1000.0,
+        "decay": 0.05,
+        "initial_price": 5.0,
+        "minted_tokens": 200.0,
+        "week": 47
+      }
+    },
+    {
+      "expected": 0.1,
+      "formula": "gauntlet_rev_per_gb",
+      "id": "gauntlet_rev_week_47",
+      "inputs": {
+        "capacity": 1000.0,
+        "demand_gb": 200.0,
+        "service_price_gb": 0.5,
+        "week": 47
+      }
+    },
+    {
+      "expected": 47,
+      "formula": "first_gauntlet_crossover_week",
+      "id": "gauntlet_first_crossover_52_weeks",
+      "inputs": {
+        "capacity": 1000.0,
+        "decay": 0.05,
+        "demand_gb": 200.0,
+        "initial_price": 5.0,
+        "minted_tokens": 200.0,
+        "service_price_gb": 0.5,
+        "weeks": 52
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 0.5508238649672539,
+      "formula": "calculate_survival_rate",
+      "id": "survival_onocoy_drop_0_8",
+      "inputs": {
+        "capex": 500.0,
+        "price_drop_percent": 0.8,
+        "sensitivity": 1.0
+      }
+    },
+    {
+      "expected": 0.7076504330941508,
+      "formula": "calculate_survival_rate",
+      "id": "survival_geodnet_drop_0_8",
+      "inputs": {
+        "capex": 700.0,
+        "price_drop_percent": 0.8,
+        "sensitivity": 1.0
+      }
+    },
+    {
+      "expected": 0.26894142136999516,
+      "formula": "calculate_survival_rate",
+      "id": "survival_hivemapper_drop_0_8",
+      "inputs": {
+        "capex": 450.0,
+        "price_drop_percent": 0.8,
+        "sensitivity": 5.0
+      }
+    },
+    {
+      "expected": 0.018706509954354595,
+      "formula": "calculate_survival_rate",
+      "id": "survival_grass_drop_0_2",
+      "inputs": {
+        "capex": 0.0,
+        "price_drop_percent": 0.2,
+        "sensitivity": 20.0
+      }
+    },
+    {
+      "expected": 4.98046875,
+      "formula": "binary_search_final_low",
+      "id": "binary_search_final_low",
+      "inputs": {
+        "high": 100.0,
+        "iterations": 10,
+        "low": 0.0,
+        "root": 5.0
+      }
+    },
+    {
+      "expected": 5.078125,
+      "formula": "binary_search_final_high",
+      "id": "binary_search_final_high",
+      "inputs": {
+        "high": 100.0,
+        "iterations": 10,
+        "low": 0.0,
+        "root": 5.0
+      }
+    },
+    {
+      "expected": 1.0,
+      "formula": "diagnostic_state_field",
+      "id": "diagnostic_onocoy_r_be",
+      "inputs": {
+        "demandLag": "Low",
+        "emissionSchedule": "Dynamic",
+        "field": "r_be",
+        "growthCoordination": "Managed",
+        "insiderOverhang": "Low",
+        "minerProfile": "Professional",
+        "priceShock": "None",
+        "sybilResistance": "Strong"
+      }
+    },
+    {
+      "expected": 8,
+      "formula": "diagnostic_state_field",
+      "id": "diagnostic_fragile_resilience",
+      "inputs": {
+        "demandLag": "High",
+        "emissionSchedule": "Fixed",
+        "field": "resilienceScore",
+        "growthCoordination": "Uncoordinated",
+        "insiderOverhang": "High",
+        "minerProfile": "Mercenary",
+        "priceShock": "Severe",
+        "sybilResistance": "Weak"
+      }
+    },
+    {
+      "expected": 40,
+      "formula": "diagnostic_signal_field",
+      "id": "diagnostic_signal_capacity_degradation",
+      "inputs": {
+        "cpv": 24,
+        "field": "capacityDegradation",
+        "govScore": 45,
+        "lur": 30,
+        "nrr": 60,
+        "r_be": 0.6,
+        "resilienceScore": 42,
+        "verdict": "Fragile"
+      }
+    },
+    {
+      "expected": 1,
+      "formula": "diagnostic_signal_field",
+      "id": "diagnostic_signal_validation_status_code",
+      "inputs": {
+        "cpv": 24,
+        "field": "validationStatus",
+        "govScore": 45,
+        "lur": 30,
+        "nrr": 60,
+        "r_be": 0.6,
+        "resilienceScore": 42,
+        "verdict": "Fragile"
+      }
+    },
+    {
+      "expected": 59,
+      "formula": "subsidy_series_value",
+      "id": "subsidy_fixed_emission_year3",
+      "inputs": {
+        "demandLag": "High",
+        "emissionSchedule": "Fixed",
+        "growthCoordination": "Uncoordinated",
+        "index": 2,
+        "insiderOverhang": "High",
+        "minerProfile": "Mercenary",
+        "priceShock": "Severe",
+        "series": "emissions",
+        "sybilResistance": "Weak",
+        "years": 5
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 76,
+      "formula": "subsidy_series_value",
+      "id": "subsidy_dynamic_burn_year5",
+      "inputs": {
+        "demandLag": "Low",
+        "emissionSchedule": "Dynamic",
+        "growthCoordination": "Managed",
+        "index": 4,
+        "insiderOverhang": "Low",
+        "minerProfile": "Professional",
+        "priceShock": "None",
+        "series": "burn",
+        "sybilResistance": "Strong",
+        "years": 5
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 24.414062499999993,
+      "formula": "density_series_value",
+      "id": "density_uncoord_earnings_idx3",
+      "inputs": {
+        "growthCoordination": "Uncoordinated",
+        "index": 3,
+        "series": "earnings"
+      }
+    },
+    {
+      "expected": 42,
+      "formula": "density_series_value",
+      "id": "density_managed_earnings_idx6",
+      "inputs": {
+        "growthCoordination": "Managed",
+        "index": 6,
+        "series": "earnings"
+      }
+    },
+    {
+      "expected": 40,
+      "formula": "hex_probability_field",
+      "id": "hex_moderate_merc_effective_capacity",
+      "inputs": {
+        "field": "effectiveCapacityPct",
+        "minerProfile": "Mercenary",
+        "priceShock": "Moderate"
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 0.7,
+      "formula": "hex_probability_field",
+      "id": "hex_severe_pro_pgrey",
+      "inputs": {
+        "field": "pGrey",
+        "minerProfile": "Professional",
+        "priceShock": "Severe"
+      }
+    },
+    {
+      "expected": 1.0,
+      "formula": "strategic_proof_field",
+      "id": "strategic_panic_index",
+      "inputs": {
+        "field": "panicIndex",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 44.44444444444444,
+      "formula": "strategic_proof_field",
+      "id": "strategic_merc_share_idx2",
+      "inputs": {
+        "field": "mercenaryShare",
+        "index": 2,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 350000.0,
+      "formula": "architectural_proof_field",
+      "id": "architectural_max_gap",
+      "inputs": {
+        "field": "maxGap",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 665000.0,
+      "formula": "architectural_proof_field",
+      "id": "architectural_revenue_idx1",
+      "inputs": {
+        "field": "revenue",
+        "index": 1,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 2.0,
+      "formula": "methodological_proof_field",
+      "id": "methodological_mid_index",
+      "inputs": {
+        "field": "midIndex",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": -41.18223703558475,
+      "formula": "methodological_proof_field",
+      "id": "methodological_diff_idx2",
+      "inputs": {
+        "field": "diffPct",
+        "index": 2,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 2.1099611901681765,
+      "formula": "solution_proof_field",
+      "id": "solution_saved_value_idx3",
+      "inputs": {
+        "field": "savedValue",
+        "index": 3,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 6.483084185680567,
+      "formula": "solution_proof_field",
+      "id": "solution_shadow_price_idx1",
+      "inputs": {
+        "field": "staticShadowPrice",
+        "index": 1,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 0.75,
+      "formula": "sensitivity_step_value",
+      "id": "sensitivity_burn_step_idx3",
+      "inputs": {
+        "index": 3,
+        "kind": "burn_step",
+        "steps": 5
+      }
+    },
+    {
+      "expected": 5500000.0,
+      "formula": "sensitivity_step_value",
+      "id": "sensitivity_mint_step_idx2",
+      "inputs": {
+        "index": 2,
+        "kind": "mint_step",
+        "maxMint": 10000000.0,
+        "minMint": 1000000.0,
+        "steps": 5
+      }
+    },
+    {
+      "expected": 10000000.0,
+      "formula": "sensitivity_step_value",
+      "id": "sensitivity_display_row0",
+      "inputs": {
+        "kind": "display_row_mint",
+        "maxMint": 10000000.0,
+        "minMint": 1000000.0,
+        "row": 0,
+        "steps": 5
+      }
+    },
+    {
+      "expected": 0.0,
+      "formula": "sensitivity_band_code",
+      "id": "sensitivity_band_red",
+      "inputs": {
+        "score": 35.0
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 1.0,
+      "formula": "sensitivity_band_code",
+      "id": "sensitivity_band_yellow",
+      "inputs": {
+        "score": 65.0
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 2.0,
+      "formula": "sensitivity_band_code",
+      "id": "sensitivity_band_green",
+      "inputs": {
+        "score": 90.0
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 0.25,
+      "formula": "sweep_grid_field",
+      "id": "sweep_grid_cell_6_burn",
+      "inputs": {
+        "field": "burnPct",
+        "index": 6,
+        "maxMint": 10000000.0,
+        "minMint": 1000000.0,
+        "xSteps": 5,
+        "ySteps": 5
+      }
+    },
+    {
+      "expected": 3250000.0,
+      "formula": "sweep_grid_field",
+      "id": "sweep_grid_cell_6_mint",
+      "inputs": {
+        "field": "maxMintWeekly",
+        "index": 6,
+        "maxMint": 10000000.0,
+        "minMint": 1000000.0,
+        "xSteps": 5,
+        "ySteps": 5
+      }
+    },
+    {
+      "expected": 67,
+      "formula": "wizard_metric_field",
+      "id": "wizard_resilience_score",
+      "inputs": {
+        "field": "resilienceScore",
+        "hardwareCost": 1000.0,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 4.43859649122807,
+      "formula": "wizard_metric_field",
+      "id": "wizard_avg_churn_rate",
+      "inputs": {
+        "field": "avgChurnRate",
+        "hardwareCost": 1000.0,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 47.0,
+      "formula": "risk_metric_field",
+      "id": "risk_tail_score",
+      "inputs": {
+        "field": "tailRiskScore",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 0.45,
+      "formula": "risk_metric_field",
+      "id": "risk_p10_floor_ratio",
+      "inputs": {
+        "field": "p10FloorRatio",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 15.396458814472672,
+      "formula": "miner_chart_field",
+      "id": "miner_chart_payback_idx1",
+      "inputs": {
+        "field": "actualPayback",
+        "hardwareCost": 1000.0,
+        "index": 1,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 8.421052631578947,
+      "formula": "miner_chart_field",
+      "id": "miner_chart_churn_idx2",
+      "inputs": {
+        "field": "churnRatePct",
+        "hardwareCost": 1000.0,
+        "index": 2,
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 60.0,
+      "formula": "utility_summary_field",
+      "id": "utility_summary_health_score",
+      "inputs": {
+        "field": "utilityHealthScore",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 57.608695652173914,
+      "formula": "utility_summary_field",
+      "id": "utility_summary_pro_share",
+      "inputs": {
+        "field": "proShare",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": 8.0,
+      "formula": "financial_summary_field",
+      "id": "financial_weeks_to_empty",
+      "inputs": {
+        "field": "weeksToEmpty",
+        "points": [
+          {
+            "balance": 1000000.0,
+            "burn": 100000.0,
+            "cumulativeBurn": 0.0,
+            "mint": 150000.0,
+            "netBurnMinusMint": -50000.0,
+            "t": 0.0
+          },
+          {
+            "balance": 900000.0,
+            "burn": 95000.0,
+            "cumulativeBurn": 0.0,
+            "mint": 155000.0,
+            "netBurnMinusMint": -60000.0,
+            "t": 1.0
+          },
+          {
+            "balance": 800000.0,
+            "burn": 90000.0,
+            "cumulativeBurn": 0.0,
+            "mint": 160000.0,
+            "netBurnMinusMint": -70000.0,
+            "t": 2.0
+          }
+        ]
+      }
+    },
+    {
+      "expected": -0.14,
+      "formula": "financial_summary_field",
+      "id": "financial_net_flow_quality",
+      "inputs": {
+        "field": "netFlowQuality",
+        "points": [
+          {
+            "balance": 1000000.0,
+            "burn": 100000.0,
+            "cumulativeBurn": 0.0,
+            "mint": 150000.0,
+            "netBurnMinusMint": -50000.0,
+            "t": 0.0
+          },
+          {
+            "balance": 900000.0,
+            "burn": 95000.0,
+            "cumulativeBurn": 0.0,
+            "mint": 155000.0,
+            "netBurnMinusMint": -60000.0,
+            "t": 1.0
+          },
+          {
+            "balance": 800000.0,
+            "burn": 90000.0,
+            "cumulativeBurn": 0.0,
+            "mint": 160000.0,
+            "netBurnMinusMint": -70000.0,
+            "t": 2.0
+          }
+        ]
+      }
+    },
+    {
+      "expected": 25.0,
+      "formula": "benchmark_safe_percent_delta",
+      "id": "benchmark_safe_percent_delta",
+      "inputs": {
+        "a": 5000.0,
+        "b": 4000.0
+      }
+    },
+    {
+      "expected": 1.0,
+      "formula": "benchmark_safe_percent_is_valid",
+      "id": "benchmark_safe_percent_is_valid",
+      "inputs": {
+        "a": 5000.0,
+        "b": 4000.0
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 3.0,
+      "formula": "benchmark_safe_absolute_delta",
+      "id": "benchmark_safe_absolute_delta",
+      "inputs": {
+        "a": 10.0,
+        "b": 7.0
+      }
+    },
+    {
+      "expected": 1.0,
+      "formula": "benchmark_safe_absolute_is_valid",
+      "id": "benchmark_safe_absolute_is_valid",
+      "inputs": {
+        "a": 10.0,
+        "b": 7.0
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": 400.00000000000045,
+      "formula": "benchmark_annual_growth_yoy",
+      "id": "benchmark_annual_growth_yoy",
+      "inputs": {
+        "endNodes": 5000.0,
+        "startNodes": 1000.0,
+        "weeks": 52.0
+      }
+    },
+    {
+      "expected": 52000.0,
+      "formula": "benchmark_annualized_revenue",
+      "id": "benchmark_annualized_revenue_live",
+      "inputs": {
+        "demandServedMean": 0.0,
+        "hasLiveRevenue": true,
+        "liveRevenueUsd7d": 1000.0,
+        "servicePriceMean": 0.0
+      }
+    },
+    {
+      "expected": 5200.0,
+      "formula": "benchmark_annualized_revenue",
+      "id": "benchmark_annualized_revenue_sim",
+      "inputs": {
+        "demandServedMean": 200.0,
+        "hasLiveRevenue": false,
+        "liveRevenueUsd7d": 0.0,
+        "servicePriceMean": 0.5
+      }
+    },
+    {
+      "expected": 250.0,
+      "formula": "benchmark_weekly_burn",
+      "id": "benchmark_weekly_burn_live",
+      "inputs": {
+        "hasLiveBurn": true,
+        "liveBurn7d": 250.0,
+        "simulatedBurn": 100.0
+      }
+    },
+    {
+      "expected": 50.0,
+      "formula": "benchmark_sustainability_ratio_pct",
+      "id": "benchmark_sustainability_ratio_pct",
+      "inputs": {
+        "burnAmount": 500.0,
+        "burnPrice": 0.5,
+        "mintedTokens": 1000.0,
+        "simulationPrice": 0.5
+      }
+    },
+    {
+      "expected": 10.4,
+      "formula": "benchmark_revenue_per_node",
+      "id": "benchmark_revenue_per_node",
+      "inputs": {
+        "activeNodes": 5000.0,
+        "annualizedRevenue": 52000.0
+      }
+    },
+    {
+      "expected": 6.933333333333333,
+      "formula": "benchmark_hardware_roi_pct",
+      "id": "benchmark_hardware_roi_pct",
+      "inputs": {
+        "hardwareCost": 150.0,
+        "revenuePerNode": 10.4
+      }
+    },
+    {
+      "expected": 173.07692307692307,
+      "formula": "benchmark_payback_months",
+      "id": "benchmark_payback_months",
+      "inputs": {
+        "activeNodes": 5000.0,
+        "annualizedRevenue": 52000.0,
+        "hardwareCost": 150.0
+      }
+    },
+    {
+      "expected": 60.0,
+      "formula": "benchmark_normalize_payback_months",
+      "id": "benchmark_normalize_payback_months",
+      "inputs": {
+        "paybackMonths": 173.07692307692307
+      }
+    },
+    {
+      "expected": 90.0,
+      "formula": "benchmark_retention_fallback",
+      "id": "benchmark_retention_fallback",
+      "inputs": {
+        "finalProviders": 900.0,
+        "peakProviders": 1000.0
+      }
+    },
+    {
+      "expected": 95.98271598226052,
+      "formula": "benchmark_weekly_retention_estimate",
+      "id": "benchmark_weekly_retention_estimate",
+      "inputs": {
+        "fallback": 90.0,
+        "retentionPoints": [
+          {
+            "churn": 0.0,
+            "providers": 1000.0
+          },
+          {
+            "churn": 20.0,
+            "providers": 980.0
+          },
+          {
+            "churn": 25.0,
+            "providers": 960.0
+          },
+          {
+            "churn": 30.0,
+            "providers": 940.0
+          },
+          {
+            "churn": 35.0,
+            "providers": 920.0
+          },
+          {
+            "churn": 40.0,
+            "providers": 900.0
+          },
+          {
+            "churn": 50.0,
+            "providers": 880.0
+          },
+          {
+            "churn": 60.0,
+            "providers": 860.0
+          }
+        ]
+      }
+    },
+    {
+      "expected": 85.0,
+      "formula": "benchmark_demand_coverage_pct",
+      "id": "benchmark_demand_coverage_pct",
+      "inputs": {
+        "demand": 1000.0,
+        "demandServed": 850.0
+      }
+    },
+    {
+      "expected": 93.2,
+      "formula": "benchmark_efficiency_score",
+      "id": "benchmark_efficiency_score",
+      "inputs": {
+        "demandCoverage": 85.0,
+        "previousUtilization": 80.0,
+        "utilization": 82.0
+      }
+    },
+    {
+      "expected": 0.5,
+      "formula": "benchmark_normalize_sustainability_ratio",
+      "id": "benchmark_normalize_sustainability_ratio",
+      "inputs": {
+        "sustainabilityRatioPct": 50.0
+      }
+    },
+    {
+      "expected": 0.0,
+      "formula": "benchmark_payback_score",
+      "id": "benchmark_payback_score",
+      "inputs": {
+        "paybackMonths": 60.0
+      }
+    },
+    {
+      "expected": 106.66666666666667,
+      "formula": "benchmark_smoothed_solvency_index",
+      "id": "benchmark_smoothed_solvency_index",
+      "inputs": {
+        "index": 2,
+        "series": [
+          1.2,
+          1.1,
+          0.9,
+          0.8
+        ]
+      }
+    }
+  ],
+  "sequence_cases": [
+    {
+      "expected": [
+        50.0,
+        25.0,
+        12.5,
+        6.25,
+        3.125,
+        4.6875,
+        5.46875,
+        5.078125,
+        4.8828125,
+        4.98046875
+      ],
+      "formula": "binary_search_history",
+      "id": "binary_search_history_default",
+      "inputs": {
+        "high": 100.0,
+        "iterations": 10,
+        "low": 0.0,
+        "root": 5.0
+      }
+    },
+    {
+      "expected": [
+        0.14679033980138237,
+        0.018706509954354595,
+        2.5932178883090058e-05,
+        3.527822089314433e-08
+      ],
+      "formula": "survival_curve_points",
+      "id": "survival_curve_points_grass",
+      "inputs": {
+        "capex": 0.0,
+        "points": [
+          0.1,
+          0.2,
+          0.5,
+          0.8
+        ],
+        "sensitivity": 20.0
+      }
+    },
+    {
+      "expected": [
+        0.9864001051854768,
+        0.9041317293805772,
+        0.5508238649672539
+      ],
+      "formula": "survival_curve_points",
+      "id": "survival_curve_points_onocoy",
+      "inputs": {
+        "capex": 500.0,
+        "points": [
+          0.2,
+          0.5,
+          0.8
+        ],
+        "sensitivity": 1.0
+      }
+    },
+    {
+      "expected": [
+        84,
+        71,
+        59,
+        50,
+        42
+      ],
+      "formula": "subsidy_series",
+      "id": "subsidy_fixed_emissions_series",
+      "inputs": {
+        "demandLag": "High",
+        "emissionSchedule": "Fixed",
+        "growthCoordination": "Uncoordinated",
+        "insiderOverhang": "High",
+        "minerProfile": "Mercenary",
+        "priceShock": "Severe",
+        "series": "emissions",
+        "sybilResistance": "Weak",
+        "years": 5
+      },
+      "tolerance": 0.0
+    },
+    {
+      "expected": [
+        100.0,
+        62.5,
+        39.06249999999999,
+        24.414062499999993,
+        15.258789062499996,
+        9.536743164062498,
+        5.96046447753906
+      ],
+      "formula": "density_series",
+      "id": "density_uncoord_earnings_series",
+      "inputs": {
+        "growthCoordination": "Uncoordinated",
+        "series": "earnings"
+      }
+    },
+    {
+      "expected": [
+        60.0,
+        60.0,
+        55.55555555555556,
+        57.608695652173914
+      ],
+      "formula": "strategic_proof_series",
+      "id": "strategic_pro_share_series",
+      "inputs": {
+        "field": "proShare",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": [
+        140000.0,
+        245000.0,
+        350000.0,
+        210000.0
+      ],
+      "formula": "architectural_proof_series",
+      "id": "architectural_deficit_series",
+      "inputs": {
+        "field": "deficit",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": [
+        10.0,
+        10.1,
+        10.201,
+        10.30301
+      ],
+      "formula": "methodological_proof_series",
+      "id": "methodological_excel_forecast_series",
+      "inputs": {
+        "field": "excelForecast",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": [
+        1.1894273127753312,
+        1.5169158143194332,
+        1.5042613636363633,
+        2.1099611901681765
+      ],
+      "formula": "solution_proof_series",
+      "id": "solution_saved_value_series",
+      "inputs": {
+        "field": "savedValue",
+        "series": [
+          {
+            "burned": {
+              "mean": 15000.0
+            },
+            "churnCount": {
+              "mean": 10.0
+            },
+            "dailyBurnUsd": {
+              "mean": 100000.0
+            },
+            "dailyMintUsd": {
+              "mean": 120000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 900.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 30000.0
+            },
+            "price": {
+              "mean": 10.0,
+              "p10": 9.0
+            },
+            "proCount": {
+              "mean": 600.0
+            },
+            "profit": {
+              "mean": 20.0
+            },
+            "providers": {
+              "mean": 1000.0
+            },
+            "solvencyScore": {
+              "mean": 1.2
+            },
+            "supply": {
+              "mean": 1000000.0
+            },
+            "t": 0,
+            "utilisation": {
+              "mean": 50.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 14000.0
+            },
+            "churnCount": {
+              "mean": 50.0
+            },
+            "dailyBurnUsd": {
+              "mean": 95000.0
+            },
+            "dailyMintUsd": {
+              "mean": 130000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 850.0
+            },
+            "mercenaryCount": {
+              "mean": 380.0
+            },
+            "minted": {
+              "mean": 28000.0
+            },
+            "price": {
+              "mean": 8.0,
+              "p10": 6.5
+            },
+            "proCount": {
+              "mean": 570.0
+            },
+            "profit": {
+              "mean": 15.0
+            },
+            "providers": {
+              "mean": 950.0
+            },
+            "solvencyScore": {
+              "mean": 0.9
+            },
+            "supply": {
+              "mean": 1030000.0
+            },
+            "t": 1,
+            "utilisation": {
+              "mean": 40.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 13000.0
+            },
+            "churnCount": {
+              "mean": 80.0
+            },
+            "dailyBurnUsd": {
+              "mean": 90000.0
+            },
+            "dailyMintUsd": {
+              "mean": 140000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 700.0
+            },
+            "mercenaryCount": {
+              "mean": 400.0
+            },
+            "minted": {
+              "mean": 26000.0
+            },
+            "price": {
+              "mean": 6.0,
+              "p10": 4.5
+            },
+            "proCount": {
+              "mean": 500.0
+            },
+            "profit": {
+              "mean": 5.0
+            },
+            "providers": {
+              "mean": 900.0
+            },
+            "solvencyScore": {
+              "mean": 0.8
+            },
+            "supply": {
+              "mean": 1055000.0
+            },
+            "t": 2,
+            "utilisation": {
+              "mean": 30.0
+            }
+          },
+          {
+            "burned": {
+              "mean": 12000.0
+            },
+            "churnCount": {
+              "mean": 30.0
+            },
+            "dailyBurnUsd": {
+              "mean": 105000.0
+            },
+            "dailyMintUsd": {
+              "mean": 135000.0
+            },
+            "demand": {
+              "mean": 1000.0
+            },
+            "demandServed": {
+              "mean": 800.0
+            },
+            "mercenaryCount": {
+              "mean": 390.0
+            },
+            "minted": {
+              "mean": 25000.0
+            },
+            "price": {
+              "mean": 7.0,
+              "p10": 5.5
+            },
+            "proCount": {
+              "mean": 530.0
+            },
+            "profit": {
+              "mean": 12.0
+            },
+            "providers": {
+              "mean": 920.0
+            },
+            "solvencyScore": {
+              "mean": 1.1
+            },
+            "supply": {
+              "mean": 1080000.0
+            },
+            "t": 3,
+            "utilisation": {
+              "mean": 35.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "expected": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.75,
+        0.75,
+        0.75,
+        0.75,
+        0.75,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "formula": "sweep_grid_series",
+      "id": "sweep_grid_burn_series",
+      "inputs": {
+        "field": "burnPct",
+        "maxMint": 10000000.0,
+        "minMint": 1000000.0,
+        "xSteps": 5,
+        "ySteps": 5
+      }
+    },
+    {
+      "expected": [
+        120.0,
+        114.99999999999999,
+        106.66666666666667,
+        93.33333333333333
+      ],
+      "formula": "benchmark_smoothed_solvency_series",
+      "id": "benchmark_smoothed_solvency_series",
+      "inputs": {
+        "indexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "series": [
+          1.2,
+          1.1,
+          0.9,
+          0.8
+        ]
+      }
+    }
+  ]
+}

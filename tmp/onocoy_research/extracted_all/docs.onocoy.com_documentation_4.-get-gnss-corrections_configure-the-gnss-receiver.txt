@@ -1,0 +1,64 @@
+[]Copy
+
+[]
+
+1.  4. Get GNSS Corrections
+
+Configure the GNSS receiver
+
+[]
+
+Configure the GNSS receiver
+
+Now you just need to configure your receiver.
+
+Click on Connect in the last column of the credential list to view the
+details you have to put in for your receiver:
+
+- 
+
+  Use the username and password generated in the step “Create
+  credentials for your device”, visible in the list of your credentials
+
+- 
+
+  Configure the NTRIP caster to point to clients.onocoy.com and port
+  2101
+
+  - 
+
+    Use port 2121 for TLS connections
+
+- 
+
+  Choose mountpoint NRBY_ADV
+
+This is a roaming mode mountpoint. It will deliver data from the closest
+reference station matching your configuration of the credential. For
+this to work, you will have to enable NMEA (GGA) back messages in your
+GNSS rover.
+
+We support NTRIP protocol version 1.0 and 2.0.
+
+These generic instructions should help to enable NTRIP client
+functionality. Please consult the documentation of the respective
+receiver manufacturer for further detailed instructions on how to
+configure the parameters above.
+
+[]
+
+You are good to go!
+
+Your device should now start streaming GNSS correction data from the
+onocoy NTRIP caster.
+
+Back in the console, under NTRIP Clients[], you should see connection
+details from the connected device(s) you have configured by clicking on
+the credential name.
+
+If you have any questions, send a message to [email protected][] for
+assistance.
+
+PreviousSetting of the credentials[]NextService levels[]
+
+Last updated 9 months ago

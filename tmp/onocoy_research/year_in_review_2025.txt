@@ -1,0 +1,263 @@
+[]
+
+Services
+
+[]
+
+Contribute
+
+[]
+
+$ONO
+
+Read Docs
+
+Explore
+
+[]
+
+Services
+
+[]
+
+Contribute
+
+[]
+
+$ONO
+
+Read Docs
+
+Explore
+
+onocoy 2025 Year in Review: From TGE to Global GNSS Leadership
+
+Jan 5, 2026
+
+[]
+
+[]
+
+2025 has been a defining year for onocoy, marked first and foremost by
+strong financial and institutional validation of the project. A
+significant milestone was achieved in Q2/25 with the acquisition of our
+first two B2B clients, securing recurring real revenue ahead of the
+Token Generation Event (TGE). 2025 was also the launch of a successful
+PinkSale presale, raising over $139,000 to bootstrap decentralized GNSS
+infrastructure and demonstrate early market confidence (read more). This
+was followed by the implementation of token vesting with Streamflow
+(read more), establishing disciplined token economics designed for
+long-term sustainability rather than short-term speculation.
+
+That foundation was further strengthened by a strategic investment from
+Ryze Labs, reinforcing external conviction in onocoy’s vision,
+technology, and execution. Together, these steps created the conditions
+for a confident Token Generation Event, marking the official launch of
+$ONO and enabling the network to scale rapidly with aligned incentives
+across miners, users, and stakeholders.
+
+Complementing private capital and strategic investment, onocoy also
+secured a $1.5M grant from the European Space Agency, supporting the
+development of AI-powered GNSS fraud detection and underscoring
+institutional trust in the robustness and relevance of onocoy’s
+technology. This combination of community funding, venture backing, and
+public-sector support laid a uniquely strong foundation for growth
+throughout 2025.
+
+2025 was a year onocoy focused on expanding its ecosystem through a
+growing set of technology, distribution, and application partners.
+Throughout the year, collaborations with Tupaia, NeuraLoc, RTKFix,
+SkyTrade, WeatherXM, Acurast, Stargate, and Septentrio strengthened the
+onocoy’s market position and enabled new use cases across robotics,
+autonomous,, and enterprise GNSS. In parallel, distribution partnerships
+with DroneDash, Kindhelm, and EUGEO accelerated regional adoption,
+enabling rapid coverage expansion in key markets such as Southeast Asia,
+Finland, and Romania. Together, these partnerships translated onocoy’s
+decentralized architecture into real-world deployments and commercial
+traction.
+
+As the network grew, 2025 also marked a shift toward smarter incentives
+and product maturity. Rather than rewarding scale alone, onocoy began
+aligning miner incentives with reliability and real demand. The
+introduction of Streak Appreciation encouraged long-term, consistent
+performance, helping stabilize the network as coverage expanded
+globally.
+
+This was complemented by High Value Areas (HVAs), which guided growth
+toward regions with active client demand, ensuring that new coverage
+translated directly into real-world usage. Together, these mechanisms
+allowed the network to scale efficiently while maintaining
+professional-grade reliability.
+
+Looking ahead, the upcoming local usage rewards will further strengthen
+this model by directly linking miner rewards to actual correction usage
+in their area, reinforcing a self-sustaining loop between demand,
+quality, and incentives.
+
+[]
+
+The results were striking. Our miner base grew from 3725 in January to
+over 7,500+ by December, while DC credits burnt by clients surged from
+25,266 to 411,161, demonstrating strong adoption and reliance on
+onocoy’s GNSS services data. $ONO buybacks and burns exceeded 1.7
+million, reflecting both token utility, reliability for the long term
+and active ecosystem participation. These numbers highlight that
+onocoy’s growth isn’t just in scale but a deep engagement and tangible
+network impact. To provide full transparency into our network activity,
+we have built a Dune Dashboard. 
+
+[]
+
+Beyond metrics, we also strengthened thought leadership and community
+engagement. Guides like “Your Guide to Understanding the $ONO Token”
+(link) and interviews with Co-founder Thomas Nigg (link) helped users
+understand our mission, while articles on blockchain’s role in GNSS
+(link) and fraud prevention (link) positioned onocoy as a thought leader
+driving innovation in the space.
+
+Looking ahead to 2026, we aim to turn growth into direct benefits for
+our community:
+
+- Demand growth, expanding enterprise, B2B, and Web3 usage to drive
+  higher network utilization and shared value for miners, hodlers, and
+  the community
+
+- Release Usage rewards feature to incentivize active participation
+
+- RINEX generation and archiving to provide professional-grade GNSS data
+
+- Continuous stability improvements, including enhanced fraud detection
+  supported by ESA NAVISP
+
+- Referral programs and mass provisioning of miners and user devices to
+  accelerate adoption
+
+- Web3 partnerships in robotics, connecting decentralized GNSS to
+  autonomous systems and applications
+
+The achievements of 2025 triple-digit miner growth, fast deployment of
+over 7,550 stations, strategic partnerships, product innovation, and
+strong tokenomics provide a solid foundation to make 2026 even bigger
+for onocoy and the decentralized GNSS ecosystem.
+
+We close 2025 by thanking our incredible community, dedicated miners,
+partners, and everyone who believed in our vision your trust and support
+have made this remarkable journey possible, and together we will
+continue building the future of decentralized GNSS.
+
+‹ From Local Innovation to Global Infrastructure: onocoy Featured in
+Neue Zürcher Zeitung (NZZ)
+
+onocoy x Tupaia Partnership Announcement ›
+
+[]
+
+info@onocoy.com
+
+Services
+
+Overview
+
+onocoy RTK
+
+How to buy
+
+Coverage map
+
+Contribute
+
+Become a miner
+
+Mining hardware
+
+Partners
+
+Opportunity map
+
+$ONO
+
+About
+
+Team
+
+News & Blog
+
+Whitepaper
+
+Read docs
+
+Get in touch
+
+Subscribe for onocoy news and updates
+
+© onocoy Association. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+© onocoy Services AG. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+Terms of Use
+
+Terms of Service
+
+Privacy Policy
+
+Terms of Data Provisioning
+
+[]
+
+info@onocoy.com
+
+Services
+
+Overview
+
+onocoy RTK
+
+How to buy
+
+Coverage map
+
+Contribute
+
+Mining hardware
+
+Opportunity map
+
+Become a miner
+
+Partners
+
+$ONO
+
+About
+
+Team
+
+News & Blog
+
+Whitepaper
+
+Read docs
+
+Get in touch
+
+Subscribe for onocoy news and updates
+
+© onocoy Association. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+© onocoy Services AG. Luzernerstrasse 74C, 6333 Hünenberg See,
+Switzerland
+
+Terms of Use
+
+Terms of Service
+
+Privacy Policy
+
+Terms of Data
+
+Provisioning
+
+[] []

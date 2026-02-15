@@ -2,6 +2,7 @@ import React from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { DiagnosticInput, DiagnosticState } from './types';
+import { calculateDensityTrapSeries } from '../../audit/diagnosticViewMath';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -12,34 +13,7 @@ interface Props {
 
 export const DensityTrapChart: React.FC<Props> = ({ inputs }) => {
     const years = ['Y1', 'Y1.5', 'Y2', 'Y2.5', 'Y3', 'Y3.5', 'Y4'];
-
-    // Logic: 
-    // Uncoordinated: Network grows exponential -> ROI collapses exponential.
-    // Managed: Network grows linear -> ROI stays stable.
-
-    const earnings = [];
-    const costs = [];
-
-    // Base hardware cost (normalized)
-    const baseCost = 20;
-
-    for (let i = 0; i < 7; i++) {
-        // Costs slightly increase over time (maintenance, difficulty)
-        costs.push(baseCost + (i * 2));
-
-        // Earnings Logic:
-        if (inputs.growthCoordination === 'Uncoordinated') {
-            // "Density Trap": Earnings crash as N^2 (Metcalfe's law inverted for competition)
-            // Starts high (hype), crashes hard.
-            const val = 100 / Math.pow(1.6, i);
-            earnings.push(val);
-        } else {
-            // "Managed": Earnings decay logarithmically (sustainable)
-            // Starts moderate, stays above cost.
-            const val = 60 - (i * 3);
-            earnings.push(Math.max(val, 25)); // Floored
-        }
-    }
+    const { earnings, costs } = calculateDensityTrapSeries(inputs.growthCoordination);
 
     const data = {
         labels: years,

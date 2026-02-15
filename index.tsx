@@ -23,6 +23,9 @@ import { SandboxView } from './src/components/Simulator/SandboxView';
 import { ComparisonView } from './src/components/Simulator/ComparisonView';
 import { SimulatorSidebar } from './src/components/Simulator/SimulatorSidebar';
 
+// V2 Dashboard
+import { DecisionTreeDashboard } from './src/components/DecisionTree/DecisionTreeDashboard';
+
 // Hooks & Utils
 import { useSimulationRunner } from './src/hooks/useSimulationRunner';
 import { calculateRegime } from './src/utils/regime';
@@ -51,6 +54,7 @@ const App: React.FC = () => {
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [showKnowledgeLayer, setShowKnowledgeLayer] = useState(false);
   const [showDePINBrowser, setShowDePINBrowser] = useState(false);
+  const [dashboardMode, setDashboardMode] = useState<'legacy' | 'v2'>('legacy');
 
   // Live Data State (Hoisted to App level for sharing)
   const [liveData, setLiveData] = useState<Record<string, TokenMarketData | null>>({});
@@ -155,6 +159,15 @@ const App: React.FC = () => {
 
   const incentiveRegime = React.useMemo(() => calculateRegime(sim.aggregated, sim.activeProfile), [sim.aggregated, sim.activeProfile]);
 
+  // V2 RENDER BRANCH
+  if (dashboardMode === 'v2') {
+    return (
+      <DecisionTreeDashboard
+        sim={sim}
+        onBackToLegacy={() => setDashboardMode('legacy')}
+      />
+    );
+  }
 
   return (
     <div className="h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-hidden">
@@ -239,6 +252,10 @@ const App: React.FC = () => {
             <Download size={14} /> Export
           </button>
 
+          <button onClick={() => setDashboardMode('v2')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-bold transition-all">
+            <LayoutGrid size={14} /> Decision Tree
+          </button>
+
           {activeTab === 'simulator' && (
             <button onClick={sim.runSimulation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95">
               {sim.loading ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />} Run Matrix
@@ -273,7 +290,21 @@ const App: React.FC = () => {
         />
       ) : activeTab === 'diagnostic' ? (
         <div className="flex-1 overflow-y-auto bg-slate-950 custom-scrollbar">
-          <AuditDashboard />
+          <AuditDashboard
+            simulationData={sim.aggregated}
+            loading={sim.loading}
+            profileName={sim.activeProfile.metadata.name}
+            onProtocolChange={(id) => {
+              const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id);
+              if (profile) sim.loadProfile(profile);
+            }}
+            onRunSensitivity={sim.runSensitivityAnalysis}
+            onParamChange={(updates) => {
+              sim.setParams((prev) => ({ ...prev, ...updates }));
+              // Trigger run after state update
+              setTimeout(() => sim.runSimulation(), 100);
+            }}
+          />
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">
@@ -311,11 +342,7 @@ const App: React.FC = () => {
                 toggleSection={toggleSection}
                 activeScenarioId={activeScenarioId}
                 setActiveScenarioId={setActiveScenarioId}
-                setFocusChart={() => { }} // Not really used in sidebar except for presets, handled inside sidebar logic mostly? 
-                // Wait, sidebar scenarios CAN trigger charts. We need `setFocusChart`.
-                // But `SandboxView` has `setFocusChart` internal state. Ideally, we should hoist focused chart state to sim hook or here.
-                // I'll leave `setFocusChart` as a no-op for now unless I hoist it.
-                // Actually, I should hoist `focusChart` to clean this up.
+                setFocusChart={sim.setFocusChart}
                 setShowKnowledgeLayer={setShowKnowledgeLayer}
                 findBreakEven={sim.findBreakEven}
                 runOptimization={sim.runOptimization}
@@ -328,9 +355,12 @@ const App: React.FC = () => {
                     params={sim.params}
                     setParams={sim.setParams}
                     aggregated={sim.aggregated}
+                    onocoyHookSnapshot={sim.onocoyHookSnapshot}
                     playbackWeek={sim.playbackWeek}
                     incentiveRegime={incentiveRegime}
                     scrollToControl={scrollToControl}
+                    focusChart={sim.focusChart}
+                    setFocusChart={sim.setFocusChart}
                   />
                 ) : (
                   <ComparisonView

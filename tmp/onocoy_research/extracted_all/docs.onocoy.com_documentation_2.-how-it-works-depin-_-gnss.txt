@@ -1,0 +1,185 @@
+[]Copy
+
+[]
+
+1.  2. How It Works (DePIN + GNSS)
+
+DePIN for GNSS
+
+[]
+
+🛰 What is DePIN?
+
+DePIN (Decentralized Physical Infrastructure Network) is a web3-powered
+model where physical infrastructure is:
+
+- 
+
+  Built and maintained by a distributed community,
+
+- 
+
+  Incentivized through tokens,
+
+- 
+
+  Coordinated via blockchain and smart contracts.
+
+Instead of centralized companies owning and operating the
+infrastructure, anyone can contribute to the network, earn rewards, and
+help scale it globally.
+
+------------------------------------------------------------------------
+
+[]
+
+📡 Applying DePIN to GNSS (Global Navigation Satellite System)
+
+Traditionally, high-precision GNSS services (like RTK or PPP) require
+reference stations (CORS) that:
+
+- 
+
+  Continuously monitor satellite signals,
+
+- 
+
+  Provide correction data to improve positioning accuracy (from meters
+  down to centimeters),
+
+- 
+
+  Are expensive to deploy and maintain, hence only cover certain regions
+  (typically wealthy or industrial areas).
+
+Here’s where DePIN comes in:
+
+------------------------------------------------------------------------
+
+[]
+
+🔁 onocoy's DePIN Model for GNSS
+
+🧱 1. Decentralized Reference Station Network
+
+- 
+
+  Anyone can operate a GNSS reference station ("miner") and connect it
+  to the onocoy network.
+
+- 
+
+  These stations share their GNSS correction data to help improve
+  location accuracy.
+
+- 
+
+  This creates a global, user-owned network of physical stations.
+
+💰 2. Token Incentives (ONO token)
+
+- 
+
+  Station operators (miners) are rewarded with ONO tokens based on:
+
+  - 
+
+    Data quality
+
+  - 
+
+    Station availability
+
+  - 
+
+    Geographic location (under-served regions are more rewarded)
+
+- 
+
+  These incentives ensure the network grows where it’s most needed, not
+  just where it’s profitable.
+
+🔍 3. Data Validation and Trust
+
+- 
+
+  Validators in the network check the data for authenticity (detect
+  spoofing/synthetic signals).
+
+- 
+
+  Validation is done via algorithms and blockchain-based scoring, not
+  centralized authorities.
+
+📤 4. Pay-Per-Use Correction Access
+
+- 
+
+  Users buy data credits (purchased with ONO tokens) to access real-time
+  correction data.
+
+- 
+
+  This makes the system scalable, open to mass market use, and not
+  locked behind expensive subscriptions.
+
+🧠 5. Governance by the Community
+
+- 
+
+  Network decisions are governed by token holders.
+
+- 
+
+  A Swiss non-profit association provides legal backing.
+
+- 
+
+  Uses progressive decentralization to gradually hand over control to
+  the community.
+
+------------------------------------------------------------------------
+
+[]
+
+🚀 Why It’s a Big Deal for GNSS
+
+- 
+
+  🌍 Global Coverage: Can expand into regions where traditional services
+  don’t reach.
+
+- 
+
+  💸 Lower Cost: Shared infrastructure dramatically reduces deployment
+  costs.
+
+- 
+
+  🌐 Open Access: Anyone can build, use, or improve the network.
+
+- 
+
+  ⚖️ Resilience and Redundancy: More nodes mean more robustness and no
+  single points of failure.
+
+- 
+
+  🔄 Self-Regulating Ecosystem: Incentives dynamically guide growth,
+  upgrades, and quality improvements.
+
+------------------------------------------------------------------------
+
+[]
+
+⚡TL;DR: DePIN for GNSS with onocoy
+
+  It’s like “Helium for GPS” — turning the world into a crowd-powered,
+  crypto-incentivized, real-time GPS correction system. Instead of
+  central companies owning the infrastructure, the people do. 🌍🔗📡
+
+------------------------------------------------------------------------
+
+PreviousMission and Vision[]NextDecentralizing correction data[]
+
+Last updated 8 months ago

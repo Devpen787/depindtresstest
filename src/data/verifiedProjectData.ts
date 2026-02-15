@@ -34,6 +34,16 @@ export interface ProjectValidation {
     description: VerifiedDataPoint;
 }
 
+export interface HardwareTaxonomy {
+    ecosystem: 'open' | 'licensed' | 'closed'; // Open: universal devices, Licensed: approved makers, Closed: single source
+    spacing: 'required' | 'global' | 'none';   // Required: geo-separation, Global: no distance constraint
+}
+
+export interface MiddlewareTaxonomy {
+    dataAccess: 'public' | 'restricted' | 'private'; // Public: anyone can read/verify
+    routingAccess: 'public' | 'restricted' | 'private'; // Public: anyone can route packets
+}
+
 export interface VerifiedProject {
     id: string;
     name: string;
@@ -42,6 +52,13 @@ export interface VerifiedProject {
     hardware: ProjectHardware;
     emissions: ProjectEmissions;
     validation: ProjectValidation;
+
+    // Taxonomy per Ballandies et al. (2023)
+    taxonomy: {
+        hardware: HardwareTaxonomy;
+        middleware: MiddlewareTaxonomy;
+    };
+
     criticalFlaw?: string;
     riskLevel: 'low' | 'moderate' | 'high' | 'extreme';
 }
@@ -51,6 +68,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'onocoy',
         name: 'Onocoy',
         category: 'GNSS Corrections',
+        taxonomy: {
+            hardware: { ecosystem: 'open', spacing: 'required' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana',
             source: 'docs.onocoy.com',
@@ -127,6 +148,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'render',
         name: 'Render',
         category: 'GPU Compute',
+        taxonomy: {
+            hardware: { ecosystem: 'open', spacing: 'global' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana (migrated from Ethereum)',
             source: 'know.rendernetwork.com',
@@ -197,6 +222,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'ionet',
         name: 'io.net',
         category: 'GPU Compute',
+        taxonomy: {
+            hardware: { ecosystem: 'open', spacing: 'global' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana',
             source: 'io.net docs',
@@ -274,6 +303,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'geodnet',
         name: 'Geodnet',
         category: 'GNSS Corrections',
+        taxonomy: {
+            hardware: { ecosystem: 'closed', spacing: 'required' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Polygon',
             source: 'docs.geodnet.com',
@@ -344,6 +377,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'hivemapper',
         name: 'Hivemapper',
         category: 'Mapping',
+        taxonomy: {
+            hardware: { ecosystem: 'closed', spacing: 'required' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana',
             source: 'hivemapper.com',
@@ -414,6 +451,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'grass',
         name: 'Grass',
         category: 'AI Data / Bandwidth',
+        taxonomy: {
+            hardware: { ecosystem: 'open', spacing: 'global' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana',
             source: 'grass-foundation.gitbook.io',
@@ -484,6 +525,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'dimo',
         name: 'DIMO',
         category: 'Vehicle Data',
+        taxonomy: {
+            hardware: { ecosystem: 'licensed', spacing: 'global' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Polygon',
             source: 'docs.dimo.org',
@@ -547,6 +592,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'helium_mobile',
         name: 'Helium Mobile',
         category: '5G Wireless',
+        taxonomy: {
+            hardware: { ecosystem: 'licensed', spacing: 'required' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana',
             source: 'mappingnetwork.us',
@@ -624,6 +673,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'helium_legacy',
         name: 'Helium Legacy (IoT)',
         category: 'IoT Wireless',
+        taxonomy: {
+            hardware: { ecosystem: 'licensed', spacing: 'required' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana (migrated)',
             source: 'helium.foundation',
@@ -687,6 +740,10 @@ export const verifiedProjects: Record<string, VerifiedProject> = {
         id: 'nosana',
         name: 'Nosana',
         category: 'AI Inference Compute',
+        taxonomy: {
+            hardware: { ecosystem: 'open', spacing: 'global' },
+            middleware: { dataAccess: 'restricted', routingAccess: 'restricted' }
+        },
         blockchain: {
             value: 'Solana',
             source: 'docs.nosana.com',

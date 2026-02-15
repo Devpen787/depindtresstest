@@ -1,5 +1,6 @@
 import React from 'react';
 import { DiagnosticInput, DiagnosticState } from './types';
+import { calculateHexStateProbabilities } from '../../audit/diagnosticViewMath';
 
 interface Props {
     inputs: DiagnosticInput;
@@ -30,27 +31,7 @@ export const HexDegradationMap: React.FC<Props> = ({ inputs, state }) => {
     // Grey = Zombie (Unprofitable but Online)
     // Black = Latent (Offline/Exited)
 
-    let pGreen = 1.0;
-    let pGrey = 0.0;
-    let pBlack = 0.0;
-
-    if (inputs.priceShock === 'None') {
-        pGreen = 0.95;
-        pGrey = 0.05;
-    } else if (inputs.priceShock === 'Moderate') {
-        if (inputs.minerProfile === 'Mercenary') {
-            pGreen = 0.3; pGrey = 0.1; pBlack = 0.6; // Exit
-        } else {
-            pGreen = 0.4; pGrey = 0.5; pBlack = 0.1; // Sticky
-        }
-    } else {
-        // Severe
-        if (inputs.minerProfile === 'Mercenary') {
-            pGreen = 0.0; pGrey = 0.05; pBlack = 0.95; // Mass Extinction
-        } else {
-            pGreen = 0.1; pGrey = 0.7; pBlack = 0.2; // Massive Zombie Mode
-        }
-    }
+    const { pGreen, pGrey, pBlack, effectiveCapacityPct } = calculateHexStateProbabilities(inputs);
 
     // Generate grid array
     const grid = Array.from({ length: totalNodes }).map((_, i) => {
@@ -96,7 +77,7 @@ export const HexDegradationMap: React.FC<Props> = ({ inputs, state }) => {
 
             <div className="mt-6 text-center">
                 <h3 className="text-xl font-bold text-white mb-1">
-                    Effective Capacity: {Math.round((pGreen + pGrey) * 100)}%
+                    Effective Capacity: {effectiveCapacityPct}%
                 </h3>
                 <p className="text-sm text-slate-400">
                     {inputs.minerProfile === 'Mercenary' ? 'Mercenaries exit violently.' : 'Professionals hold as Zombies.'}

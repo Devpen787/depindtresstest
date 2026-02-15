@@ -1,0 +1,49 @@
+[]Copy
+
+[]
+
+1.  3. Become a Miner
+
+Data Validation
+
+[]
+
+What is the data validation?
+
+Your stream has to pass the validation process in order for you to earn
+tokens. This process includes
+
+- 
+
+  check of data input
+
+- 
+
+  determine validated location
+
+The process might take 24-36 hours to complete.
+
+[]
+
+What if my station does not get validated?
+
+If your station is not validated even after 36 hours, please check your
+station. Your data might be too weak to perform the validation process.
+
+- 
+
+  Check the visibility of the antenna. Choose a different antenna
+  location if possible.
+
+- 
+
+  Check your network connection. Has your stream been interrupted since
+  the start?
+
+- 
+
+  Join our Discord to ask for support.
+
+PreviousReceive rewards[]NextExplorer[]
+
+Last updated 2 years ago

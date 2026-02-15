@@ -776,16 +776,18 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                                         </div>
                                         <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full transition-all duration-500 ${simulationData.finalPayback > 24 ? 'bg-red-500' : 'bg-indigo-500'}`}
-                                                style={{ width: `${Math.min(100, (simulationData.finalPayback / 36) * 100)}%` }}
+                                                className={`h-full transition-all duration-500 ${simulationData.finalPayback > PAYBACK_GUARDRAILS.healthyMaxMonths ? 'bg-red-500' : 'bg-indigo-500'}`}
+                                                style={{ width: `${Math.min(100, (simulationData.finalPayback / PAYBACK_GUARDRAILS.watchlistMaxMonths) * 100)}%` }}
                                             />
                                         </div>
                                         <div className="flex justify-between items-center text-xs text-slate-500">
                                             <span>Instant</span>
-                                            <span className={simulationData.finalPayback > 24 ? 'text-red-400 font-bold' : 'text-slate-300'}>
-                                                {simulationData.finalPayback > 60 ? '>5 Years' : simulationData.finalPayback.toFixed(1) + ' Mo'} Breakeven
+                                            <span className={simulationData.finalPayback > PAYBACK_GUARDRAILS.healthyMaxMonths ? 'text-red-400 font-bold' : 'text-slate-300'}>
+                                                {simulationData.finalPayback > PAYBACK_GUARDRAILS.extendedHorizonMonths
+                                                    ? `>${(PAYBACK_GUARDRAILS.extendedHorizonMonths / 12).toFixed(0)} Years`
+                                                    : simulationData.finalPayback.toFixed(1) + ' Mo'} Breakeven
                                             </span>
-                                            <span>36 Mo</span>
+                                            <span>{PAYBACK_GUARDRAILS.watchlistMaxMonths} Mo</span>
                                         </div>
                                     </div>
                                 </div>

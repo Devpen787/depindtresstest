@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-02-07T13:51:32.261Z",
+  "snapshots": [
+    {
+      "tag": "onocoy",
+      "solvency": null,
+      "payback": null,
+      "utilization": null,
+      "resilience": null
+    },
+    {
+      "tag": "render",
+      "solvency": null,
+      "payback": null,
+      "utilization": null,
+      "resilience": null
+    },
+    {
+      "tag": "hivemapper",
+      "solvency": null,
+      "payback": null,
+      "utilization": null,
+      "resilience": null
+    }
+  ]
+}

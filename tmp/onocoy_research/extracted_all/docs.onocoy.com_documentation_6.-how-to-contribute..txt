@@ -1,0 +1,79 @@
+[]Copy
+
+[]
+
+1.  6. How to Contribute.
+
+Partners
+
+Deployment partners:
+
+- 
+
+  Provides all the hardware required to create a base station like: GNSS
+  receiver, GNSS antenna, cabling, Router.
+
+- 
+
+  Sets up and configures all the aforementioned equipment.
+
+- 
+
+  Provides a suitable location to install the GNSS antenna and receiver.
+
+- 
+
+  Resells the GNSS raw data in RTCM format to onocoy.
+
+Hardware partners:
+
+onocoy is working together with hardware partners to make sure that
+miners can get recommended base station receivers.
+
+Hardware partners offer GNSS hardware, like receivers, antennas and
+cabling and have a website detailing their products, pricing, and
+support documentation. They also provide direct support to their
+hardware customers.
+
+Our current hardware partners are:
+
+- 
+
+  GNS Electronics GmbH []
+
+- 
+
+  SparkFun Electronics []
+
+- 
+
+  ArduSimple []
+
+- 
+
+  LOCOSYS Technology []
+
+- 
+
+  GNSS OEM Store []
+
+- 
+
+  Moon Systems GmbH []
+
+Rooftop partners:
+
+Rooftop partners provide locations, specifically rooftops, suitable for
+installing GNSS base stations. They are responsible for managing these
+locations and acquiring the necessary hardware for the base station
+installations.
+
+Distribution partners:
+
+Distribution partners buy hardware from hardware partners and resell it
+to individuals, institutes, and companies. Additionally, they can resell
+data to end data users.
+
+PreviousClaim Presale on PinkSale[]NextAmbassador Program[]
+
+Last updated 7 months ago

@@ -1,0 +1,9 @@
+section	questions	Y	P	N	direct_coverage_pct	practical_coverage_pct	pass_80_practical
+A Core	12	6	5	1	50.0	70.8	FAIL
+B Builders	18	2	14	2	11.1	50.0	FAIL
+C Governance	18	5	9	4	27.8	52.8	FAIL
+D Providers	12	2	10	0	16.7	58.3	FAIL
+E Users	8	4	4	0	50.0	75.0	FAIL
+F Researchers	14	6	8	0	42.9	71.4	FAIL
+G Comparative	8	3	5	0	37.5	68.8	FAIL
+H Token	10	4	6	0	40.0	70.0	FAIL

@@ -1,0 +1,101 @@
+{
+  "baseline": {
+    "tag": "baseline_wireless",
+    "titlePresence": {
+      "Key Health Metrics Comparison": 1,
+      "Solvency Projection": 1,
+      "Comparative Matrix": 1,
+      "Strategic Edge": 1,
+      "Sensitivity Summary": 0,
+      "AI Strategy Brief": 0
+    },
+    "cards": {
+      "Payback Period": "Payback Period 6.3 mo ▼ 11.5 mo vs Peer Median",
+      "Coverage Efficiency": "Coverage Efficiency 100% ▲ 2.7% vs Peer Median",
+      "Sustainability Ratio": "Sustainability Ratio 0.2x ▼ 0.4x vs Peer Median",
+      "Retention (Weekly)": "Retention (Weekly) 1.6% ▲ 0.7% vs Peer Median"
+    },
+    "selectedPeerButtons": [
+      "Geodnet"
+    ],
+    "legendTexts": [
+      "Geodnet_v1",
+      "Onocoy",
+      "Geodnet",
+      "Onocoy"
+    ],
+    "noDataCount": 0,
+    "hasNaN": false,
+    "hasInfinity": false,
+    "timestamp": "2026-02-06T00:18:59.465Z"
+  },
+  "compute": {
+    "tag": "compute_sector",
+    "titlePresence": {
+      "Key Health Metrics Comparison": 1,
+      "Solvency Projection": 1,
+      "Comparative Matrix": 1,
+      "Strategic Edge": 1,
+      "Sensitivity Summary": 0,
+      "AI Strategy Brief": 0
+    },
+    "cards": {
+      "Payback Period": "Payback Period 6.3 mo ▼ 23.8 mo vs Peer Median",
+      "Coverage Efficiency": "Coverage Efficiency 100% ▲ 39.6% vs Peer Median",
+      "Sustainability Ratio": "Sustainability Ratio 0.2x ▼ 0.3x vs Peer Median",
+      "Retention (Weekly)": "Retention (Weekly) 1.6% ▲ 0.5% vs Peer Median"
+    },
+    "selectedPeerButtons": [
+      "Render",
+      "io.net"
+    ],
+    "legendTexts": [
+      "Adaptive_elastic_v1",
+      "Ionet_v1",
+      "Onocoy",
+      "Onocoy",
+      "Render",
+      "io.net"
+    ],
+    "noDataCount": 0,
+    "hasNaN": false,
+    "hasInfinity": false,
+    "timestamp": "2026-02-06T00:19:09.046Z"
+  },
+  "computePlus": {
+    "tag": "compute_plus_peer",
+    "titlePresence": {
+      "Key Health Metrics Comparison": 1,
+      "Solvency Projection": 1,
+      "Comparative Matrix": 1,
+      "Strategic Edge": 1,
+      "Sensitivity Summary": 0,
+      "AI Strategy Brief": 0
+    },
+    "cards": {
+      "Payback Period": "Payback Period 6.3 mo ▼ 13.8 mo vs Peer Median",
+      "Coverage Efficiency": "Coverage Efficiency 100% ▲ 26.4% vs Peer Median",
+      "Sustainability Ratio": "Sustainability Ratio 0.2x ▼ 0.5x vs Peer Median",
+      "Retention (Weekly)": "Retention (Weekly) 1.6% ▲ 0.2% vs Peer Median"
+    },
+    "selectedPeerButtons": [
+      "Render",
+      "io.net",
+      "Akash"
+    ],
+    "legendTexts": [
+      "Adaptive_elastic_v1",
+      "Akash_v1",
+      "Ionet_v1",
+      "Onocoy",
+      "Akash",
+      "Onocoy",
+      "Render",
+      "io.net"
+    ],
+    "noDataCount": 0,
+    "hasNaN": false,
+    "hasInfinity": false,
+    "timestamp": "2026-02-06T00:19:12.960Z"
+  }
+}

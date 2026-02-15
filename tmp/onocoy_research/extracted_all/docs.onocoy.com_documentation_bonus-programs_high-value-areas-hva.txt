@@ -1,0 +1,108 @@
+[]Copy
+
+[]
+
+1.  Bonus Programs
+
+High Value Areas (HVA)
+
+[]
+
+[]
+
+What are HVAs?
+
+High Value Areas (HVA) are incentives for miners to deploy and operate
+new stations in areas particularly sought after by users. They are
+time‑boxed reward boosts over a specific geographical area. onocoy
+configures the campaign; the community deploys and operates stations.
+
+[]
+
+How it works for you
+
+Deploy and operate a qualifying station inside (or near) an active HVA.
+The HVA adds a temporary multiplier on top of your base rewards while it
+runs; the rewards at the edges of the HVA fade with a soft gradient to
+avoid hard borders. The exact amount of rewards can be checked with the
+reward estimator tool.
+
+Your station will be qualified for the HVA bonus rewards if it meets the
+daily availability and quality scores. The rewards are added up each
+day, forming your HVA streak. If your station misses the scores on one
+day, your streak is going to be reduced (similar to Streak
+Appreciation).
+
+[]
+
+Phases
+
+Growth phase: a short ramp while your streak proves the station is
+viable.
+
+Earning phase: enjoy the maximum multiplier.
+
+Dissolving phase: when an HVA budget comes close to its end, rewards
+taper with a visible daily cap (e.g. −5% per day) to soften the landing.
+
+The length of the phases depends on the maximum multiplier of the HVA
+(e.g. 2x or 5x) and the available budget allocated to the HVA. This may
+be different for each HVA.
+
+Remember that in case your streak is reduced, you may be set back, e.g.
+from the earning phase to the growth phase.
+
+[]
+
+Check your bonus rewards (green part of the chart) in your rewards
+chart. In this example, the station is within the growth phase.
+
+[]
+
+Where to find it and what to do
+
+Watch HVA areas on the Opportunity Map in the console using the Reward
+Estimation Tool: each one shows the area, start and expiration, and the
+dedicated budget. Then deploy/relocate into the zone and keep your
+station in‑spec to maintain your streak.
+
+[]
+
+Use the Reward estimator tool to check the maximum bonus for each HVA
+and the remaining budget.
+
+[]
+
+How HVA differs from Streak Appreciation
+
+HVA
+
+Streak Appreciation
+
+has a start and end date
+
+always on
+
+has a defined geographical area
+
+network‑wide
+
+has a dedicated budget
+
+boosts daily rewards
+
+settings can differ per HVA campaign
+
+uniform parameters
+
+Expect HVA multipliers to be much higher than Streak Appreciation’s cap.
+
+[]
+
+Notes
+
+Parameters may evolve over time — follow official updates.
+
+PreviousStreak Appreciation[]NextSwapping BONO to ONO[]
+
+Last updated 2 months ago

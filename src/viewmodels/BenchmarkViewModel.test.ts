@@ -106,7 +106,7 @@ describe('BenchmarkViewModel', () => {
         expect(hwMetric?.betterDirection).toBe('lower');
     }); // Close previous IT block
 
-    it('should override simulated metrics with live on-chain data when available', () => {
+    it('should mark demand as mixed when only burn is live', () => {
         // Mock On-Chain Data
         const mockOnChainData: any = {
             'ono_v3_calibrated': {
@@ -134,7 +134,7 @@ describe('BenchmarkViewModel', () => {
         // Check Demand Side (Burn)
         const demand = result.getDemandSide('ono_v3_calibrated');
         expect(demand.burnRateWeekly).toBe(500);
-        expect(demand.dataSource).toBe('live');
+        expect(demand.dataSource).toBe('mixed');
 
         // Check Tokenomics (Burn derived)
         const tokenomics = result.getTokenomics('ono_v3_calibrated');
@@ -144,5 +144,30 @@ describe('BenchmarkViewModel', () => {
         // Ratio = 0.5 = 50%
         expect(tokenomics.sustainabilityRatio).toBeCloseTo(50);
         expect(tokenomics.dataSource).toBe('mixed');
+    });
+
+    it('should mark demand as live when both revenue and burn are live', () => {
+        const mockOnChainData: any = {
+            'ono_v3_calibrated': {
+                revenueUSD7d: 1000,
+                tokenBurned7d: 250,
+                activeNodesTotal: 6000,
+                lastUpdated: new Date().toISOString(),
+                sourceType: 'dune'
+            }
+        };
+
+        const result = useBenchmarkViewModel(
+            mockParams as any,
+            mockMultiAggregated,
+            PROTOCOL_PROFILES,
+            mockLiveData,
+            mockOnChainData
+        );
+
+        const demand = result.getDemandSide('ono_v3_calibrated');
+        expect(demand.annualizedRevenue).toBe(52000);
+        expect(demand.burnRateWeekly).toBe(250);
+        expect(demand.dataSource).toBe('live');
     });
 });

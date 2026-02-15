@@ -6,6 +6,7 @@ import MetricEvidenceLegend from '../../ui/MetricEvidenceLegend';
 import { getMetricEvidence } from '../../../data/metricEvidence';
 import {
     PAYBACK_GUARDRAILS,
+    RESILIENCE_GUARDRAILS,
     UTILIZATION_GUARDRAILS
 } from '../../../constants/guardrails';
 
@@ -70,11 +71,15 @@ export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics,
     const resilienceDisplayValue = showPercentiles ? `P${percentiles!.resilience}` : `${metrics.resilienceScore}/100`;
     const resilienceDisplayClass = showPercentiles
         ? percentileClass(percentiles!.resilience)
-        : (metrics.resilienceScore < 45 ? 'text-rose-500' : metrics.resilienceScore < 70 ? 'text-amber-500' : 'text-emerald-500');
+        : (metrics.resilienceScore < RESILIENCE_GUARDRAILS.watchlistMinScore
+            ? 'text-rose-500'
+            : metrics.resilienceScore < RESILIENCE_GUARDRAILS.healthyMinScore
+                ? 'text-amber-500'
+                : 'text-emerald-500');
 
-    const wizardTone = metrics.resilienceScore < 45
+    const wizardTone = metrics.resilienceScore < RESILIENCE_GUARDRAILS.watchlistMinScore
         ? 'critical'
-        : metrics.resilienceScore < 70
+        : metrics.resilienceScore < RESILIENCE_GUARDRAILS.healthyMinScore
             ? 'caution'
             : 'healthy';
 

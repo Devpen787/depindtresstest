@@ -2,6 +2,9 @@ import React from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 import { DiagnosticState } from './types';
+import { calculateDiagnosticSignals } from '../../audit/diagnosticViewMath';
+import { ChartContextHeader } from '../ui/ChartContextHeader';
+import { GUARDRAIL_COPY } from '../../constants/guardrails';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -52,19 +55,7 @@ const Gauge = ({ value, label, status, subText }: { value: number, label: string
 };
 
 export const SignalsOfDeathPanel: React.FC<Props> = ({ state }) => {
-    // 1. Latent Capacity Degradation
-    // In our model, this is (100 - NRR). If NRR is 98%, Degradation is 2%.
-    const capacityDegradation = 100 - state.nrr;
-    let capStatus = 'Safe';
-    if (capacityDegradation > 10) capStatus = 'Warning';
-    if (capacityDegradation > 30) capStatus = 'Critical';
-
-    // 2. Validation Overhead
-    // Simulated based on GovScore mostly. Low Gov Score implies High Overhead/Inefficiency.
-    const validationOverhead = Math.max(0, 100 - state.govScore);
-    let valStatus = 'Safe';
-    if (validationOverhead > 40) valStatus = 'Warning';
-    if (validationOverhead > 70) valStatus = 'Critical';
+    const signals = calculateDiagnosticSignals(state);
 
     // 3. Equilibrium Gap (Price vs Value) chart
     // Price is market, Value is Utility.
@@ -105,45 +96,54 @@ export const SignalsOfDeathPanel: React.FC<Props> = ({ state }) => {
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* 1. Latent Capacity */}
-            <Gauge
-                value={capacityDegradation}
-                label="Latent Capacity Degradation"
-                status={capStatus}
-                subText="Capacity falling AFTER price drop."
+        <div className="space-y-4">
+            <ChartContextHeader
+                title="Signals Interpretation"
+                what="This panel condenses four early-warning indicators for fragility: degradation, validation overhead, equilibrium gap, and churn sensitivity."
+                why="Gauges are derived from diagnostic state values; churn elasticity line is a structural response archetype (illustrative pattern), not live market telemetry."
+                reference={GUARDRAIL_COPY.diagnosticSignalsReference}
+                nextQuestion="Which warning can we reverse fastest with policy change: emissions, growth coordination, or miner filtering?"
             />
 
-            {/* 2. Validation Overhead */}
-            <Gauge
-                value={validationOverhead}
-                label="Validation Overhead"
-                status={valStatus}
-                subText="Cost of fighting spoofers."
-            />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* 1. Latent Capacity */}
+                <Gauge
+                    value={signals.capacityDegradation}
+                    label="Latent Capacity Degradation"
+                    status={signals.capacityStatus}
+                    subText="Capacity falling AFTER price drop."
+                />
 
-            {/* 3. Equilibrium Gap */}
-            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
-                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Equilibrium Gap</h4>
-                <div className="w-full h-24 mt-2">
-                    <Bar data={gapData} options={chartOptions} />
+                {/* 2. Validation Overhead */}
+                <Gauge
+                    value={signals.validationOverhead}
+                    label="Validation Overhead"
+                    status={signals.validationStatus}
+                    subText="Cost of fighting spoofers."
+                />
+
+                {/* 3. Equilibrium Gap */}
+                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Equilibrium Gap</h4>
+                    <div className="w-full h-24 mt-2">
+                        <Bar data={gapData} options={chartOptions} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-2 text-center">
+                        {state.r_be < 1 ? 'Market Price > Utility Value' : 'Healthy Equilibrium'}
+                    </p>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2 text-center">
-                    {state.r_be < 1 ? 'Market Price > Utility Value' : 'Healthy Equilibrium'}
-                </p>
-            </div>
 
-            {/* 4. Churn Elasticity */}
-            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
-                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Churn Elasticity</h4>
-                <div className="w-full h-24 mt-2">
-                    <Line data={churnData} options={chartOptions} />
+                {/* 4. Churn Elasticity */}
+                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Churn Elasticity</h4>
+                    <div className="w-full h-24 mt-2">
+                        <Line data={churnData} options={chartOptions} />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-2 text-center">
+                        Mercenary (Red) vs Pro (Green) Exits
+                    </p>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2 text-center">
-                    Mercenary (Red) vs Pro (Green) Exits
-                </p>
             </div>
-
         </div>
     );
 };

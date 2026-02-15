@@ -1,0 +1,97 @@
+[]Copy
+
+[]
+
+1.  3. Become a Miner
+
+Connect your station to onocoy
+
+Get your station connected to the onocoy system with these easy steps.
+
+[]
+
+Create an account
+
+Head over to the explorer[], click on Sign up and create yourself a user
+account. You will be notified when your account is activated.
+
+[]
+
+Create credentials for your station
+
+Go to Reference Stations[] and select the tab „NTRIP Credentials“. Click
+on „Add new credential“. Select a password and add a description about
+how and where you are using these credentials, if you like. Note: the
+username will be generated automatically.
+
+Create new credentials for each station that you would like to connect.
+If you have reached your credential limit, feel free to message us at
+[email protected][] telling us your account email address and your plans
+for expansion.
+
+[]
+
+Head back to your receiver firmware
+
+On the receiver side, make sure to follow these steps:
+
+Enable NTRIP server functionality for NTRIP 2.0 devices (see
+instructions NTRIP 1.0 below)
+
+- 
+
+  Configure the NTRIP caster to point to servers.onocoy.com, port 2101.
+
+- 
+
+  For the mountpoint name, you can choose any alphanumeric text you
+  like. This is only informative and will show up in your dashboard, not
+  publicly. It will also help you identify which server device is which.
+
+- 
+
+  For username and password, enter the credentials for your device as
+  created in Step 2.
+
+Enable the right NTRIP messages
+
+- 
+
+  Enable RTCM3, MSM Messages 1005, 1077, 1087, 1097, 1117, 1127, 1137
+  and 1230 in the reference station receiver.
+
+  - 
+
+    onocoy supports MSM4/5/6/7 messages
+
+- 
+
+  Activate them to be sent out at 1Hz rate (except for message 1005,
+  which can be configured for a much lower rate, for example once every
+  30 seconds).
+
+- 
+
+  Enable all GNSS constellations and bands the receiver supports.
+  Typically, receivers are preconfigured to this already.
+
+NTRIP 1.0 devices
+
+- 
+
+  For NTRIP 1.0-only devices (for example ESP32 XBee based units such as
+  Ardusimple NTRIP servers), please enter the NTRIP username as
+  MOUNTPOINT and password into the password field. Leave the device's
+  username field, if any, empty.
+
+[]
+
+You are good to go!
+
+Go back to the explorer. After one minute you should see a new entry
+under NTRIP Servers[] and its location on the map. You should also see
+live operational parameters of the station you just have configured.
+
+PreviousCreate and connect a wallet[]NextReceive rewards[]
+
+Last updated 1 year ago

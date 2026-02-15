@@ -22,6 +22,7 @@ import { calculateDiagnosticState } from '../../audit/diagnosticViewMath';
 import { DIAGNOSTIC_ARCHETYPE_TO_PROTOCOL_ID } from '../../data/diagnosticArchetypes';
 import { DecisionPromptCard } from '../ui/DecisionPromptCard';
 import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
+import { GUARDRAIL_BAND_LABELS } from '../../constants/guardrails';
 
 
 interface Props {
@@ -53,6 +54,18 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
         : diagnosticState.verdict === 'Fragile'
             ? 'caution'
             : 'critical';
+
+    const diagnosticBandLabel = diagnosticTone === 'healthy'
+        ? GUARDRAIL_BAND_LABELS.healthy
+        : diagnosticTone === 'caution'
+            ? GUARDRAIL_BAND_LABELS.watchlist
+            : GUARDRAIL_BAND_LABELS.intervention;
+
+    const diagnosticBadgeClass = diagnosticTone === 'healthy'
+        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+        : diagnosticTone === 'caution'
+            ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+            : 'bg-red-500/10 text-red-500 border-red-500/20';
 
     return (
         <div className="bg-slate-950 min-h-full text-slate-200 p-6 lg:p-10 font-sans space-y-12">
@@ -190,11 +203,8 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                         <Activity size={20} className="text-emerald-500" />
                         Global Resilience Scorecard
                     </h2>
-                    <div className={`px-4 py-1.5 rounded-full text-sm font-black border uppercase tracking-wider ${diagnosticState.verdict === 'Robust' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                        diagnosticState.verdict === 'Fragile' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                            'bg-red-500/10 text-red-500 border-red-500/20'
-                        }`}>
-                        Verdict: {diagnosticState.verdict} ({diagnosticState.resilienceScore}/100)
+                    <div className={`px-4 py-1.5 rounded-full text-sm font-black border uppercase tracking-wider ${diagnosticBadgeClass}`}>
+                        Status: {diagnosticBandLabel} ({diagnosticState.resilienceScore}/100) • Model: {diagnosticState.verdict}
                     </div>
                 </div>
                 <SignalsOfDeathPanel state={diagnosticState} />

@@ -1,0 +1,71 @@
+[]Copy
+
+[]
+
+1.  8. FAQ / Troubleshooting[]
+2.  Top miner questions
+
+Ephemeris RTCM stream
+
+In addition to the streams available from onocoy dedicated to provide
+the raw GNSS observables to perform RTK or DGNSS positioning, onocoy
+also also provides a special RTCM stream that does not come from a base
+station which provides the navigation messages / ephemeris of all the
+GNSS satellites orbiting planet Earth.
+
+This stream allows you to compute, for instance, a positioning solution
+when combined with another RTCM stream coming from a base station, for
+that you would require special software like RTKNavi from RTKlib.
+
+Please note that the Ephemeris RTCM stream detracts data credits at the
+same rate than any other standard RTCM stream from a base station.
+
+The message types provided in the stream are:
+
+- 
+
+  RTCM Message type 1019 which contains GPS ephemeris.
+
+- 
+
+  RTCM Message type 1020 which contains GLONASS ephemeris.
+
+- 
+
+  RTCM Message type 1042 which contains BeiDou ephemeris.
+
+- 
+
+  RTCM Message type 1045 which contains Galileo F/NAV ephemeris.
+
+- 
+
+  RTCM Message type 1046 which contains Galileo I/NAV ephemeris.
+
+Ephemeris stream considerations:
+
+1.  
+
+    A client needs to be able to handle bulk data as it is around 10kB
+    sent in one go.
+
+2.  
+
+    If the NTRIP client stays connected, it will continue to receive
+    updated ephemeris as it becomes available. This typically happens
+    every 30 minutes, but is more frequent for some of the
+    constellations.
+
+3.  
+
+    In order to avoid the NTRIP Client running into a timeout after
+    initial delivery, we are sending out "Keepalive" messages every 15
+    seconds. These Keepalives are in RTCM1029 format, and a payload text
+    saying "No new data".
+
+If you want to access this stream please search for the "EPHEMERIS"
+mountpoint in the NTRIP source table.
+
+PreviousExplaining datum shifts[]NextSupport contact[]
+
+Last updated 8 months ago

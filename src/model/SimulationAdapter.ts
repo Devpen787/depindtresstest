@@ -19,6 +19,7 @@ import {
     LegacyAggregateResult,
     simulateOne
 } from './legacy/engine';
+import { getProtocolModule } from '../protocols/registry';
 
 // Re-export for unified access
 export type SimulationParams = LegacySimulationParams;
@@ -58,25 +59,45 @@ export const DEFAULT_SIMULATION_PARAMS: Partial<SimulationParams> = {
 };
 
 /**
- * Run a full Monte Carlo simulation with aggregation
+ * Resolve and apply protocol-level hooks without changing base engine behavior.
+ */
+export function runSimulationForProtocol(
+    protocolId: string | undefined,
+    params: SimulationParams,
+    onProgress?: (pct: number) => void
+): LegacyAggregateResult[] {
+    const protocolModule = getProtocolModule<SimulationParams, LegacyAggregateResult>(protocolId);
+    const normalizedParams = protocolModule.normalizeParams
+        ? protocolModule.normalizeParams(params)
+        : params;
+
+    const allResults: LegacySimResult[][] = [];
+
+    for (let i = 0; i < normalizedParams.nSims; i++) {
+        const simSeed = normalizedParams.seed + i;
+        const results = simulateOne(normalizedParams, simSeed);
+        allResults.push(results);
+
+        if (onProgress) {
+            onProgress((i + 1) / normalizedParams.nSims);
+        }
+    }
+
+    const aggregated = aggregateResults(allResults, normalizedParams.T);
+    return protocolModule.postProcessAggregates
+        ? protocolModule.postProcessAggregates(aggregated)
+        : aggregated;
+}
+
+/**
+ * Run a full Monte Carlo simulation with aggregation.
+ * This remains the default path and now routes through protocol scaffolding.
  */
 export function runSimulation(
     params: SimulationParams,
     onProgress?: (pct: number) => void
 ): LegacyAggregateResult[] {
-    const allResults: LegacySimResult[][] = [];
-
-    for (let i = 0; i < params.nSims; i++) {
-        const simSeed = params.seed + i;
-        const results = simulateOne(params, simSeed);
-        allResults.push(results);
-
-        if (onProgress) {
-            onProgress((i + 1) / params.nSims);
-        }
-    }
-
-    return aggregateResults(allResults, params.T);
+    return runSimulationForProtocol(undefined, params, onProgress);
 }
 
 /**
@@ -111,7 +132,13 @@ function aggregateResults(allResults: LegacySimResult[][], T: number): LegacyAgg
             churnCount: calcStats(weekResults.map(r => r.churnCount)),
             joinCount: calcStats(weekResults.map(r => r.joinCount)),
             treasuryBalance: calcStats(weekResults.map(r => r.treasuryBalance)),
-            vampireChurn: calcStats(weekResults.map(r => r.vampireChurn))
+            vampireChurn: calcStats(weekResults.map(r => r.vampireChurn)),
+            mercenaryCount: calcStats(weekResults.map(r => r.mercenaryCount)),
+            proCount: calcStats(weekResults.map(r => r.proCount)),
+            underwaterCount: calcStats(weekResults.map(r => r.underwaterCount)),
+            costPerCapacity: calcStats(weekResults.map(r => r.costPerCapacity)),
+            revenuePerCapacity: calcStats(weekResults.map(r => r.revenuePerCapacity)),
+            entryBarrierActive: calcStats(weekResults.map(r => r.entryBarrierActive))
         });
     }
 

@@ -1,0 +1,228 @@
+[]Copy
+
+[]
+
+Glossary
+
+Here’s a glossary for the ONOCOY: Enabling Mass Adoption of High
+Precision GNSS Positioning Using Web3 whitepaper (Version 2.0.0). It
+includes key technical, economic, and organizational terms from the
+document:
+
+------------------------------------------------------------------------
+
+[]
+
+📖 Glossary
+
+A
+
+- 
+
+  Availability Scale: A component of miner rewards based on the
+  continuity and completeness of GNSS data streams.
+
+B
+
+- 
+
+  Base Reward: A fixed reward given to GNSS data contributors (miners)
+  independent of actual data usage.
+
+- 
+
+  Blockchain: A decentralized digital ledger used in onocoy for
+  governance, token economy, and transaction records.
+
+C
+
+- 
+
+  CORS (Continuously Operating Reference Station): A GNSS reference
+  station that streams data continuously to support high-precision
+  positioning.
+
+- 
+
+  Cryptoeconomic Design: The token-based incentive system used by onocoy
+  to ensure fair participation, reward distribution, and sustainability.
+
+- 
+
+  Caster: A system component that distributes GNSS correction data in
+  real-time to users.
+
+D
+
+- 
+
+  Data Credit: A non-transferable token pegged to fiat value, used to
+  access GNSS data streams within onocoy.
+
+- 
+
+  DePIN (Decentralized Physical Infrastructure Network): A web3 model
+  for building physical infrastructure through tokenized, community
+  participation.
+
+- 
+
+  Decentralization: Distribution of decision-making, validation, and
+  system control across the community, reducing reliance on central
+  authorities.
+
+E
+
+- 
+
+  Early Mover Boost: An incentive multiplier in the base reward for
+  early contributors/miners.
+
+- 
+
+  Ecosystem Fund: A portion of token revenues reserved for development
+  and maintenance of the onocoy system.
+
+F
+
+- 
+
+  FIAT: Traditional government-issued currency (e.g., USD, EUR), used as
+  a price anchor for data credits.
+
+G
+
+- 
+
+  GNSS (Global Navigation Satellite System): A system that provides
+  geolocation and time information via satellite constellations (e.g.,
+  GPS, Galileo).
+
+- 
+
+  Governance: The decision-making framework for managing the onocoy
+  system, including token-holder voting and Swiss association oversight.
+
+L
+
+- 
+
+  Location Scale: A reward modifier that encourages spatial distribution
+  of GNSS stations by penalizing clustering.
+
+M
+
+- 
+
+  Miner: A participant who operates a GNSS reference station,
+  contributing data to the onocoy platform.
+
+- 
+
+  MQTT: A lightweight messaging protocol used in the onocoy
+  communication backbone.
+
+N
+
+- 
+
+  NTRIP (Networked Transport of RTCM via Internet Protocol): A protocol
+  used to stream GNSS correction data.
+
+- 
+
+  Non-transferable Token: A token that cannot be traded or resold, used
+  within a closed system like data credits in onocoy.
+
+O
+
+- 
+
+  ONO Token: A capped, deflationary utility token used to incentivize
+  participation and governance in the onocoy network.
+
+- 
+
+  Oracle: A mechanism that ensures stable fiat pricing for data credits
+  by adjusting ONO-token exchange rates.
+
+P
+
+- 
+
+  PPP (Precise Point Positioning): A GNSS technique that provides
+  high-precision positioning using correction models.
+
+- 
+
+  Proof-of-Stake: A consensus mechanism proposed for validators to
+  establish trust and ensure data quality in decentralized systems.
+
+Q
+
+- 
+
+  Quality Scale: A reward component measuring GNSS data quality based on
+  signal type, precision, and consistency.
+
+R
+
+- 
+
+  RTK (Real-Time Kinematic): A high-precision GNSS technique that uses
+  data from a nearby reference station to correct position estimates.
+
+- 
+
+  Reward Commission: The entity responsible for setting base reward
+  values and modifiers in onocoy’s tokenomics.
+
+S
+
+- 
+
+  Smart Contract: Self-executing code deployed on the blockchain, used
+  to manage transactions and governance rules in onocoy.
+
+- 
+
+  Spoofing: A malicious practice of transmitting fake GNSS signals to
+  deceive receivers.
+
+- 
+
+  Synthetic Measurements: Artificial GNSS data mimicking real signals,
+  considered fraudulent in the onocoy context.
+
+T
+
+- 
+
+  Teal Organization: An organizational model based on self-management,
+  wholeness, and evolutionary purpose—used by onocoy’s core team.
+
+- 
+
+  Tokenomics: The study and design of onocoy’s token economy, including
+  supply, distribution, and incentives.
+
+U
+
+- 
+
+  Usage Reward: A performance-based reward given to miners whose
+  stations are used more frequently by customers.
+
+V
+
+- 
+
+  Validator: A participant responsible for verifying the authenticity
+  and quality of GNSS data using advanced statistical and geospatial
+  methods.
+
+------------------------------------------------------------------------
+
+PreviousSupport contact[]
+
+Last updated 9 months ago

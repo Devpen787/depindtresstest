@@ -158,6 +158,27 @@ export const SimulatorSidebar: React.FC<SimulatorSidebarProps> = ({
                             </div>
                         </div>
 
+                        <div className="space-y-3 pt-2 border-t border-indigo-500/10">
+                            <div className="flex justify-between items-center mb-2">
+                                <ParamLabel label="Network Effects" paramKey="networkEffectsEnabled" />
+                                <span className={`text-[10px] font-bold ${params.networkEffectsEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                    {params.networkEffectsEnabled ? 'ACTIVE' : 'OFF'}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => setParams({ ...params, networkEffectsEnabled: !params.networkEffectsEnabled })}
+                                className={`w-full py-2 rounded-lg text-[10px] font-bold uppercase transition-all border ${params.networkEffectsEnabled
+                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
+                                    : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                    }`}
+                            >
+                                {params.networkEffectsEnabled ? 'Endogenous (Metcalfe)' : 'Exogenous Only'}
+                            </button>
+                            <p className="text-[9px] text-slate-500 mt-1 italic">
+                                Enable to make Demand scale with Node Count (J-Curve).
+                            </p>
+                        </div>
+
                         <div className="space-y-3">
                             <ParamLabel label="Macro Condition" paramKey="macro" />
                             <div className="grid grid-cols-3 gap-2">
@@ -238,7 +259,9 @@ export const SimulatorSidebar: React.FC<SimulatorSidebarProps> = ({
                             {SCENARIOS.map((scenario) => {
                                 const Icon = scenario.iconName === 'TrendingDown' ? TrendingDown :
                                     scenario.iconName === 'Infinity' ? InfinityIcon :
-                                        scenario.iconName === 'Swords' ? Swords : Zap;
+                                        scenario.iconName === 'Swords' ? Swords :
+                                            scenario.iconName === 'Shield' ? Shield :
+                                                scenario.iconName === 'Users' ? Users : Zap;
                                 const isActive = activeScenarioId === scenario.id;
 
                                 return (
