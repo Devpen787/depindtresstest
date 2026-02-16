@@ -1,0 +1,70 @@
+name: Dashboard Acceptance Gate
+
+on:
+  pull_request:
+    paths:
+      - 'src/audit/acceptance/**'
+      - 'src/model/**'
+      - 'src/hooks/useSimulationRunner.ts'
+      - 'src/hooks/simulation/**'
+      - 'src/data/generated/protocolProfiles.generated.ts'
+      - 'src/data/protocolRuntimeCalibrations.ts'
+      - 'scripts/generate_dashboard_acceptance.ts'
+      - 'scripts/check_dashboard_acceptance.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/dashboard-acceptance-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  acceptance-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      DASHBOARD_ACCEPTANCE_ALLOWED_N_IDS: "M1,M2,M3"
+      DASHBOARD_ACCEPTANCE_BLOCK_ANY_N: "1"
+      DASHBOARD_ACCEPTANCE_BLOCK_CRITICAL_P: "1"
+      DASHBOARD_ACCEPTANCE_CRITICAL_P_VERDICTS: "at_risk,no"
+      DASHBOARD_ACCEPTANCE_CRITICAL_P_MIN_CONFIDENCE: "0.70"
+      DASHBOARD_ACCEPTANCE_REQUIRE_SECTION_PASS: "1"
+      DASHBOARD_ACCEPTANCE_SECTION_EXCLUDE: "I Onocoy Inputs"
+      ACCEPTANCE_ENABLE_OPERATIONAL_PROMOTION: "1"
+      ACCEPTANCE_OPERATIONAL_CONFIDENCE_THRESHOLD: "0.79"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate acceptance artifacts + run acceptance gate
+        run: |
+          npx esbuild scripts/generate_dashboard_acceptance.ts --bundle --platform=node --format=esm --outfile=tmp/generate_dashboard_acceptance.mjs
+          node tmp/generate_dashboard_acceptance.mjs --profile ono_v3_calibrated --mode quick
+          node --experimental-strip-types scripts/check_dashboard_acceptance.ts --require-section-pass --exclude-sections 'I Onocoy Inputs'
+
+      - name: Generate priority action report
+        if: always()
+        run: node --experimental-strip-types scripts/generate_ci_priority_actions.ts --profile ono_v3_calibrated --mode quick
+
+      - name: Upload acceptance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-acceptance-artifacts
+          path: |
+            output/spreadsheet/dashboard_acceptance_*_latest.tsv
+            output/spreadsheet/dashboard_acceptance_*_*.tsv
+            output/skill_reports/dashboard_acceptance_gate.md
+            output/skill_reports/ci_priority_actions_*.md
+            output/skill_reports/ci_priority_actions_latest.md
+          if-no-files-found: warn

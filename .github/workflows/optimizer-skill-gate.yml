@@ -27,6 +27,8 @@ jobs:
       OPTIMIZER_GATE_MIN_BREAK_EVEN_PRICE: "0.00025"
       # Done-marker defaults. Optional external counters can be injected via env when available.
       OPTIMIZER_DONE_REQUIRED_CONSECUTIVE_GREENS: "5"
+      # "optimizer" scope blocks on model-quality criteria; use "dashboard" for full acceptance coverage blocking.
+      OPTIMIZER_DONE_SCOPE: "optimizer"
       # Label names used for open high-severity regression counting.
       OPTIMIZER_DONE_HIGH_SEVERITY_LABELS: "P0,P1"
 
@@ -140,6 +142,10 @@ jobs:
 
       - name: Run optimizer diagnostics + gate
         run: npm run ci:optimizer
+
+      - name: Generate priority action report
+        if: always()
+        run: node --experimental-strip-types scripts/generate_ci_priority_actions.ts --profile ono_v3_calibrated --mode quick
 
       - name: Upload optimizer reports
         if: always()
