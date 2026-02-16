@@ -1,0 +1,2067 @@
+
+--- Text Content of /Users/devinsonpena/Desktop/Files/cas-depin-tokenomics/main.pdf ---
+
+
+
+DePIN Tokenomics Under Stress
+A Simulation-Based Sustainability Analysis Using the
+Onocoy Network as a Case Study
+Author A
+Author B
+Author C
+CAS Blockchain
+Lucerne University of Applied Sciences and Arts (HSLU)
+February 16, 2026
+
+Abstract
+Decentralized Physical Infrastructure Networks (DePIN) rely on token-based incentive
+systems to bootstrap and sustain real-world infrastructure operated by independent providers.
+While tokenomics is frequently discussed in terms of growth and market valuation, sig-
+nificantly less attention has been paid to how these mechanisms behave under adverse
+conditions such as demand shocks, liquidity events, or deteriorating provider economics
+[1]. This gap is particularly consequential for DePIN systems, where infrastructure churn
+can lead to irreversible losses in service capacity due to physical deployment constraints.
+This thesis evaluates the robustness of DePIN tokenomic mechanisms under standard-
+ized  stress  conditions  using  a  reproducible,  simulation-based  framework.   Rather  than
+forecasting token prices or predicting network success, the analysis focuses on compar-
+ative, directional behavior: how different incentive structures respond when subjected to
+adverse scenarios [2]. An agent-based simulation model is employed to represent hetero-
+geneous infrastructure providers interacting with a rule-based protocol under exogenous
+demand and macroeconomic regimes [3].
+The framework is applied to the Onocoy network and its ONO token as a primary
+case study. Results are interpreted as conditional insights into mechanism resilience, not
+as claims of causal certainty or real-world prediction.  The contribution of this work lies
+in demonstrating how stress-testing can be systematically applied to DePIN tokenomics,
+offering a tool for researchers and builders to evaluate incentive robustness before failure
+occurs.
+i
+
+Contents
+1    Introduction1
+1.1Motivation .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .1
+1.2Problem Statement   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .1
+1.3Research Focus and Scope   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .2
+1.4Contribution .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .2
+2    DePIN Fundamentals2
+2.1Defining DePIN  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .2
+2.2The Physical Constraint (Hardware)   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .3
+3    Theoretical Definitions of Stress3
+3.1Summary of Stress Factors   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .3
+3.2Positioning Within the Overall Research  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .3
+3.2.1Relationship to the Broader Research   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .3
+3.2.2Unique Analytical Responsibility   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .4
+4    Theoretical Tokenomic Framework5
+4.1Introduction  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .5
+4.2DePIN as a Cyber-Physical System .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .5
+4.3Comparative Scope: The Solana DePIN Ecosystem   .  .  .  .  .  .  .  .  .  .  .  .5
+4.3.1Project Archetypes  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .6
+4.4Tokenomic Building Blocks    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .6
+4.4.1Emission Schedules & Inflation   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .6
+4.4.2The Burn-and-Mint Equilibrium (BME)  .  .  .  .  .  .  .  .  .  .  .  .  .  .6
+4.4.3Work Verification Mechanisms .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .7
+4.5Monetization and Demand Regimes   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .7
+4.5.1The Value Capture Funnel   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .7
+4.5.2Demand Cyclicality: Enterprise vs. Consumer    .  .  .  .  .  .  .  .  .  .7
+4.6Detailed Analysis of the ONO Mechanism  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .7
+4.7Conclusion    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .7
+5    Empirical Case: Onocoy8
+5.1System Overview  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .8
+5.2Network Participants   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .8
+5.3Tokenomic Mechanics (Descriptive)   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .8
+ii
+
+6    Empirical Stress Analysis9
+6.1Introduction  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .9
+6.2Theoretical Framework: Operationalizing Stress Without Simulation  .  .  .10
+6.2.1The "Disease": Defining Stress Factors in Physical Networks .  .  .10
+6.2.2The "Cure": Mechanism Design as a Static Defense .  .  .  .  .  .  .  .11
+6.2.3Methodology: Empirical Event Studies   .  .  .  .  .  .  .  .  .  .  .  .  .  .11
+6.3Comparative Scope: The Solana DePIN Ecosystem   .  .  .  .  .  .  .  .  .  .  .  .12
+6.3.1The Comparative Set  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .12
+6.3.2Metric Standardization for Static Comparison  .  .  .  .  .  .  .  .  .  .  .13
+6.4Empirical Stress Test: Historical Performance Analysis  .  .  .  .  .  .  .  .  .  .13
+6.4.1Stress Scenario 1: The Liquidity Shock & Crypto Winter (2022-
+2023)   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .13
+6.4.2Stress Scenario 2:  The "Vampire Attack" & Competitive Yield
+(2024-2025) .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .14
+6.4.3Stress Scenario 3: Operational Cost Shock (Hivemapper 2024)  .  .15
+6.5Tokenomic Mechanism Analysis: Comparative Robustness  .  .  .  .  .  .  .  .15
+6.5.1The Burn-and-Mint Equilibrium (BME)  .  .  .  .  .  .  .  .  .  .  .  .  .  .15
+6.5.2Incentive Solvency: The Burn-to-Mint Ratio    .  .  .  .  .  .  .  .  .  .  .16
+6.6DePIN Failure Modes: A Diagnostic Matrix  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .16
+6.7Conclusion: Benchmarking Summary   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .17
+7    Methodology: Simulation-Based Stress Testing18
+7.1Purpose and Non-Goals  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .18
+7.2Justification of Methodology   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .19
+7.3Model Scope and Agent Representation   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .19
+7.4Inputs, Parameters, and Exogenous vs Endogenous Variables  .  .  .  .  .  .  .20
+7.5Stress Dimensions and Scenario Design   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .20
+7.6Metrics and Computation  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .21
+7.7Reproducibility and Validation Strategy   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .22
+7.8Limitations of the Model   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .23
+7.9Adversarial Stress and Future Work    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .23
+8    Stress Scenario Design24
+8.1Operational Definition of Stress    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .24
+8.2Stress Dimensions Implemented   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .24
+8.2.1Macroeconomic Regimes .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .25
+8.2.2Demand Regimes  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .25
+8.2.3Liquidity Shocks   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .25
+iii
+
+8.2.4Provider Economics Stress  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .26
+8.2.5Tokenomics Parameter Stress    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .26
+8.3Scenario Combination Rules   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .26
+8.4Relevance of Stress Scenarios    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .26
+9    Evaluation Metrics27
+9.1Principles for Metric Selection   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .27
+9.2Core Sustainability Metrics  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .27
+9.2.1Provider Retention and Churn   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .27
+9.2.2Capacity Utilization and Service Continuity  .  .  .  .  .  .  .  .  .  .  .  .27
+9.2.3Incentive Solvency (Burn-to-Mint Ratio)    .  .  .  .  .  .  .  .  .  .  .  .  .27
+9.2.4Net Emissions and Inflation Dynamics .  .  .  .  .  .  .  .  .  .  .  .  .  .  .28
+9.2.5Token Velocity (Proxy)  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .28
+9.2.6Incentive Efficiency (Capital Efficiency) .  .  .  .  .  .  .  .  .  .  .  .  .  .28
+9.2.7Volatility Proxy  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .28
+9.3Derived Summary Indicators   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .28
+9.3.1Death Spiral Probability   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .29
+9.3.2Network Revenue and Provider Profitability  .  .  .  .  .  .  .  .  .  .  .  .29
+9.4Interpretation and Limitations of Metrics .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .29
+10  Simulation Results30
+10.1  Baseline Behavior (Sanity Check)   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .30
+10.1.1   Experimental Setup .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .31
+10.1.2   Baseline Trajectories  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .31
+10.1.3   Provider Economics and Retention .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .32
+10.1.4   Interpretation Boundaries of Baseline Results  .  .  .  .  .  .  .  .  .  .  .32
+10.2  Stress Scenarios: Definition and Execution .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .33
+10.2.1   Rationale for Scenario-Based Stress Testing  .  .  .  .  .  .  .  .  .  .  .  .33
+10.2.2   Scenario S1: Demand Contraction  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .33
+10.2.3   Scenario S2: Liquidity Shock    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .34
+10.2.4   Scenario S3: Competitive Yield Pressure    .  .  .  .  .  .  .  .  .  .  .  .  .34
+10.2.5   Scenario S4: Provider Cost Inflation  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .35
+10.2.6   Execution and Comparability    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .35
+10.3  Stress Scenario Results (Comparative Outcomes)   .  .  .  .  .  .  .  .  .  .  .  .  .36
+10.3.1   Demand Contraction Scenario   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .36
+10.3.2   Liquidity Shock Scenario .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .36
+10.3.3   Competitive Yield Pressure Scenario .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .37
+10.3.4   Provider Cost Inflation Scenario  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .37
+iv
+
+10.3.5   Cross-Scenario Comparison   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .37
+10.4  Failure Modes Observed (Operational Definitions) .  .  .  .  .  .  .  .  .  .  .  .  .38
+10.4.1   Reward–Demand Decoupling   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .39
+10.4.2   Profitability-Induced Provider Churn    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .39
+10.4.3   Liquidity-Driven Incentive Compression    .  .  .  .  .  .  .  .  .  .  .  .  .40
+10.4.4   Elastic Provider Exit Under External Yield Pressure    .  .  .  .  .  .  .40
+10.4.5   Latent Capacity Degradation  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .41
+10.4.6   Role of Failure Mode Definitions    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .41
+10.5  Implications for Builders (Design Recommendations)  .  .  .  .  .  .  .  .  .  .  .41
+10.5.1   Align Emissions More Tightly with Realized Demand   .  .  .  .  .  .41
+10.5.2   Design for Provider Margin Resilience, Not Peak Returns    .  .  .  .42
+10.5.3   Treat Liquidity Events as Infrastructure Risks,  Not Just Market
+Events .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .42
+10.5.4   Assume Provider Capital Is Mobile   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .43
+10.5.5   Account for Delayed Infrastructure Degradation    .  .  .  .  .  .  .  .  .43
+10.5.6   Positioning Note (important)  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .43
+10.6  Implications for Onocoy (Actionable Suggestions)    .  .  .  .  .  .  .  .  .  .  .  .43
+10.6.1   Strengthen the Coupling Between Usage and Rewards   .  .  .  .  .  .44
+10.6.2   Monitor Provider Margins as a Leading Indicator  .  .  .  .  .  .  .  .  .44
+10.6.3   Account for Token Price Sensitivity in Reward Design   .  .  .  .  .  .44
+10.6.4   Differentiate Incentives by Provider Commitment Level    .  .  .  .  .45
+10.6.5   Use Stress Testing as an Ongoing Governance Tool  .  .  .  .  .  .  .  .45
+10.6.6   Positioning Note   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .45
+10.7  Implications for Researchers (What This Enables and What It Does Not)  .46
+10.7.1   What This Framework Enables .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .46
+10.7.2   What This Framework Does Not Enable  .  .  .  .  .  .  .  .  .  .  .  .  .  .46
+10.7.3   Research Directions Opened by This Work   .  .  .  .  .  .  .  .  .  .  .  .47
+10.7.4   Closing Positioning Note  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .47
+10.8  Positioning of This Contribution   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .47
+11  Human Decision-Making Under Stress: DePIN Response Archetypes48
+11.1  Why Mechanism Design Alone Is Insufficient  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .48
+11.2  Archetype I: Subsidy Inertia (Emissions Denial)  .  .  .  .  .  .  .  .  .  .  .  .  .  .49
+11.3  Archetype II: Incentive Overfitting vs. Re-Targeting .  .  .  .  .  .  .  .  .  .  .  .50
+11.3.1   II-A: Subsidy Boosting (Overfitting)  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .50
+11.3.2   II-B: Incentive Re-Targeting (Adaptive Alignment)  .  .  .  .  .  .  .  .50
+11.4  Archetype III: Narrative Pivot Without Structural Adjustment .  .  .  .  .  .  .51
+11.5  Archetype IV: Emergency Centralization .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .51
+v
+
+11.6  Implications for Onocoy (Diagnostic Alignment)   .  .  .  .  .  .  .  .  .  .  .  .  .51
+11.6.1   Onocoy-Specific Diagnostic Signals  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .52
+11.7  Counterexamples, Edge Cases, and Deliberate Exclusions .  .  .  .  .  .  .  .  .52
+11.7.1   Counterexample I: Demand-Dominant DePIN Regimes .  .  .  .  .  .52
+11.7.2   Counterexample II: Structurally Centralized Networks   .  .  .  .  .  .52
+11.7.3   Excluded Archetypes and Metrics   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .53
+A   Appendix54
+vi
+
+List of Figures
+vii
+
+List of Tables
+1Theoretical Definitions of Stress Factors  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .3
+2Standardized Metrics for Comparison   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .13
+3Operational Failure Modes: Diagnostic Matrix .  .  .  .  .  .  .  .  .  .  .  .  .  .  .38
+4Human Decision-Making Archetypes Under Stress   .  .  .  .  .  .  .  .  .  .  .  .49
+viii
+
+1    Introduction
+1.1    Motivation
+Decentralized Physical Infrastructure Networks (DePIN) represent an emerging class of
+blockchain-enabled systems that coordinate the deployment and operation of real-world
+infrastructure through cryptographic incentives [1].  Unlike purely digital protocols, De-
+PIN networks depend on physical assets, such as sensors, antennas, or positioning sta-
+tions, that require upfront capital expenditure, ongoing operational costs, and geographic
+placement. These characteristics fundamentally alter the economic and risk profile of the
+network [4].
+In such systems, tokenomics is not merely a mechanism for value transfer or spec-
+ulative participation;  it is the primary coordination tool through which infrastructure is
+deployed, maintained, and retained.  When incentive structures fail under adverse condi-
+tions, providers may exit the network, leading to degraded service quality and potentially
+permanent loss of coverage.   Unlike software-based protocols,  where participation can
+be  restored  with  minimal  friction,  the  reinstallation  of  physical  infrastructure  involves
+logistical delays, sunk costs, and regulatory constraints.
+Despite this fragility, most discussions of DePIN tokenomics focus on growth-phase
+dynamics or long-term valuation narratives. Few researchers examine how these systems
+behave under stress, precisely the conditions that determine long-term viability.
+1.2    Problem Statement
+Most  rigorous  tokenomic  evaluations  assume  average  conditions—stable  demand  and
+growing participation. This approach ignores the volatility inherent to physical networks.
+Real-world networks operate in environments characterized by volatility and uncertainty.
+DePIN networks may face sudden drops in demand,  adverse macroeconomic regimes,
+liquidity shocks caused by token unlocks, or increased competition for infrastructure op-
+erators [5].
+When such stresses occur, the incentive system must continue to perform three essen-
+tial functions:  retain providers, sustain service capacity, and prevent incentive collapse.
+Failure in any of these dimensions can initiate feedback loops, such as provider churn re-
+ducing service quality, that accelerate network degradation. Similar dynamics have been
+observed in other incentive-driven systems, where poorly calibrated mechanisms amplify
+shocks rather than absorb them [6].
+1
+
+1.3    Research Focus and Scope
+This thesis focuses on the stress-testing of tokenomic mechanisms in DePIN networks
+through simulation-based analysis.  The objective is to evaluate how different incentive
+structures behave under adverse scenarios, rather than to predict future outcomes or token
+prices.
+Several deliberate scope constraints are imposed. The thesis does not attempt to fore-
+cast token prices or market capitalization, following critiques of predictive overreach in
+crypto-asset valuation literature  [7].   It  does not claim causal  certainty  regarding real-
+world network behavior.  Nor does it propose novel tokenomic designs; instead, existing
+mechanisms are evaluated through controlled experimentation.
+The Onocoy network and its ONO token serve as the primary empirical anchor. ONO
+is treated as a representative DePIN implementation with clearly defined incentive mech-
+anisms and observable infrastructure constraints.  While the analysis is grounded in this
+case, the modeling framework is designed to be extensible to other DePIN systems.
+1.4    Contribution
+This thesis makes three contributions: a structured simulation approach for stress-testing
+DePIN tokenomics under adverse conditions, drawing on established evaluation frame-
+works for complex systems modeling [8, 2]; the application of this framework to a real-
+world DePIN case, translating conceptual incentive mechanisms into testable model pa-
+rameters; and an emphasis on comparative robustness and trade-off analysis over predic-
+tion, offering a practical evaluation tool for both researchers and protocol designers.
+2    DePIN Fundamentals
+[INSTRUCTIONS FOR PERSON A: Define the core concepts here.  Distinguish DePIN
+from normal crypto.]
+2.1    Defining DePIN
+•  Definition: Define Decentralized Physical Infrastructure Networks.
+•  Key Difference:  Contrast it with DeFi (purely digital/capital) vs DePIN (physi-
+cal/labor/hardware).
+2
+
+2.2    The Physical Constraint (Hardware)
+•  Sunk Costs: Explain that buying a $1,000 miner is a sunk cost that creates "sticki-
+ness" (unlike staking tokens which can be unsold instantly).
+•  Geographic Friction: moving a miner is hard.
+3    Theoretical Definitions of Stress
+[INSTRUCTIONS FOR PERSON A: This is critical.  You must define the "Disease" so
+Person C can test the "Cure". Use these exact definitions.]
+3.1    Summary of Stress Factors
+Table 1 summarizes the core theoretical definitions of stress used throughout this thesis.
+ConceptDefinitionRisk Driver
+Reward AddictionA  state  where  maintaining  supply  re-
+quires  exponentially  increasing  token
+incentives.
+Ifincentivesflatten,
+mercenarysupply
+churns immediately.
+The Subsidy GapThe delta between real operating costs
+(CapEx + OpEx) and real fiat revenue
+entering the system.
+Early-stagegapsare
+bridgedentirelyby
+speculative token value,
+creating solvency risk.
+Speculative FragilityThe correlation between network secu-
+rity (provider uptime) and token price
+volatility.
+High   fragility   implies
+that   price   drops   trig-
+ger immediate hardware
+churn (> 10% drop→>
+10% churn).
+Table 1: Theoretical Definitions of Stress Factors
+3.2    Positioning Within the Overall Research
+3.2.1    Relationship to the Broader Research
+This work forms part of a larger collaborative research effort examining the sustainability
+of DePIN networks.  Within that context, this thesis occupies a clearly defined role:  the
+evaluation of tokenomic mechanisms through formal modeling and stress testing.
+Foundational definitions of DePIN, hardware constraints, and empirical observations
+of the Onocoy network are established elsewhere in the broader research.  Analytical de-
+scriptions of tokenomic design patterns and market logic are likewise addressed in parallel
+3
+
+work.  This thesis builds upon those components by translating conceptual mechanisms
+into a formal simulation environment and evaluating their behavior under stress, following
+best practices for simulation-based evaluation of complex socio-technical systems [3].
+3.2.2    Unique Analytical Responsibility
+The unique contribution of this thesis lies in the operationalization of stress-testing. Con-
+ceptual definitions of stress are converted into explicit model inputs, and tokenomic mech-
+anisms are evaluated through their simulated effects on provider retention, incentive sol-
+vency,  and service continuity.   By grounding all claims in explicit assumptions,  trans-
+parent metrics, and reproducible experimental design, the thesis aligns with established
+methodological standards for simulation-based research [9].
+4
+
+4    Theoretical Tokenomic Framework
+4.1    Introduction
+[TODO: Define the scope of Tokenomics in DePIN. Key themes: Sustainability, Mecha-
+nism Design, and the ’Physical’ constraint.]
+4.2    DePIN as a Cyber-Physical System
+This research defines Decentralized Physical Infrastructure Networks (DePIN)—and specif-
+ically the Onocoy network—not merely as cryptocurrency projects, but as Cyber-Physical
+Systems (CPS). In this framework, physical hardware (GNSS reference stations) and dig-
+ital state (token incentives) operate in dynamic, continuous feedback loops.  Within this
+loop, the token functions as what Voshmgir describes as a "Purpose-Driven Token"—a
+steering signal designed to coordinate collective action (infrastructure deployment) that
+traditional market mechanisms fail to bootstrap efficiently [10]. This definition draws di-
+rectly from the foundational work of Michael Zargham (BlockScience), who established
+"Token Engineering" as a discipline rooted in Cyber-Physical Systems Engineering rather
+than speculative finance.
+BlockScience, founded by Zargham, has established the industry standard for model-
+ing complex cryptoeconomic systems, having successfully applied these principles to the
+Ethereum gas market, The Graph, and most notably, Filecoin.  Their work on Filecoin is
+particularly relevant as a comparative baseline for Onocoy, given the shared challenge of
+incentivizing massive-scale physical infrastructure deployment.
+Aligning with this industry standard, this thesis adopts a "Digital Twin" simulation
+methodology.  Just as BlockScience utilizes cadCAD to create high-fidelity simulations
+of network behavior, this study employs a specialized "low-fidelity Digital Twin"—the
+Onocoy Resilience & Stress-Test Engine (ORSTE). This approach moves beyond sim-
+ple price forecasting to model the structural feedback loops between hardware CAPEX,
+provider retention, and token variance. As demonstrated by Bernardineli’s work on File-
+coin’s minting policies, such control-theoretic modeling is essential for identifying failure
+modes in systems where physical hardware constraints create latency in network response
+[11].
+4.3    Comparative Scope: The Solana DePIN Ecosystem
+This section analyzes the tokenomic design patterns of eight leading DePIN protocols on
+Solana to establish a baseline for industry standards.
+5
+
+4.3.1    Project Archetypes
+[TODO: Analyze the following projects based on Hardware Sunk Cost vs. Active Work:]
+1.  Helium (IoT/Mobile): The Burn-and-Mint Standard.
+2.  Hivemapper (Mapping): Active labor constraints.
+3.  Render (Compute): High-end GPU economics.
+4.  io.net (Aggregated Compute): Cluster economics.
+5.  Geodnet (GNSS): Location NFT and hex-based capping.
+6.  Grass (Bandwidth): Zero-marginal cost participation.
+7.  Nosana (CI/CD): Compute grid incentives.
+8.  Aleph.im (Storage/Compute): Infrastructure persistence.
+4.4    Tokenomic Building Blocks
+4.4.1    Emission Schedules & Inflation
+[TODO: Compare ’Halving’ models (Bitcoin style) vs.   ’Linear Decay’ vs.   ’Dynamic
+Minting’.]
+Traditional cryptocurrencies often rely on rigid, time-based emission schedules, such
+as Bitcoin’s "Halving" model,  which reduces supply regardless of demand or network
+health.   However,  recent  infrastructure  protocols  have  moved  toward  "Linear  Decay"
+or "State-Dependent" issuance.  Most notably, Filecoin’s concept of "Effective Network
+Time" advances issuance only as physical capacity is added to the network [11]. This cre-
+ates a feedback mechanism where the protocol slows its inflation during periods of stag-
+nation, preserving value for future growth—a critical design pattern for capital-intensive
+DePIN projects.
+4.4.2    The Burn-and-Mint Equilibrium (BME)
+[TODO: Detailed definition of BME. How Dual-Token systems (Token + Data Credits)
+separate volatility from utility cost.]  This structure aligns with the "Web3 Sustainability
+Loop" proposed by Trent McConaghy (Ocean Protocol),  which posits that sustainable
+data economies requires a closed-loop value flow where network revenue continuously
+offsets token emissions [12].
+6
+
+4.4.3    Work Verification Mechanisms
+[TODO: Define how ’Proof of Physical Work’ is validated on-chain (e.g., Proof of Cov-
+erage, Proof of Mapping).]  Following the taxonomy of token incentives defined by Lisa
+JY Tan (Economics Design),  Onocoy’s mechanism relies on "outcome-based" rewards
+(verified data) rather than "action-based" rewards, distinguishing it from simpler staking
+protocols [13].
+4.5    Monetization and Demand Regimes
+4.5.1    The Value Capture Funnel
+[TODO: Map the flow of Fiat -> Buy Pressure -> Burn -> Supply Reduction.]
+4.5.2    Demand Cyclicality: Enterprise vs. Consumer
+[TODO:  Contrast  steady  B2B  demand  (Geodnet)  vs.   cyclical  consumer  demand  (He-
+lium).]
+4.6    Detailed Analysis of the ONO Mechanism
+[TODO: Deep dive into Onocoy’s specific ’Capped Supply’ architecture vs.  the BME
+industry standard defined above.]
+4.7    Conclusion
+[TODO: Summarize the theoretical vulnerabilities identified in these models, setting the
+stage for the specific Empirical Stress Analysis in Section 6.]
+7
+
+5    Empirical Case: Onocoy
+[INSTRUCTIONS FOR PERSON A: Please fill this section with descriptive facts. Do not
+analyze the token price or success yet. Focus on the business and the hardware.]
+5.1    System Overview
+•  GNSS & RTK Technology:  Explain what Real-Time Kinematics (RTK) is and
+why it improves GPS accuracy (centimeter-level precision).
+•  The Physical Network: Describe the density of stations required (e.g., 20km base-
+line) and why a distributed network makes sense versus a centralized one.
+5.2    Network Participants
+•  Miners (Reference Stations):  Define the hardware requirements.  Cost of entry?
+(e.g., $1,000+). Install requirements? (Roof access, clear sky view).
+•  Users (Rovers):  Who buys the data?  (Surveyors, drones, agriculture machines).
+How do they access it? (NTRIP caster).
+5.3    Tokenomic Mechanics (Descriptive)
+•  The ONO Token: Describe the emission schedule (halving? decay?).
+•  Burn/Sink Mechanism:  How does the system capture value?  (e.g., Data Credits
+or burn-and-mint).
+•  Staking Rules: Are there staking requirements for miners to participate?
+8
+
+6    Empirical Stress Analysis
+6.1    Introduction
+Decentralized Physical Infrastructure Networks (DePIN) represent a fundamental shift
+in the deployment and maintenance of critical real-world infrastructure, leveraging cryp-
+tographic incentives to coordinate distributed hardware provision across sectors ranging
+from wireless connectivity to geospatial mapping [14]. Unlike purely digital assets within
+the Decentralized Finance (DeFi) ecosystem, DePIN protocols introduce a complex layer
+of physical constraints—including hardware sunk costs, geographic friction, and logisti-
+cal latency—that fundamentally alters their economic risk profile [15]. Consequently, the
+sustainability of these networks is not merely a function of code, but of the intricate in-
+terplay between tokenomic mechanism design and the behavioral economics of hardware
+operators under stress [16].
+Historically, the evaluation of such systems has relied heavily on Agent-Based Model-
+ing (ABM) and stochastic simulations to forecast network behavior [15]. While valuable
+for exploring theoretical bounds, simulations often operate on rational agent assumptions
+that fail to capture the nuances of human panic, the "stickiness" of physical deployments,
+or the unpredictability of exogenous market shocks. There is a growing recognition within
+the research community that empirical analysis—grounded in the historical performance
+of live networks under actual stress—offers a more rigorous and actionable methodology
+for assessing resilience [17].
+This section establishes a comprehensive methodology for comparative DePIN anal-
+ysis without the use of simulation.  By operationalizing the "Event Study Methodology"
+utilized in financial econometrics [18], we construct a static stress-testing framework that
+benchmarks the Onocoy network against the historical performance of mature Solana-
+based DePIN peers, including Helium, Hivemapper, Render, and Geodnet. This approach
+replaces probabilistic forecasting with deterministic observation, analyzing how different
+incentive  structures—such  as  Burn-and-Mint  Equilibrium  (BME)  versus  Capped  Sup-
+ply—have historically responded to demand contractions, liquidity crises, and competi-
+tive yield pressures [14].
+The objective is to provide a diagnostic tool that is equally valuable for the academic
+thesis and the broader DePIN community.  By isolating specific "Failure Modes" such as
+Reward-Demand Decoupling and Latent Capacity Degradation [15], and mapping them
+to  observable  on-chain  metrics,  this  report  offers  a  nuanced  framework  for  evaluating
+whether a protocol’s incentive mechanism can retain providers, sustain service capacity,
+and prevent economic collapse in the absence of speculative growth.
+9
+
+6.2    Theoretical Framework: Operationalizing Stress Without Simu-
+lation
+To effectively analyze DePIN robustness without the generative capabilities of simulation,
+one must adopt a framework based on Comparative Statics and Empirical Event Studies.
+This involves defining "stress" not as a variable in a model, but as a specific set of his-
+torical market conditions (regimes) and analyzing the elasticity of network supply and
+demand in response to those conditions [19].
+6.2.1    The "Disease": Defining Stress Factors in Physical Networks
+In the context of this static analysis, stress factors are exogenous shocks that challenge
+the economic viability of the network.  We categorize these stressors into three primary
+buckets that determine long-term sustainability [15]:
+•  The Subsidy Gap (Reward Addiction):  This represents the structural deficit be-
+tween the real operating costs (OpEx) plus capital expenditures (CapEx) of infras-
+tructure providers and the actual fiat revenue entering the system.  In early-stage
+networks, this gap is bridged by speculative token incentives. A critical stress point
+occurs when token prices decline, widening this gap and forcing providers to op-
+erate at a loss.  Static analysis measures this by tracking the historical divergence
+between "Real Yield" (burn-based revenue) and "Dilutive Yield" (inflationary re-
+wards) over time [15].
+•  Speculative Fragility:  This metric defines the correlation between network secu-
+rity (provider uptime/retention) and token price volatility.   High fragility implies
+that a drop in token price triggers immediate and proportional infrastructure churn.
+In a non-simulated framework,  this is measured by calculating the "Beta" of ac-
+tive node counts relative to the token’s price drawdown during specific bear market
+windows (e.g., the 2022-2023 crypto winter) [15].
+•  Competitive Yield Pressure: This refers to the elasticity of provider participation
+when  alternative  networks  offer  higher  returns  for  similar  hardware.   As  DePIN
+hardware becomes more generalized (e.g., GPUs for Render vs.  io.net, or GNSS
+receivers for Geodnet vs. Onocoy), the switching costs decrease, increasing the risk
+of "vampire attacks" where supply migrates instantly to the highest bidder [15].
+10
+
+6.2.2    The "Cure": Mechanism Design as a Static Defense
+If stress is the disease, the tokenomic mechanism is the immune system. In a static anal-
+ysis, we evaluate the architectural capacity of different mechanisms to absorb shock. The
+primary designs observed in the Solana DePIN ecosystem include:
+•  Burn-and-Mint Equilibrium (BME): Utilized by Helium and Render, this dual-
+token model requires users to burn the native token to create non-transferable data
+credits (fixed in fiat value).  This theoretically caps supply based on demand [20].
+The static stress test involves calculating the "Equilibrium Price"—the token price
+at  which  the  burn  rate  from  usage  exactly  offsets  the  mint  rate  for  provider  re-
+wards—and comparing it to the actual market price.
+•  Capped Supply with Emissions Decay: Employed by Onocoy (and Bitcoin), this
+model enforces scarcity via a hard cap and diminishing returns (halvings) [21]. The
+stress test here focuses on the "Security Budget Analysis"—determining whether
+the diminishing block reward remains sufficient to cover aggregate provider OpEx
+in the absence of significant fee revenue.
+•  Sunk Cost Moats:  A crucial differentiator for DePIN is that the hardware itself
+often acts as a "staked" asset. The analysis must quantify "Economic Friction"—the
+financial loss incurred by a provider who exits the network due to the illiquidity of
+the hardware.  This sunk cost acts as a retention buffer, often more effective than
+on-chain staking during liquidity crises [15].
+6.2.3    Methodology: Empirical Event Studies
+To replace simulation, we utilize the Event Study Methodology, a standard approach in
+financial econometrics used to measure the impact of specific events on asset value and
+participant behavior [18].  By treating historical market shocks—such as the FTX col-
+lapse, Helium’s migration to Solana, or Hivemapper’s reward restructuring—as distinct
+"events," we can quantify the abnormal churn or abnormal returns associated with these
+stressors.
+This method allows us to infer the future behavior of a network like Onocoy by bench-
+marking it against the past empirical behavior of comparable networks under similar con-
+ditions.  We look for "Abnormal Churn Rates"—deviations from the expected baseline
+of provider exits—following negative price shocks to determine the true "Elasticity of
+Provider Exit" [15].
+11
+
+6.3    Comparative Scope: The Solana DePIN Ecosystem
+Solana has emerged as the dominant execution layer for DePIN due to its high throughput,
+low transaction costs ($0.00025), and state compression capabilities, which allow for the
+cost-effective management of millions of physical nodes [17]. To answer the thesis ques-
+tions regarding robustness,  we establish a comparative set of key projects representing
+different hardware profiles and stress responses.
+6.3.1    The Comparative Set
+We categorize the projects into three distinct "archetypes" based on their hardware cost
+profile and service model, as these factors dictate their response to economic stress:
+Archetype A: Commodity Sensor Networks (Low OpEx, Moderate CapEx)
+•  Helium (IoT/Mobile):  The mature market leader with over 1 million hotspots.  It
+serves as the primary case study for long-term retention behavior and the transition
+from L1 to Solana [17].
+•  Geodnet: A direct competitor to Onocoy in the GNSS/RTK sector. Focused heavily
+on stable B2B revenue and industrial utility, utilizing "Location NFTs" to manage
+density [22].
+•  Onocoy:  The thesis subject.  An emerging GNSS network with a distinct gover-
+nance approach and capped token supply model [15].
+Archetype B: High-Performance Compute (High OpEx, High CapEx)
+•  Render: Decentralized GPU rendering focused on the creator economy. High elec-
+tricity costs make these providers highly sensitive to token price drops, serving as a
+proxy for "mercenary" capital behavior [23].
+•  io.net:  Aggregated GPU compute for AI/ML workloads.  A newer entrant experi-
+encing massive growth but untested in a prolonged bear market, dealing with po-
+tential supply shocks from "cluster" migration [24].
+Archetype C: "Proof of Physical Work" (Active Labor)
+•  Hivemapper:  Dashcam mapping.  Unlike passive sensor networks,  this requires
+active human labor (driving). Incentives must cover fuel and time, creating a higher
+churn risk during price downturns [25].
+12
+
+6.3.2    Metric Standardization for Static Comparison
+To compare these diverse networks without simulation, we standardize specific metrics
+that serve as proxies for health and stress resilience [17].
+CategoryStandardized MetricDefinition & Proxy Utility
+Incentive SolvencyBurn-to-Mint RatioThe ratio of tokens burned (revenue) to
+tokens minted (incentives).  A value < 1
+indicates subsidy dependence; > 1 indi-
+cates sustainable deflation [17].
+Provider Retention30-Day Node RetentionPercentage of nodes active at T +30 days
+compared  to T0,  specifically  analyzed
+following a token price drop of > 20%
+[15].
+Economic EfficiencyRevenue per NodeTotal  Network  Revenue  divided  by  To-
+tal Active Nodes.  Indicates whether the
+average provider is economically viable
+without speculative token rewards [26].
+Speculative VelocityToken TurnoverDaily Trading Volume divided by Circu-
+lating Market Cap. High turnover during
+price drops often signals "mercenary cap-
+ital" exit rather than utility usage [27].
+Valuation RiskFDV  /  Annualized  Rev-
+enue
+Fully  Diluted  Valuation  divided  by  An-
+nualized Revenue. A comparative valua-
+tion metric to assess the speculative pre-
+mium embedded in the token price [28].
+Table 2: Standardized Metrics for Comparison
+6.4    Empirical Stress Test: Historical Performance Analysis
+This section executes the "static stress test" by analyzing how the comparative set per-
+formed during documented historical stress events. This empirical data replaces the need
+for generating synthetic stress scenarios in a simulation.
+6.4.1    Stress Scenario 1: The Liquidity Shock & Crypto Winter (2022-2023)
+Context:  During the 2022 crypto winter,  the market contracted significantly.   Helium
+(HNT)  saw  its  price  decline  from  highs  of ∼ $55  to  under $2,  losing  approximately
+95% of its value [29].  This serves as a perfect empirical case study for Liquidity-Driven
+Incentive Compression [15].
+Helium’s Response:
+13
+
+•  Price Impact:  Despite the catastrophic price drop, the number of active hotspots
+did not collapse proportionally.   The physical nature of the miners (mounted on
+roofs with sunk costs of∼ $500) created high exit friction [15].
+•  Provider Behavior:  Providers largely remained online because the marginal cost
+of operation (electricity) was negligible compared to the effort of uninstallation.
+This validates the "Sunk Cost Moat" theory:  hardware creates resilience against
+immediate churn but stalls future capacity growth under stress.
+•  Failure Mode Observed: While retention remained high, Latent Capacity Degra-
+dation occurred.   New deployments flatlined,  and maintenance of existing nodes
+likely dropped (though harder to measure without simulation, forum sentiment con-
+firms this), degrading actual coverage quality over time [27].
+•  Governance Reaction:  Helium proposed the migration to Solana and the imple-
+mentation of sub-DAOs (IOT and MOBILE) to compartmentalize risk—a clear ex-
+ample of the "Emergency Centralization" or "Narrative Pivot" archetype [15].
+Implication for Onocoy: Onocoy can expect its existing GNSS stations to be "sticky"
+during price crashes due to high installation effort (antennas require precise placement).
+However, new station growth will freeze. Resilience strategies should focus on maximiz-
+ing the utility of existing capacity rather than incentivizing new hardware during these
+periods.
+6.4.2    Stress Scenario 2: The "Vampire Attack" & Competitive Yield (2024-2025)
+Context:  Emerging DePIN protocols often target the same provider base.  In the GNSS
+sector,  Geodnet  and  Onocoy  compete  for  the  same  rooftop  real  estate  and  technically
+savvy installers [30].
+Geodnet vs. Onocoy Dynamics:
+•  Yield  Sensitivity:  Geodnet  focuses  on  stable  B2B  revenue  (RTK  services)  and
+utilizes a "Location NFT" to limit supply in saturated areas, enforcing a meritocracy
+that protects individual miner yield [22].
+•  Elastic Provider Exit: Multi-mining (running both Geodnet and Onocoy on similar
+hardware) is possible but introduces complexity. Providers demonstrate "mercenary
+loyalty," prioritizing the network offering better immediate liquidity or yield.
+•  Observed  Behavior:   When  Geodnet  token  (GEOD)  prices  rallied  or  burns  in-
+creased due to enterprise contracts, it attracted professional surveyors who prioritize
+stable fiat-equivalent income over speculative tokens [31].
+14
+
+•  Failure Mode: Elastic Provider Exit Under External Yield Pressure [15].  If Ono-
+coy’s rewards lag significantly behind Geodnet’s for prolonged periods, "dual-mining"
+setups may convert to "single-mining" for the competitor to optimize bandwidth or
+hardware stability.
+6.4.3    Stress Scenario 3: Operational Cost Shock (Hivemapper 2024)
+Context: Unlike stationary miners, Hivemapper requires active driving, introducing vari-
+able costs (fuel, time). This creates a higher OpEx floor, making the network more sensi-
+tive to token price drops.
+Hivemapper’s Stress:
+•  Cost Sensitivity: When the HONEY token price dipped, the "real wage" for driving
+dropped below the cost of fuel/time for many casual mappers.
+•  Churn  Response:  Unlike  Helium  hotspots,  Hivemapper  contributors  stop  map-
+ping immediately when incentives fall below the effort threshold. Active contribu-
+tors declined or plateaued during price stagnation periods, illustrating Profitability-
+Induced Provider Churn [17].
+•  Mitigation Strategy:  Hivemapper responded by pivoting to B2B enterprise deals
+(Map Credits) to burn tokens and support price, and by introducing "Honey Bursts"
+(targeted bonuses) to surge supply only where needed—a form of "Incentive Re-
+Targeting" [15].
+6.5    Tokenomic Mechanism Analysis: Comparative Robustness
+We now analyze the specific tokenomic parameters of Onocoy against the industry stan-
+dards established by the comparative set.  This "static" analysis evaluates the theoretical
+soundness of the design mechanics.
+6.5.1    The Burn-and-Mint Equilibrium (BME)
+Most major Solana DePINs (Helium, Render, Hivemapper) utilize BME to stabilize token
+value against usage.
+•  Mechanism:  Users pay in Fiat/Stablecoins → System buys & burns Tokens →
+Providers mint new Tokens.
+•  Stress Behavior:  In a bull market, BME is reflexive (usage burns supply→ price
+goes up → usage costs less tokens).  In a bear market, if usage is low, the "Mint"
+(inflation) outweighs the "Burn," creating a death spiral of dilution [32].
+15
+
+Onocoy’s Variance: Onocoy utilizes a "capped supply" model with deflationary ele-
+ments (buyback and burn from revenue) rather than a pure BME where minting is unlim-
+ited to meet demand [21].
+Assessment: Onocoy’s capped supply is theoretically more resilient to hyperinflation-
+ary death spirals than pure BME. However, it is less flexible in subsidizing early growth
+if the token price is too high (scarcity can stifle adoption) or too low (insufficient reward
+budget to attract miners).
+6.5.2    Incentive Solvency: The Burn-to-Mint Ratio
+This is the "Golden Metric" for static analysis, serving as the primary indicator of long-
+term solvency: Ratio =
+Burn
+Mint
+.
+•  Helium Mobile: Has historically approached a 1:1 or deflationary ratio in specific
+months due to high subscriber revenue, indicating high solvency [28].
+•  Hivemapper: Historically low ratio (high emissions, low burn), though improving
+with enterprise deals [25].
+•  Onocoy: As an early-stage network, this ratio is likely< 0.1 (highly subsidized).
+Risk Assessment:  A ratio consistently below 1.0 implies the network is consuming
+its own market capitalization to survive. Long-term solvency requires this metric to cross
+1.0.  The comparative data suggests that networks which fail to improve this ratio within
+24 months of launch face significant risk of "Reward Addiction" failure.
+6.6    DePIN Failure Modes: A Diagnostic Matrix
+Based on the historical data and theoretical framework, we define five operational failure
+modes for Onocoy and other DePINs. These definitions allow for "diagnosis" without the
+need for complex simulation [15].
+1.  Reward-Demand Decoupling: Emissions persist at a high rate while network us-
+age  (demand)  flatlines  or  drops.   If  GNSS  stations  deploy  faster  than  RTK  data
+buyers can be onboarded, ONO rewards will dilute rapidly [17].
+2.  Liquidity-Driven Incentive Compression:  External market sell-offs reduce the
+fiat value of the fixed token rewards, pushing provider ROI below the break-even
+point.  GNSS stations are low-power (low OpEx), so they are less sensitive to this
+than GPU networks but more sensitive than passive staking protocols [33].
+16
+
+3.  Latent Capacity Degradation:  Providers stop maintaining hardware due to low
+rewards.   High  "Active  Node"  count  but  falling  "Quality/Uptime"  scores.   RTK
+requires precise calibration; if rewards drop, providers may neglect maintenance,
+degrading network accuracy [27].
+4.  Elastic Provider Exit: Capital (hardware) moves instantly to a competitor offering
+higher yield.  Significant risk if Geodnet offers higher yield for compatible hard-
+ware.
+5.  The Death Spiral:  Feedback loop where Price Drop → Lower Yield → Miner
+Churn→ Lower Security→ Lower Demand→ Further Price Drop [34].
+6.7    Conclusion: Benchmarking Summary
+Analyzing  DePIN  tokenomics  without  simulation  is  not  only  possible  but  often  more
+revealing than theoretical modeling. By employing a comparative event study framework,
+we  can  observe  how  real-world  networks  like  Helium,  Hivemapper,  and  Render  have
+responded to the stress of bear markets, liquidity crunches, and competitive pressure.
+The empirical data indicates that physical sunk costs act as a powerful retention buffer,
+preventing immediate collapse during price drops (unlike DeFi). However, this resilience
+is  temporary;  without  a  transition  to  Real  Yield  (Burn-to-Mint  ratios> 1),  networks
+eventually succumb to Reward Addiction and Latent Capacity Degradation.
+For Onocoy, this comparison highlights the need to tighten the coupling between Re-
+wards and Realized Demand, and to differentiate incentives to reward high-commitment,
+professional providers—increasing the economic moat against "mercenary" switching.
+17
+
+7    Methodology: Simulation-Based Stress Testing
+7.1    Purpose and Non-Goals
+This simulation framework examines how tokenomic mechanisms in Decentralized Phys-
+ical Infrastructure Networks (DePIN) behave when conditions deteriorate [1]. Our aim is
+not to predict future outcomes or identify winning designs, but to compare how different
+incentive structures respond when exposed to the same adverse scenarios.  The empha-
+sis is therefore on relative behavior under stress, rather than on absolute performance or
+forecasting accuracy [8].
+We use simulation because DePIN systems combine several features that are diffi-
+cult to study analytically.  Infrastructure providers are heterogeneous, incentives operate
+through protocol rules rather than direct contracts,  and external conditions such as de-
+mand or market sentiment can change abruptly [5]. These elements interact in non-linear
+ways, especially once feedback effects emerge.  A simulation-based approach makes it
+possible to examine these interactions directly, while keeping assumptions explicit and
+inspectable [35].
+To avoid over-interpretation, a number of non-goals are defined upfront.  The model
+does not produce token price forecasts, valuation estimates, or projections of market cap-
+italization [7].  Price dynamics are included only as internal signals that reflect supply,
+demand, and liquidity assumptions. Likewise, the results are not treated as causal claims
+about real-world networks. All observed patterns are conditional on the modeled assump-
+tions and should be understood as indicative rather than predictive.
+The framework does not identify optimal parameter settings or prescribe specific to-
+kenomic designs. Instead, it surfaces trade-offs and failure modes visible under stress. Fi-
+nally, the model abstracts from governance processes, legal constraints, and off-chain be-
+havioral factors that may be important in practice but cannot be represented in a tractable
+and reproducible way within the scope of this study.
+This  aligns  with  standard  practice  in  complex  systems  research,  where  controlled
+comparison  under  adverse  conditions  is  preferred  over  predictive  modeling  in  settings
+characterized by uncertainty, feedback effects, and heterogeneous agents [2, 3].
+This evaluative approach draws directly from the stress-testing frameworks developed
+by Gauntlet for DeFi protocols. Just as Gauntlet simulates "Value at Risk" (VaR) to predict
+protocol insolvency during market crashes [36],  this thesis adapts the methodology to
+quantify "Coverage at Risk"—the potential loss of physical infrastructure under adverse
+tokenomic conditions.
+18
+
+7.2    Justification of Methodology
+Why employ a simulation-based stress-testing framework rather than traditional financial
+valuation models? Traditional models (DCF, Comparables) assume market efficiency and
+linear growth, which fail to capture the catastrophic non-linear feedback loops inherent in
+tokenized physical networks.
+Because we have defined Onocoy as a Cyber-Physical System (see Section 4.2), rely-
+ing on static financial models is insufficient. As established by BlockScience and Gaunt-
+let, these systems require engineering-grade verification to identify "edge case" failures
+that simple average-case forecasting obscures.  Simulation allows us to test the physical
+resilience of the network (hardware retention) against the financial volatility of the token,
+properly treating the system as a closed loop requiring control-theoretic analysis.
+7.3    Model Scope and Agent Representation
+The simulation model represents DePIN dynamics through a limited set of interacting
+components that capture the core economic relationships relevant to infrastructure sus-
+tainability. The scope is defined by what can be meaningfully stress-tested, rather than by
+an attempt to mirror the full complexity of real-world networks [4].
+At the center of the model are infrastructure providers, represented as heterogeneous
+agents.  Providers differ along several dimensions that materially affect their economic
+outcomes, including operational costs, effective capacity contribution, and hardware tier.
+This heterogeneity is essential, as DePIN networks do not consist of interchangeable par-
+ticipants but of operators with varying cost structures.   Provider behavior is limited to
+economically motivated decisions, primarily continued participation, exit (churn), or en-
+try, based on profitability thresholds and accumulated losses [6].
+Users are not modeled as individual agents.  Instead, service demand is treated as an
+exogenous input,  specified through time-varying demand regimes.   While real demand
+may respond endogenously to price or service quality, introducing such feedback would
+require assumptions that cannot be validated within the scope of this thesis.   Demand
+is therefore used as a controlled external driver, allowing the analysis to focus on how
+tokenomic mechanisms respond to stress rather than on how demand itself forms.
+The protocol is represented as a rule-based system that governs emissions,  reward
+allocation, burn mechanisms, and price-related dynamics. Protocol behavior is determin-
+istic given a set of parameters and inputs, and does not adapt strategically over time. This
+abstraction is intentional:  the objective is to evaluate the behavior of tokenomic mecha-
+nisms as designed, not to model governance interventions.
+19
+
+Within this structure, we maintain a clear distinction between endogenous variables
+(token supply, provider profitability, churn, incentive solvency) and exogenous variables
+(demand regimes, macroeconomic conditions, liquidity shocks).  This separation allows
+observed outcomes to be traced back to specific stress inputs and mechanism responses.
+7.4    Inputs, Parameters, and Exogenous vs Endogenous Variables
+The simulation framework operates on a clearly defined set of inputs and parameters that
+determine how the system evolves over time.  These inputs are grouped by their role in
+the model rather than by their real-world source, in order to make assumptions explicit.
+A central design principle is that parameters are treated as ranges and regimes,  not as
+precise estimates of real-world values.
+Exogenous inputs define the external environment.  These include demand regimes,
+macroeconomic conditions,  and discrete shock events.   Demand is specified as a time
+series that can follow different patterns, such as steady usage, growth followed by decay,
+or highly volatile behavior. Macroeconomic conditions are represented through scenario-
+level modifiers.   Liquidity shocks,  such as large token unlocks,  are introduced as one-
+time exogenous disturbances. Treating these factors as exogenous allows the same stress
+conditions to be applied consistently across different tokenomic configurations.
+Protocol-level parameters define the incentive mechanisms under evaluation.  These
+include  emission  limits,  burn  fractions,  reward  allocation  rules,  and  treasury  handling
+strategies. Parameters in this category are varied across simulation runs to represent alter-
+native tokenomic designs or policy choices. Importantly, the model does not assume that
+protocol parameters adapt dynamically in response to outcomes. Any change in emissions
+or incentive structure is introduced explicitly as part of a scenario, rather than emerging
+endogenously.
+Provider-level parameters describe the economic characteristics of infrastructure op-
+erators.  These include capital expenditure proxies, ongoing operational costs, and par-
+ticipation thresholds. Provider heterogeneity is introduced by sampling these parameters
+from predefined distributions.  Where practitioner input is used (e.g., typical cost ranges
+or revenue expectations), it is incorporated as broad intervals influenced by public docu-
+mentation, not as exact figures.
+7.5    Stress Dimensions and Scenario Design
+Stress scenarios in the simulation are designed to represent adverse conditions that are
+plausible for DePIN networks and that materially challenge incentive alignment, provider
+20
+
+retention, and service continuity. The model focuses on a limited set of stress dimensions
+that recur across incentive-driven infrastructure systems.
+A first category of stress relates to demand conditions. Demand regimes are specified
+exogenously and include stable demand, growth followed by decay, and highly volatile
+usage patterns.  These regimes reflect the well-documented risk that early network adop-
+tion does not translate into sustained utilization [5].
+A second category relates to external market shocks. Macroeconomic regimes (Bear,
+Bull,  Sideways) modulate the baseline assumptions for token price drift and volatility.
+Liquidity shocks simulate sudden sell pressure events, testing the system’s ability to main-
+tain incentive alignment even in the absence of changes in underlying demand [37, 38].
+Provider-side stress is introduced through economic viability thresholds.  In scenar-
+ios where operational costs increase, rewards decline, or token prices fall, providers may
+experience sustained losses. The model represents this through probabilistic churn mech-
+anisms that activate after consecutive periods of unprofitability.
+These stress dimensions can be applied individually or in combination, allowing the
+analysis to explore compound failure conditions. Prior work on complex systems suggests
+that the interaction of multiple stressors often produces non-linear outcomes that are not
+apparent when shocks are considered in isolation.  By standardizing the definition and
+timing of stress across scenarios, the model enables direct comparison of how different
+tokenomic mechanisms absorb or amplify adverse conditions.
+7.6    Metrics and Computation
+The evaluation of tokenomic robustness in this study relies on a fixed set of metrics de-
+fined prior to analysis.  Metrics are selected based on their ability to capture incentive
+sustainability, provider behavior, and system-level stress responses, rather than short-term
+market performance.
+A primary category of metrics captures provider sustainability and retention. Provider
+retention rates and churn counts are used to assess whether incentive structures are able
+to maintain infrastructure participation under stress. These measures are particularly im-
+portant in DePIN systems,  where provider exit can lead to persistent losses in service
+capacity due to physical deployment constraints.
+A second category relates to economic viability and incentive solvency. Metrics such
+as provider profitability, net incentive balance, and revenue-to-emission ratios are used
+to examine whether rewards remain economically meaningful relative to costs over time.
+Rather than interpreting these values as precise financial indicators, they are used as prox-
+ies for incentive health.
+21
+
+System-level  performance  is  captured  through  capacity  and  utilization  metrics,  in-
+cluding total active capacity, demand served, and utilization rates. These measures reflect
+whether the network continues to deliver service under adverse conditions, independent
+of token price dynamics.
+To assess broader tokenomic dynamics, the model tracks supply-side and flow-based
+indicators, including net emissions, burn-to-mint ratios, and token velocity proxies de-
+rived from transaction turnover.  These metrics are not interpreted as direct measures of
+market efficiency, but as signals of whether token circulation and supply pressures remain
+aligned with usage-driven demand.
+Finally,  distributional outcomes are examined using concentration metrics,  such as
+top-participant reward shares or inequality proxies. These measures are included to detect
+whether stress conditions lead to excessive centralization of rewards or capacity, which
+may undermine network resilience even when aggregate metrics appear stable.
+7.7    Reproducibility and Validation Strategy
+Reproducibility is treated as a core requirement of the simulation framework.  All exper-
+iments are defined by an explicit set of parameters, scenario inputs, and random seeds,
+allowing results to be regenerated and inspected without reliance on undocumented as-
+sumptions or interactive tuning.
+Stochastic elements are present in several parts of the simulation, including demand
+variation,  provider  heterogeneity,  churn  decisions,  and  price-related  noise.   To  ensure
+that observed outcomes are not driven by single-run artifacts, each scenario is evaluated
+across multiple simulation runs using seeded pseudo-random number generation. Results
+are then aggregated to examine central tendencies and dispersion rather than relying on
+individual trajectories.
+Validation in this context does not aim to establish empirical accuracy with respect to
+real-world data.  Instead, the model is validated through internal consistency and behav-
+ioral plausibility checks.  These include baseline runs without stress, where the system
+is expected to exhibit stable participation and bounded dynamics, as well as controlled
+perturbations where directional responses can be anticipated based on incentive logic.
+Sensitivity analysis is used to further assess robustness. Key parameters (cost ranges,
+emission limits, and churn thresholds) are varied within predefined intervals to examine
+whether qualitative outcomes persist under moderate perturbations. Outcomes that remain
+stable across reasonable parameter variations are treated as more robust signals.
+22
+
+7.8    Limitations of the Model
+While the simulation framework is designed to support structured stress testing, it nec-
+essarily abstracts from many aspects of real-world network behavior.  These limitations
+are not incidental, but a consequence of deliberate design choices made to preserve inter-
+pretability and reproducibility.
+Several limitations shape the model’s scope. Demand is modeled as an exogenous pro-
+cess; although some scenarios allow demand to vary over time, the model does not fully
+endogenize user behavior or price elasticity. Providers are represented as economically ra-
+tional agents operating under simplified decision rules, excluding strategic behavior such
+as long-term speculation or coordinated action.
+The price formation mechanism is a reduced-form approximation, combining buy and
+sell pressure, dilution effects, scarcity signals, and stochastic noise to generate directional
+price dynamics.  This approach is sufficient for comparative stress testing but does not
+attempt to replicate actual market microstructure. The temporal resolution of the model is
+limited to discrete time steps, obscuring intra-period dynamics such as short-term volatil-
+ity spikes.
+Finally, empirical calibration is constrained by data availability.  Inputs derived from
+interviews or public documentation are treated as indicative ranges rather than precise
+measurements.  The framework is therefore better suited to identifying relative sensitivi-
+ties and failure modes than to making absolute performance claims.
+Taken together,  these limitations imply that the results of the simulation should be
+interpreted as comparative, conditional insights rather than predictions.  The value of the
+model lies in its ability to expose how different tokenomic mechanisms respond under
+controlled stress scenarios,  not in asserting how any particular network will behave in
+practice.
+7.9    Adversarial Stress and Future Work
+A critical distinction in this framework is the assumption of “economically rational but
+honest” agents.  Real-world DePIN networks, however, face existential risks from adver-
+sarial behavior,  such as Sybil attacks,  GPS spoofing,  and strategic governance capture
+[39].  While the current model captures economic stress, it does not explicitly promote
+“Scenario S5: Verification Failure,” where malicious actors dilute rewards for honest par-
+ticipants, potentially triggering a “Lemons Market” dynamic [40].
+Future iterations of this framework should integrate adversarial agent types to evaluate
+the resilience of verification mechanisms (e.g., Proof of Physical Work) against coordi-
+23
+
+nated spoofing. This would allow for a more comprehensive assessment of “Anti-Fragile”
+tokenomics that includes security vectors alongside economic ones [41].
+8    Stress Scenario Design
+8.1    Operational Definition of Stress
+In the context of this thesis, stress is defined operationally as an externally imposed ad-
+verse  condition  that  challenges  the  ability  of  a  DePIN  network  to  maintain  functional
+capacity through its incentive system.  Stress is not treated as an outcome, such as price
+decline or provider exit, but as an input condition applied to the system.
+This  distinction  is  critical.   By  defining  stress  as  an  exogenous  input,  the  analysis
+avoids circular reasoning in which system failure is both the cause and the consequence
+of stress. Instead, stress scenarios are constructed as controlled perturbations to the envi-
+ronment in which tokenomic mechanisms operate, allowing their responses to be observed
+and compared.
+Stress, as modeled here, targets three core dimensions of network sustainability:
+1.  Provider retention, reflecting the willingness of infrastructure operators to remain
+active.
+2.  Service continuity, reflecting the network’s ability to meet demand through avail-
+able capacity.
+3.  Incentive  solvency,  reflecting  the  balance  between  token  issuance,  usage-driven
+sinks, and economic viability.
+These dimensions align with established interpretations of robustness in complex sys-
+tems, where resilience is assessed by continued function rather than by avoidance of dis-
+turbance [3].
+8.2    Stress Dimensions Implemented
+The simulation framework implements multiple stress dimensions, each corresponding to
+real-world risk factors commonly observed in crypto-economic systems and infrastructure
+networks. All stress dimensions are treated as exogenous inputs, consistent with the scope
+constraints defined in Section 7.
+24
+
+8.2.1    Macroeconomic Regimes
+Macroeconomic conditions are represented through regime-based modifiers that influence
+token price drift and volatility. Three regimes are defined:
+•  Bearish, characterized by negative drift and elevated volatility.
+•  Sideways, characterized by neutral drift and moderate volatility.
+•  Bullish, characterized by positive drift and reduced volatility.
+These regimes abstract broader market sentiment and liquidity conditions without at-
+tempting to model specific macroeconomic variables.  Their purpose is to expose toke-
+nomic mechanisms to varying background conditions rather than to replicate real-world
+cycles.
+8.2.2    Demand Regimes
+Demand for network services is modeled as a stochastic time series with configurable
+structure. Four demand regimes are implemented:
+•  Stable demand, with low variance around a constant mean.
+•  Growth demand, exhibiting sustained upward trends.
+•  Volatile demand, characterized by high variance without long-term trend.
+•  High-to-decay demand, representing an initial surge followed by gradual decline.
+These regimes reflect common adoption patterns observed in infrastructure services,
+including early hype cycles and post-deployment normalization. Demand remains exoge-
+nous by design, enabling isolation of provider-side incentive responses.
+8.2.3    Liquidity Shocks
+Liquidity stress is introduced through discrete token unlock events combined with finite
+market depth. These events simulate situations in which large token holders sell a portion
+of their holdings into an automated market maker pool, producing abrupt price shocks.
+Liquidity shocks are parameterized by:
+•  Unlock timing
+•  Proportion of circulating supply unlocked
+•  Available liquidity depth
+The objective is not to model investor behavior but to evaluate how tokenomic mech-
+anisms respond to sudden price dislocations.
+25
+
+8.2.4    Provider Economics Stress
+Provider-side economic stress is modeled through increases in operational costs,  com-
+petitive  yield  opportunities,  and  reduced  profitability  thresholds.   These  inputs  reflect
+real-world  pressures  faced  by  infrastructure  operators,  such  as  rising  energy  prices  or
+alternative revenue opportunities.
+In addition,  the model  distinguishes  between provider types (e.g.,  higher-cost pro-
+fessional installations versus lower-cost basic setups), allowing differential sensitivity to
+stress.
+8.2.5    Tokenomics Parameter Stress
+Finally, stress is applied directly to tokenomic parameters, including emission caps, burn
+fractions, and initial supply conditions.  This allows evaluation of how sensitive system
+behavior is to design choices, rather than to external shocks alone.
+8.3    Scenario Combination Rules
+Stress  dimensions  are  combined  according  to  clearly  defined  rules.   Parameter-based
+stresses (e.g.,  macro regime,  demand regime,  provider costs) may be combined freely,
+allowing compound stress scenarios to be evaluated.   In contrast,  scenario-specific be-
+haviors (such as saturation or utility-focused modes) are treated as mutually exclusive to
+preserve interpretability.
+This  design  choice  reflects  a  trade-off  between  realism  and  experimental  control.
+While  real-world  systems  may  experience  overlapping  structural  transitions,  isolating
+scenario-specific behaviors reduces confounding effects and supports clearer compara-
+tive analysis.
+8.4    Relevance of Stress Scenarios
+The stress scenarios implemented in this thesis are not exhaustive representations of all
+possible risks faced by DePIN networks.  Rather, they are selected to capture represen-
+tative failure pressures commonly cited in practitioner and academic literature, including
+subsidy dependency, liquidity fragility, and provider churn [1, 5].
+By standardizing these scenarios, the framework enables consistent comparison across
+tokenomic mechanisms and protocol profiles.
+26
+
+9    Evaluation Metrics
+9.1    Principles for Metric Selection
+Evaluating the robustness of tokenomic mechanisms requires metrics that are both inter-
+pretable and aligned with the functional objectives of DePIN networks.  Three principles
+guide metric selection in this thesis:  metrics must be comparative, enabling evaluation
+of relative performance across mechanisms and scenarios rather than absolute success or
+failure; they must be mechanism-relevant, reflecting provider incentives, service delivery,
+or economic sustainability rather than speculative market outcomes;  and they must be
+transparent, with clearly defined computation and interpretation.
+These principles align with established guidance for simulation-based evaluation, where
+metrics should illuminate system behavior without overstating precision [2].
+9.2    Core Sustainability Metrics
+The following core metrics are used to evaluate system behavior under stress.
+9.2.1    Provider Retention and Churn
+Provider retention is measured as the proportion of active providers remaining over time,
+while churn captures the rate and magnitude of provider exit events.  These metrics di-
+rectly reflect the stability of the infrastructure layer and are central to DePIN sustainabil-
+ity.
+Retention is interpreted directionally:  higher retention under comparable stress indi-
+cates greater robustness, but does not imply optimal or permanent stability.
+9.2.2    Capacity Utilization and Service Continuity
+Service continuity is assessed through capacity utilization and demand satisfaction rates.
+Capacity utilization measures the extent to which deployed infrastructure is effectively
+used,  while demand satisfaction captures the proportion of demand that can be served
+given available capacity.
+Together, these metrics indicate whether incentive mechanisms support not only provider
+participation but also functional service delivery.
+9.2.3    Incentive Solvency (Burn-to-Mint Ratio)
+Incentive solvency is proxied by the ratio of value burned through usage-driven sinks to
+value emitted through token issuance.  A ratio approaching or exceeding unity suggests
+27
+
+reduced reliance on subsidies, while persistent divergence indicates ongoing subsidy de-
+pendency.
+This metric abstracts complex monetary dynamics into a single comparative signal
+and is interpreted cautiously as an indicator rather than a definitive threshold.
+9.2.4    Net Emissions and Inflation Dynamics
+Net  emissions  capture  the  balance  between  token  issuance  and  destruction  over  time.
+While  absolute  inflation  rates  are  not  used  as  targets,  changes  in  net  emissions  under
+stress reveal how mechanisms respond to shifts in demand and participation.
+9.2.5    Token Velocity (Proxy)
+Token velocity is estimated using transaction turnover as a proxy.  While this does not
+capture all aspects of monetary velocity, it provides insight into whether tokens circulate
+primarily as a medium of exchange or accumulate as idle balances.
+Velocity is interpreted comparatively across scenarios and mechanisms, not as an ab-
+solute indicator of economic health.
+9.2.6    Incentive Efficiency (Capital Efficiency)
+Adapting Gauntlet’s focus on capital efficiency in DeFi markets [36], this metric quan-
+tifies the cost of physical validation relative to network growth.   We define "Incentive
+Efficiency" as the ratio of Total Token Emissions (valued in USD) to the Aggregate Vali-
+dated Capacity.
+Efficiency =
+P
+(Emissions× Price)
+Total Capacity
+This allows us to evaluate whether a tokenomic mechanism is efficiently bootstrapping
+infrastructure or simply overpaying for the same physical outcome. A lower cost-per-unit
+indicates a more defensible network moat.
+9.2.7    Volatility Proxy
+Price volatility is measured using relative dispersion metrics derived from simulated price
+series.  Given the simplified market representation, volatility is treated as a stress signal
+affecting provider incentives rather than as a market performance indicator.
+9.3    Derived Summary Indicators
+Several derived indicators are computed to support synthesis and interpretation.
+28
+
+9.3.1    Death Spiral Probability
+Death spiral probability is defined operationally as the frequency with which simulations
+exhibit concurrent declines in price, provider count, and service capacity beyond defined
+thresholds.  This indicator captures compounded failure dynamics without asserting in-
+evitability.
+9.3.2    Network Revenue and Provider Profitability
+Aggregate network revenue and average provider profitability are tracked to contextualize
+incentive outcomes.  These metrics help distinguish between retention driven by genuine
+economic viability and retention sustained by temporary subsidies.
+9.4    Interpretation and Limitations of Metrics
+All metrics used in this thesis are subject to limitations arising from model assumptions
+and abstraction.   In particular,  simplified price formation and exogenous demand con-
+strain the interpretation of monetary indicators. Accordingly, metrics are used to compare
+relative robustness, not to establish optimal designs or real-world predictions.
+This cautious interpretation aligns with best practices in simulation-based research
+and supports the thesis’s evaluative rather than predictive orientation [3].
+29
+
+10    Simulation Results
+10.1    Baseline Behavior (Sanity Check)
+This  section  presents  the  results  of  the  stress-testing  simulations  described  in  Chapter
+5.   The  purpose  is  to  report  observed  outcomes  under  standardized  adverse  scenarios,
+not to  evaluate their desirability or  to draw normative  conclusions.   Interpretation and
+implications are deferred to Chapter 7.
+Results are organized around comparative stress responses of tokenomic mechanisms
+rather than absolute performance levels. Each experiment evaluates how a given protocol
+configuration behaves relative to others when exposed to the same stress inputs.   This
+structure reflects the central aim of the thesis: to assess directional robustness and failure
+sensitivity, not to rank protocols by success or forecast real-world outcomes.
+The results are grouped into four thematic blocks:
+1.  Baseline Behavior Under Neutral Conditions
+Establishes reference trajectories for price, supply, provider participation, and in-
+centive balance in the absence of external stress.  These runs serve solely as com-
+parison anchors and are not interpreted as equilibrium states.
+2.  Response to Demand-Side Stress
+Examines  how  tokenomic  mechanisms  react  to  sudden  demand  contraction,  de-
+mand  volatility,  and  high-to-decay  demand  regimes.   Outcomes  are  evaluated  in
+terms of provider retention, utilization, and emission efficiency.
+3.  Response to Supply- and Liquidity-Side Stress
+Analyzes the effects of emission pressure, burn intensity, and liquidity shocks such
+as investor unlock events. Focus is placed on dilution dynamics, price drawdowns,
+and churn amplification.
+4.  Compound Stress and Failure Thresholds
+Evaluates system behavior under combined stressors, including bearish macro regimes,
+adverse provider economics, and competitive yield pressure.  These scenarios are
+used to identify tipping points where incentive mechanisms cease to function as
+intended.
+For each block, results are presented using a consistent set of metrics defined in Sec-
+tion 5.3. Where stochastic variation is present, outcomes are summarized using distribu-
+tional statistics (median, interquartile range, and tail behavior) across multiple simulation
+runs.  Individual time series are shown only where they illustrate structurally meaningful
+patterns.
+30
+
+All figures follow the same conventions:
+•  identical time horizons,
+•  shared axes where comparison is intended,
+•  and standardized scenario labels.
+Unless  explicitly  stated  otherwise,  all  simulations  use  identical  demand  processes,
+macro regimes, and random seeds across protocol profiles to ensure comparability.
+It is important to emphasize that no result in this chapter should be read as a perfor-
+mance claim about any real-world network.  Observed behaviors reflect the interaction
+between modeled mechanisms and imposed stress conditions under the assumptions doc-
+umented in Chapter 5. The value of these results lies in their comparative consistency and
+in the patterns they reveal across scenarios, not in their absolute magnitudes.
+10.1.1    Experimental Setup
+Baseline  simulations  are  conducted  over  a  fixed  horizon  of  52  weeks  using  a  weekly
+timestep.   For each protocol profile,  100 Monte Carlo simulations are executed with a
+deterministic master seed strategy to ensure reproducibility. All simulations use the agent-
+based execution model with identical neutrality constraints applied across profiles.
+Key baseline conditions include a consistent demand regime with zero demand volatil-
+ity, a sideways macroeconomic regime, and the explicit disabling of scenario logic, in-
+vestor unlocks, competitor yield effects, and growth shocks. These constraints ensure that
+observed dynamics arise solely from the interaction between protocol-specific tokenomic
+mechanisms and provider-level economics, rather than from exogenous stress factors.
+The baseline profiles evaluated in this section include Onocoy (ONO) and a set of
+comparator DePIN protocols representing a range of infrastructure types and incentive
+designs:  Helium, Render, Filecoin, Akash, Hivemapper, DIMO, Grass, io.net, Nosana,
+and Geodnet.
+10.1.2    Baseline Trajectories
+Across all profiles, baseline simulations generate stable and smooth trajectories for core
+state variables such as token supply, emissions, burns, provider count, aggregate capacity,
+and utilization. In the absence of shocks or volatility, these trajectories reflect the steady-
+state  behavior  implied  by  each  protocol’s  emission  logic,  reward  allocation  rules,  and
+provider cost structure.
+Token price series under baseline conditions exhibit limited dispersion in early peri-
+ods for some profiles, with the interquartile range collapsing to a single value at certain
+31
+
+timesteps. This behavior is a direct consequence of strict neutrality assumptions, includ-
+ing zero demand noise and the absence of stochastic macro or liquidity effects.  Under
+these  conditions,  price  evolution  becomes  highly  constrained  by  deterministic  compo-
+nents of the model.
+By contrast, provider-level economic metrics such as average provider profit display
+visible dispersion across simulations,  even under neutral conditions.   For example,  the
+interquartile range of average provider profit for the ONO profile diverges meaningfully
+from the median within the first few weeks,  reflecting heterogeneity in provider costs,
+capacity, and churn dynamics. This confirms that the Monte Carlo structure is functioning
+as intended and that stochastic variation persists at the agent level even when aggregate
+demand and macro inputs are fixed.
+10.1.3    Provider Economics and Retention
+Baseline retention metrics indicate that provider populations remain largely stable over
+the  52-week  horizon  for  profiles  that  begin  with  a  non-zero  provider  count.   Where  a
+profile’s initial provider count is zero, retention metrics are reported as undefined rather
+than imputed, in order to avoid misleading normalization.
+Retention is reported in two complementary forms: absolute retention, defined as the
+ratio of active providers relative to the initial provider count, and week-to-week reten-
+tion rate derived from observed churn events.  Under baseline conditions, churn events
+are driven solely by provider-level profitability thresholds and cost structures,  without
+amplification from price shocks or demand collapses.
+These baseline retention trajectories serve as a reference point for later stress scenar-
+ios, where deviations from baseline behavior can be attributed to specific adverse condi-
+tions rather than to underlying model instability.
+10.1.4    Interpretation Boundaries of Baseline Results
+It is important to emphasize that baseline results are descriptive rather than evaluative.
+Observed  trends  in  price,  profitability,  or  provider  dynamics  under  neutral  conditions
+should not be interpreted as indicators of real-world performance or sustainability.  In-
+stead, they establish a controlled reference environment in which the internal mechanics
+of each tokenomic system operate without external stress.
+The  baseline  therefore  functions  as  a  calibration  layer  for  subsequent  analysis.   In
+later sections, stressed scenarios are evaluated relative to these baseline trajectories, al-
+lowing deviations in retention, incentive solvency, and service continuity to be attributed
+to specific stress mechanisms rather than to baseline model behavior.
+32
+
+10.2    Stress Scenarios: Definition and Execution
+This section defines the adverse conditions under which DePIN tokenomic mechanisms
+are evaluated in subsequent analyses. Each stress scenario is designed to isolate a specific
+class of risk commonly encountered by real-world DePIN deployments.  Scenarios are
+implemented in a controlled and standardized manner to ensure comparability across pro-
+tocol profiles and to enable attribution of observed effects to specific stress mechanisms
+rather than to baseline dynamics.
+All stress scenarios build directly on the neutral baseline configuration described in
+Section 6.2.  Unless explicitly stated otherwise, only one scenario-specific stress mecha-
+nism is activated at a time. All other parameters remain identical to the baseline configu-
+ration.
+10.2.1    Rationale for Scenario-Based Stress Testing
+DePIN networks operate at the intersection of physical infrastructure, economic incen-
+tives, and market volatility.  As a result, system failure is rarely caused by a single factor
+in isolation. However, evaluating compound shocks without first understanding individual
+stress responses risks obscuring causal pathways.
+Scenario-based stress testing is therefore employed to examine directional robustness
+under  clearly  defined  adverse  conditions.   This  approach  aligns  with  established  prac-
+tices in simulation-based evaluation of complex systems, where standardized shocks are
+used to test mechanism sensitivity and failure modes before compound interactions are
+introduced.
+The scenarios defined below reflect empirically observed risks in DePIN and adjacent
+crypto-economic systems,  including demand contraction,  liquidity shocks,  competitive
+pressure, and provider-side economic stress.
+10.2.2    Scenario S1: Demand Contraction
+The demand contraction scenario models a sustained reduction in service demand relative
+to baseline conditions. This scenario reflects situations such as market downturns, loss of
+enterprise clients, regulatory friction, or delayed adoption of the underlying service.
+Implementation:
+•  Demand regime is modified from consistent baseline demand to a declining or sup-
+pressed demand trajectory.
+•  No changes are made to emission schedules, provider costs, or liquidity conditions.
+33
+
+•  Demand volatility may remain low to isolate level effects rather than noise-induced
+effects.
+Analytical focus:
+•  Burn-to-emission dynamics under reduced utilization.
+•  Provider profitability as a function of fixed operating costs.
+•  Early signals of incentive insolvency without price shocks.
+10.2.3    Scenario S2: Liquidity Shock
+The liquidity shock scenario simulates a sudden increase in sell pressure resulting from
+token unlocks or large holder exits. This scenario reflects common events in crypto mar-
+kets such as investor vesting cliffs or coordinated exits during market stress.
+Implementation:
+•  A discrete investor unlock event is introduced at a predefined simulation week.
+•  A fixed percentage of circulating supply is sold into available liquidity.
+•  All other parameters remain identical to baseline conditions.
+Analytical focus:
+•  Price sensitivity to sell pressure.
+•  Secondary effects on provider revenue denominated in token value.
+•  Churn amplification driven by price-mediated profitability thresholds.
+10.2.4    Scenario S3: Competitive Yield Pressure
+This scenario introduces external competition for infrastructure providers by simulating
+an alternative yield opportunity. It reflects situations where providers can redeploy capital
+or hardware to competing networks offering higher short-term returns.
+Implementation:
+•  A competitor yield parameter is activated, increasing the opportunity cost of partic-
+ipation.
+•  Provider churn probability is adjusted based on relative profitability.
+34
+
+•  No direct changes are made to demand or token supply.
+Analytical focus:
+•  Elasticity of provider participation.
+•  Sensitivity of retention to marginal profit compression.
+•  Differentiation between high-commitment and low-commitment providers.
+10.2.5    Scenario S4: Provider Cost Inflation
+The provider cost inflation scenario models increases in operating expenses, such as en-
+ergy prices, maintenance costs, or regulatory compliance burdens. This scenario isolates
+supply-side stress independent of demand or market conditions.
+Implementation:
+•  Provider operating costs are increased uniformly or by tier.
+•  Tokenomic parameters remain unchanged.
+•  Demand and price regimes follow baseline assumptions.
+Analytical focus:
+•  Margin compression at the provider level.
+•  Differential effects across provider types.
+•  Early indicators of infrastructure attrition driven by cost pressure.
+10.2.6    Execution and Comparability
+All stress scenarios are executed using the same Monte Carlo structure as the baseline,
+with identical simulation counts, time horizons, and seed strategies. This ensures that ob-
+served differences between scenarios and baseline trajectories are attributable to scenario-
+specific inputs rather than to stochastic artifacts or configuration drift.
+Scenario outputs are recorded using the same metric set and data structures as baseline
+simulations.   This  enables  direct  comparison  across  scenarios  and  supports  consistent
+visualization and statistical summarization in subsequent sections.
+35
+
+10.3    Stress Scenario Results (Comparative Outcomes)
+This section reports the observed outcomes of the stress scenarios defined in Section 6.3.
+Results are presented as deviations from the neutral baseline trajectories established in
+Section  6.2.   The  focus  is  on  what  changes,  when  changes  occur,  and  which  metrics
+are affected, without attributing causality or normative judgment.  Interpretation of these
+outcomes is deferred to subsequent sections.
+All results are aggregated across 100 Monte Carlo simulations per protocol profile.
+Unless stated otherwise, reported trajectories refer to median values,  with interquartile
+ranges (p25–p75) used to illustrate dispersion where relevant.
+10.3.1    Demand Contraction Scenario
+Under demand contraction, all protocol profiles exhibit a measurable decline in utiliza-
+tion,  followed  by  a  widening  divergence  between  token  emissions  and  realized  burns.
+This effect manifests earliest in metrics directly tied to service usage, including demand
+served, utilization rate, and burn-derived revenue.
+Across  profiles,  reduced  utilization  leads  to  lower  average  provider  revenue  while
+emissions  continue  according  to  protocol-specific  schedules.   As  a  result,  the  burn-to-
+emission ratio declines relative to baseline, particularly in protocols with fixed or weakly
+demand-linked emission logic. Provider counts remain initially stable but begin to diverge
+from baseline trajectories as profitability thresholds are breached for marginal providers.
+Dispersion across simulations increases over time for provider-level metrics such as
+average  provider  profit  and  churn  counts,  indicating  sensitivity  to  heterogeneous  cost
+structures even under identical demand trajectories.
+10.3.2    Liquidity Shock Scenario
+The liquidity shock scenario produces immediate and discrete deviations in token price
+trajectories at the point of the unlock event.  The magnitude of the price response varies
+significantly across protocol profiles, reflecting differences in circulating supply, liquidity
+depth, and emission rates.
+Following the shock, secondary effects are observed in provider economics.  In pro-
+files where provider rewards are denominated primarily in the native token, reductions in
+token price translate into compressed real revenue, leading to increased churn in subse-
+quent weeks. This effect is not instantaneous but unfolds with a short lag, corresponding
+to reward distribution timing and provider decision thresholds.
+Notably, while price volatility spikes sharply around the unlock event, other metrics
+such as utilization and capacity remain initially close to baseline.  This temporal decou-
+36
+
+pling highlights the indirect transmission of liquidity stress from token markets to infras-
+tructure participation.
+10.3.3    Competitive Yield Pressure Scenario
+When external yield pressure is introduced, provider participation becomes more elastic
+across all evaluated profiles. The most pronounced effects are observed in provider churn
+metrics rather than in price or utilization measures.
+Provider exit accelerates in profiles where baseline profitability margins are narrow,
+while protocols with higher average provider surplus show greater resistance. The disper-
+sion of outcomes across simulations increases markedly, indicating that small differences
+in provider economics can lead to divergent participation trajectories under competitive
+pressure.
+Unlike liquidity shocks, competitive yield pressure does not produce abrupt discon-
+tinuities  in  token  price  or  supply.   Instead,  its  effects  accumulate  gradually,  primarily
+through sustained differences in provider retention relative to baseline.
+10.3.4    Provider Cost Inflation Scenario
+Provider cost inflation directly impacts average provider profit across all protocol pro-
+files. Increases in operating costs reduce margins uniformly, but downstream effects vary
+depending on reward structure and provider heterogeneity.
+In several profiles, median provider profit crosses below zero earlier than under other
+stress scenarios, leading to persistent negative profitability even in the absence of price
+shocks or demand contraction.   Churn metrics respond accordingly,  with elevated exit
+rates observed once cost thresholds are exceeded.
+Importantly, capacity and utilization do not decline immediately in this scenario.  In-
+stead, reductions in active providers precede observable changes in service capacity, indi-
+cating a lag between economic stress and infrastructure degradation.
+10.3.5    Cross-Scenario Comparison
+Comparing  across  stress  scenarios  reveals  distinct  temporal  and  metric-specific  signa-
+tures:
+•  Demand contraction primarily affects burn-linked metrics and utilization.
+•  Liquidity shocks propagate rapidly through price metrics before affecting provider
+participation.
+•  Competitive yield pressure manifests as gradual erosion of provider counts.
+37
+
+•  Cost inflation exerts sustained pressure on provider profitability with delayed ca-
+pacity effects.
+Across  all  scenarios,  deviations  from  baseline  trajectories  are  most  pronounced  in
+provider-level  metrics,  while  aggregate  supply  and  emission  variables  tend  to  remain
+closer to baseline unless explicitly modified by the scenario.
+These  observed  patterns  form  the  empirical  basis  for  identifying  recurring  failure
+modes in DePIN tokenomic systems, which are formalized in the following section.
+10.4    Failure Modes Observed (Operational Definitions)
+Table 3 provides a diagnostic matrix for identifying the five recurring failure modes for-
+malized in this section.
+Failure ModeOperational DefinitionPrecursor Metric
+Reward–Demand
+Decoupling
+Emissions persist despite declining
+usage.
+Declining burn-to-emission
+ratio.
+Profitability-Induced
+Churn
+Exit driven by sustained negative
+margins (not price).
+Avg provider profit < 0 for
+N weeks.
+Liquidity-Driven
+Compression
+Price crash reduces real reward value,
+causing delayed churn.
+Price shock→ lagged exit.
+Elastic Provider ExitHigh sensitivity to yield relative to
+competitors.
+Elevated churn despite
+stable internal metrics.
+Latent Capacity
+Degradation
+Service capacity drops long after
+economic stress begins.
+Provider count drops
+before capacity drops.
+Table 3: Operational Failure Modes: Diagnostic Matrix
+This section formalizes the recurring failure modes observed across stress scenarios
+by defining them in operational, measurable terms. Failure modes are not treated as binary
+outcomes or protocol-level judgments. Instead, they are defined as patterns of metric be-
+havior that emerge consistently under specific adverse conditions and indicate increasing
+fragility in the incentive system.
+Each  failure  mode  is  grounded  in  observable  deviations  from  baseline  trajectories
+and is specified using explicit metric signatures.   These definitions provide a common
+vocabulary for comparing DePIN tokenomic systems and serve as the analytical bridge
+between empirical results and subsequent implications.
+38
+
+10.4.1    Reward–Demand Decoupling
+Definition:
+Reward–demand decoupling occurs when token emissions and provider rewards remain
+elevated relative to realized service demand, resulting in a sustained divergence between
+minting and burn-linked revenue.
+Operational indicators:
+•  Persistent decline in utilization relative to baseline.
+•  Decreasing burn-to-emission ratio over time.
+•  Stable or increasing emissions despite reduced demand served.
+•  Compression of average provider profit without immediate price collapse.
+Observed context:
+This pattern is most clearly observed under demand contraction scenarios, where reduced
+usage  does  not  immediately  propagate  into  lower  emissions.   The  decoupling  persists
+until provider profitability thresholds are crossed, at which point secondary effects such
+as churn begin to emerge.
+10.4.2    Profitability-Induced Provider Churn
+Definition:
+Profitability-induced provider churn refers to accelerated provider exit driven by sustained
+negative or marginal profitability, independent of abrupt market shocks.
+Operational indicators:
+•  Average provider profit crossing below zero for multiple consecutive periods.
+•  Gradual increase in churn count relative to baseline.
+•  Divergence between provider count trajectories and baseline without corresponding
+demand or price shocks.
+•  Increasing dispersion in provider-level outcomes across simulations.
+Observed context:
+This failure mode is prominent in provider cost inflation and competitive yield pressure
+scenarios, where economic pressure accumulates slowly rather than arriving as a discrete
+event.
+39
+
+10.4.3    Liquidity-Driven Incentive Compression
+Definition:
+Liquidity-driven incentive compression occurs when abrupt price declines reduce the real
+value of token-denominated rewards, leading to downstream effects on provider partici-
+pation despite unchanged nominal reward structures.
+Operational indicators:
+•  Sharp, localized price drawdowns coinciding with liquidity events.
+•  Lagged decline in average provider profit following price shocks.
+•  Increased churn after reward distribution cycles.
+•  Temporary decoupling between utilization/capacity metrics and provider participa-
+tion.
+Observed context:
+This pattern emerges most clearly in liquidity shock scenarios, where price volatility pre-
+cedes changes in provider behavior.  The delayed response highlights the indirect trans-
+mission of market stress into infrastructure-level outcomes.
+10.4.4    Elastic Provider Exit Under External Yield Pressure
+Definition:
+Elastic provider exit describes heightened sensitivity of provider participation to marginal
+changes in relative yield, resulting in sustained attrition without dramatic price or demand
+movements.
+Operational indicators:
+•  Elevated churn rates under competitive yield pressure relative to baseline.
+•  Minimal contemporaneous changes in token price or utilization.
+•  Increasing dispersion in provider retention outcomes.
+•  Gradual erosion of provider count rather than abrupt collapse.
+Observed context:
+This failure mode is observed when alternative opportunities are introduced, even in the
+absence of internal protocol stress.  It reflects the substitutability of provider capital and
+labor across competing networks.
+40
+
+10.4.5    Latent Capacity Degradation
+Definition:
+Latent capacity degradation refers to delayed reductions in service capacity that follow
+earlier provider exits, resulting in a temporal gap between economic stress and observable
+service degradation.
+Operational indicators:
+•  Provider count declines preceding reductions in aggregate capacity.
+•  Stable utilization metrics masking declining redundancy.
+•  Capacity drops occurring several periods after profitability-induced churn.
+•  Reduced resilience to subsequent demand or liquidity shocks.
+Observed context:
+This pattern appears across multiple stress scenarios and highlights the non-instantaneous
+relationship  between  provider  economics  and  service-level  outcomes  in  infrastructure-
+based systems.
+10.4.6    Role of Failure Mode Definitions
+These  failure  modes  do  not  imply  protocol  failure  in  an  absolute  sense.   Rather,  they
+represent  structural  stress  signatures  that  can  accumulate,  interact,  and  amplify  under
+adverse conditions. By defining failure modes operationally, the analysis enables system-
+atic comparison across DePIN designs and provides a foundation for evaluating mitigation
+strategies in subsequent sections.
+10.5    Implications for Builders (Design Recommendations)
+The  stress-testing  results  and  observed  failure  modes  presented  in  Section  6  highlight
+several recurring design tensions inherent to DePIN tokenomic systems.  These implica-
+tions are not prescriptive blueprints, but design considerations derived from empirically
+observed behavior under adverse conditions.  They are intended to inform protocol de-
+signers about where fragility tends to emerge and which mechanisms warrant particular
+attention during design and iteration.
+10.5.1    Align Emissions More Tightly with Realized Demand
+One of the most consistently observed failure modes is reward–demand decoupling, in
+which emissions and rewards persist despite declining utilization. This suggests that fixed
+41
+
+or weakly demand-sensitive emission schedules can amplify stress during periods of de-
+mand contraction.
+Design implication:
+Builders  should  prioritize  emission  mechanisms  that  respond  meaningfully  to  realized
+service usage rather than to participation alone.  Emission logic that adapts to utilization
+or burn-linked signals can reduce the accumulation of excess supply during downturns
+and delay the onset of profitability-induced churn.
+This does not imply fully reactive or highly volatile emissions,  but rather bounded
+responsiveness that maintains incentive alignment when demand deviates from growth
+assumptions.
+10.5.2    Design for Provider Margin Resilience, Not Peak Returns
+Across multiple scenarios, provider exit is driven less by short-term volatility and more
+by sustained margin compression. Once average provider profitability crosses below zero
+for extended periods, churn accelerates even in the absence of dramatic market shocks.
+Design implication:
+Tokenomic systems should be evaluated against downside margin scenarios rather than
+upside reward narratives.  Builders should stress-test provider economics under elevated
+costs,  reduced  demand,  and  compressed  prices  to  ensure  that  a  meaningful  subset  of
+providers remains marginally profitable under adverse conditions.
+This may involve conservative reward baselines, differentiated incentives for higher-
+commitment providers, or mechanisms that reduce cost exposure during unfavorable regimes.
+10.5.3    Treat Liquidity Events as Infrastructure Risks, Not Just Market Events
+Liquidity  shocks  primarily  manifest  as  price  events,  but  their  downstream  effects  on
+provider  participation  reveal  that  they  function  as  infrastructure  risks.   The  lagged  re-
+sponse between price declines and provider churn suggests that market stress propagates
+through reward valuation rather than immediate behavioral reaction.
+Design implication:
+Builders should explicitly account for liquidity events when designing reward distribution
+and treasury strategies.  Mechanisms that smooth reward value, delay exposure to price
+shocks,  or introduce buffers between market volatility and provider compensation can
+reduce the indirect transmission of liquidity stress into infrastructure attrition.
+Ignoring liquidity dynamics as “external” risks underestimates their impact on long-
+term network stability.
+42
+
+10.5.4    Assume Provider Capital Is Mobile
+Competitive yield pressure demonstrates that provider participation is often elastic, even
+when demand and protocol fundamentals remain unchanged.  Providers compare returns
+across networks, and small relative differences can lead to sustained attrition over time.
+Design implication:
+DePIN tokenomics should be designed with the assumption that provider capital and la-
+bor are mobile.  Retention should not rely solely on short-term reward competitiveness
+but should incorporate mechanisms that reward persistence,  commitment,  or sunk-cost
+investments where appropriate.
+This may include tenure-based incentives, differentiated rewards by hardware tier, or
+gradual reward vesting that aligns provider time horizons with network needs.
+10.5.5    Account for Delayed Infrastructure Degradation
+Latent capacity degradation highlights a structural characteristic of DePIN systems:  in-
+frastructure quality may appear stable even as economic stress accumulates. By the time
+capacity reductions become visible, recovery may be slow or costly due to physical de-
+ployment constraints.
+Design implication:
+Builders should monitor leading indicators of stress, such as declining provider margins
+or increasing churn dispersion, rather than relying solely on utilization or capacity met-
+rics. Early-warning indicators embedded in protocol analytics can provide time to adjust
+incentives before service degradation becomes apparent.
+Designing for observability is therefore as important as designing for incentives.
+10.5.6    Positioning Note (important)
+These implications are intentionally framed as design considerations,  not as claims of
+optimality. They reflect tendencies observed across modeled systems under standardized
+stress conditions and should be interpreted as guidance for further testing and refinement
+rather than as universal rules.
+10.6    Implications for Onocoy (Actionable Suggestions)
+The failure modes and stress responses observed in this study have direct relevance for
+the Onocoy network, given its reliance on physically deployed GNSS infrastructure and
+a token-based incentive system.  The following implications translate the general design
+considerations outlined in Section 7.1 into Onocoy-specific suggestions.  These are not
+43
+
+presented as prescriptions, but as areas where targeted experimentation and monitoring
+could improve resilience under adverse conditions.
+10.6.1    Strengthen the Coupling Between Usage and Rewards
+Baseline and stress simulations indicate that demand-linked metrics are central to main-
+taining incentive alignment over time. For Onocoy, where service usage can be measured
+with relatively high precision, there is an opportunity to reinforce the relationship between
+realized RTK demand and reward distribution.
+Actionable suggestion:
+Onocoy  could  explore  mechanisms  that  increase  the  sensitivity  of  rewards  to  verified
+service usage, particularly during periods of demand contraction.  This may involve ad-
+justing reward weighting based on utilization signals or introducing soft constraints that
+limit emissions when burn-linked revenue consistently lags behind supply issuance.
+Such adjustments would not need to be abrupt or highly reactive; even gradual modu-
+lation could reduce prolonged reward–demand decoupling.
+10.6.2    Monitor Provider Margins as a Leading Indicator
+Across scenarios, provider exit in the Onocoy profile is preceded by sustained deterio-
+ration  in  average  provider  profitability  rather  than  by  immediate  market  shocks.   This
+suggests that provider margins function as a leading indicator of infrastructure risk.
+Actionable suggestion:
+Rather  than  focusing  primarily  on  provider  count  or  coverage  metrics,  Onocoy  could
+incorporate provider margin distributions into internal monitoring.  Tracking how many
+providers  operate  near  or  below  breakeven  may  provide  earlier  warning  of  impending
+churn than aggregate participation statistics alone.
+This  information  could  inform  proactive  adjustments  to  incentives  or  cost-sharing
+mechanisms before infrastructure attrition becomes visible at the network level.
+10.6.3    Account for Token Price Sensitivity in Reward Design
+Liquidity shock scenarios show that price-mediated reward compression can trigger de-
+layed churn even when nominal rewards remain unchanged. For Onocoy, where rewards
+are denominated in ONO, this introduces an indirect exposure to market volatility.
+Actionable suggestion:
+Onocoy may benefit from evaluating how reward timing, smoothing mechanisms, or par-
+tial stabilization strategies affect provider exposure to short-term price movements. While
+full price insulation may be neither feasible nor desirable,  reducing abrupt changes in
+44
+
+effective reward value could help dampen second-order churn effects following market
+stress.
+This consideration is particularly relevant during known liquidity events or periods of
+heightened market uncertainty.
+10.6.4    Differentiate Incentives by Provider Commitment Level
+Simulation results suggest that providers with higher sunk costs and longer commitment
+horizons exhibit greater resilience under stress. Given the physical and technical require-
+ments of GNSS infrastructure,  Onocoy’s provider base is likely heterogeneous in both
+cost structure and exit friction.
+Actionable suggestion:
+Onocoy  could  further  explore  incentive  differentiation  based  on  provider  commitment
+characteristics, such as hardware tier, installation complexity, or operational reliability.
+Reward structures that recognize long-term contribution may reduce sensitivity to short-
+term competitive yield pressure and strengthen infrastructure stability.
+This approach aligns incentives with the physical realities of the network rather than
+assuming uniform provider behavior.
+10.6.5    Use Stress Testing as an Ongoing Governance Tool
+One of the central contributions of this thesis is the demonstration of how stress testing
+can be applied systematically to DePIN tokenomics. For Onocoy, such tools need not be
+limited to academic analysis.
+Actionable suggestion:
+Onocoy could adopt simplified versions of stress-testing frameworks as part of internal
+governance or parameter review processes. Periodic evaluation of how proposed changes
+perform under adverse scenarios may help identify unintended consequences before they
+manifest in production.
+In this sense,  stress testing functions less as a predictive instrument and more as a
+structured way to reason about risk.
+10.6.6    Positioning Note
+These suggestions are derived from modeled behavior under standardized assumptions
+and should be interpreted as exploratory rather than definitive. Their value lies in identify-
+ing leverage points for further investigation and experimentation, not in asserting optimal
+solutions.
+45
+
+10.7    Implications for Researchers (What This Enables and What It
+Does Not)
+This thesis contributes to the growing body of research on Decentralized Physical Infras-
+tructure Networks (DePIN) by demonstrating how tokenomic mechanisms can be eval-
+uated through structured stress testing rather than through growth-oriented or valuation-
+centric analysis. The implications for researchers are twofold: the framework introduced
+here enables a new mode of comparative analysis, while also highlighting clear method-
+ological boundaries that future work must respect.
+10.7.1    What This Framework Enables
+This work provides a reproducible approach for translating conceptual tokenomic designs
+into testable models under controlled conditions.  By formalizing incentive mechanisms,
+provider behavior, and demand regimes into explicit parameters, researchers can move
+beyond narrative comparisons and evaluate directional robustness across protocols and
+scenarios.
+This enables comparative questions that are otherwise difficult to answer empirically,
+such as how different emission structures respond to identical demand shocks,  or how
+provider retention dynamics vary when reward–demand coupling weakens.  Importantly,
+the framework allows for controlled falsification:  assumptions can be varied systemati-
+cally, and their effects observed transparently.
+The stress-testing approach also supports interdisciplinary research at the intersection
+of economics, systems engineering, and blockchain governance.  DePIN networks oper-
+ate as socio-technical systems, where physical constraints, human behavior, and protocol
+rules interact.  Simulation-based evaluation offers a practical method for studying these
+interactions without requiring complete or proprietary real-world data.
+The framework is extensible as well.  While this thesis applies the model to Onocoy
+as a primary case,  the underlying structure can be adapted to other DePIN categories,
+alternative incentive designs, or different demand environments. This positions the work
+as a methodological contribution rather than a single-case evaluation.
+10.7.2    What This Framework Does Not Enable
+At the same time,  it is essential to clarify the limits of the approach.  The simulations
+presented here do not predict real-world outcomes, token prices, or network success. All
+results are conditional on modeled assumptions and should be interpreted as directional
+indicators rather than forecasts.
+46
+
+The framework also does not establish causal certainty. While modeled relationships
+between incentives, provider behavior, and outcomes are internally consistent, they re-
+main abstractions of complex real-world dynamics.  External factors such as regulatory
+changes, technological breakthroughs, or strategic behavior by large actors are not fully
+captured.
+Furthermore, the model does not replace empirical validation. Stress testing can iden-
+tify plausible failure modes and robustness patterns, but it cannot confirm whether these
+dynamics will manifest identically in live networks.  As such, simulation results should
+be viewed as complements to empirical observation, not substitutes for it.
+10.7.3    Research Directions Opened by This Work
+The limitations of this thesis also point toward future research opportunities.  One direc-
+tion involves integrating richer empirical data, such as observed provider churn distribu-
+tions or cost heterogeneity, to refine behavioral assumptions. Another involves extending
+the framework to multi-token or cross-network interactions, which are increasingly rele-
+vant as DePIN ecosystems mature.
+Finally, there is scope for methodological refinement. Sensitivity analysis techniques,
+alternative agent decision models, and formal validation against historical network events
+could further strengthen the robustness of simulation-based evaluation in this domain.
+10.7.4    Closing Positioning Note
+Taken together, this thesis positions stress testing as a useful analytical lens for DePIN
+tokenomics, while maintaining a clear separation between evaluation and prediction.  By
+explicitly defining what the framework enables and where its limits lie, the work aims
+to contribute responsibly to an emerging research area characterized by both technical
+complexity and high uncertainty.
+10.8    Positioning of This Contribution
+This  thesis  positions  its  contribution  at  the  intersection  of  mechanism  design,  applied
+simulation, and empirical observation.  It does not claim to predict the success or failure
+of individual DePIN projects,  nor does it propose a universal template for sustainable
+tokenomics.   Instead,  it  offers  a  disciplined  framework  for  evaluating  how  tokenomic
+mechanisms behave under stress and how those behaviors interact with human decision-
+making in real infrastructure networks.
+The primary contribution lies in reframing tokenomics evaluation away from growth
+narratives and toward resilience analysis.  By focusing on adverse conditions rather than
+47
+
+idealized scenarios, the framework emphasizes directional robustness, failure modes, and
+trade-offs rather than optimality. This approach aligns with established practices in simulation-
+based research, where the goal is to falsify assumptions and surface vulnerabilities rather
+than to optimize parameters in isolation.
+A second contribution is methodological. The combination of agent-based simulation,
+standardized stress scenarios, and dashboard-aligned metrics provides a reproducible and
+extensible evaluation tool.  All results are explicitly conditioned on assumptions, param-
+eter ranges, and scenario definitions, reinforcing methodological humility and avoiding
+overinterpretation.   This  makes  the  framework  suitable  not  only  for  academic  inquiry,
+but also for practical use by protocol designers seeking to test incentive structures before
+irreversible deployment decisions are made.
+Finally, the integration of stress-response archetypes extends DePIN analysis beyond
+purely formal mechanisms.  By explicitly acknowledging the role of human intervention
+under uncertainty, the thesis bridges the gap between modeled behavior and observed pro-
+tocol trajectories.  This layered perspective (mechanisms, metrics, and decision patterns)
+allows for a more realistic understanding of resilience in decentralized infrastructure sys-
+tems.
+Taken together, these elements position the thesis as an evaluative contribution rather
+than a prescriptive one. It does not assert what tokenomic designs should be adopted, but
+it does clarify how different designs are likely to behave when conditions deteriorate.  In
+doing so, it aims to improve decision quality before failure occurs, rather than to explain
+outcomes after the fact.
+11    Human  Decision-Making  Under  Stress:  DePIN  Re-
+sponse Archetypes
+Table 4 summarizes the five observed stress-response patterns, which are detailed in the
+following subsections.
+11.1    Why Mechanism Design Alone Is Insufficient
+Tokenomic mechanisms do not operate in isolation.  In real-world DePIN deployments,
+protocol behavior emerges from the interaction between formal incentive rules and human
+decision-making  under  uncertainty.   While  simulation-based  evaluation  can  illuminate
+how mechanisms respond to stress in a controlled environment, actual network trajectories
+are shaped by how teams interpret signals, prioritize risks, and intervene, often under time
+pressure and incomplete information.
+48
+
+ArchetypePrimary
+Driver
+Tokenomic ConsequenceKey Signal
+I: Subsidy
+Inertia
+Retention
+Fear
+Widens subsidy gap; dilutes
+provider revenue.
+Declining
+burn-to-emission.
+II-A: Subsidy
+Boosting
+Short-term
+Churn Fix
+Accelerates insolvency;
+creates “incentive overfitting”.
+Temporary retention spike
+→ crash.
+II-B: Incentive
+Re-Targeting
+Efficiency
+Alignment
+Preserves core solvency;
+squeezes marginal supply.
+Improved utilization
+efficiency.
+III: Narrative
+Pivot
+Political
+Evasion
+Delays adjustment; decouples
+price from utility.
+Stable messaging vs bad
+metrics.
+IV: Emergency
+Centralization
+SurvivalSuspends decentralization;
+externalizes governance risk.
+Rising concentration.
+Table 4: Human Decision-Making Archetypes Under Stress
+Existing DePIN analyses tend to abstract away this human layer, implicitly assuming
+that protocol parameters evolve optimally or that governance reacts smoothly to deteri-
+orating conditions.  In practice, responses to stress are neither instantaneous nor purely
+rational.  Instead, they follow recurring behavioral patterns that interact with tokenomic
+structures in predictable ways.
+This section introduces a set of stress-response archetypes observed across DePIN
+projects during periods of adverse conditions [1]. These archetypes are not judgments of
+competence or intent. Rather, they represent recurrent decision patterns that emerge when
+teams attempt to stabilize networks facing declining demand, price shocks, or provider
+churn. Importantly, each archetype interacts differently with tokenomic mechanisms and
+can either mitigate or amplify structural fragility.
+11.2    Archetype I: Subsidy Inertia (Emissions Denial)
+Definition: Subsidy inertia refers to the continued reliance on emissions-driven provider
+rewards despite clear signals of demand contraction or declining incentive solvency.
+Rationale at the Time:  This behavior is often motivated by short-term retention con-
+cerns. For infrastructure-heavy DePINs like Onocoy, provider exit is costly and partially
+irreversible. Teams fear that lowering rewards will signal weakness or trigger irreversible
+provider exits. Emissions are thus treated as a stabilizing force rather than as a source of
+dilution.
+Interaction with Tokenomics: Under sustained demand weakness, emissions denial in-
+creases the gap between token issuance and usage-driven sinks.  Simulation results show
+49
+
+that  this  widens  inflationary  pressure  and  compresses  real  provider  profitability,  even
+when  nominal  rewards  remain  constant.   The  system  appears  stable  in  the  short  term
+but accumulates hidden fragility.
+Dashboard Signals:
+•  Declining burn-to-emission ratio.
+•  Increasing token velocity driven by cost-covering sales.
+•  Rising provider losses despite unchanged nominal rewards.
+11.3    Archetype II: Incentive Overfitting vs. Re-Targeting
+This archetype splits into two materially different responses.
+11.3.1    II-A: Subsidy Boosting (Overfitting)
+Definition:  Broad increases in rewards or temporary bonus programs designed to arrest
+churn without altering what is being rewarded.
+Interaction with Tokenomics: While incentive extensions can temporarily reduce churn,
+simulations  demonstrate  that  they  often  worsen  long-term  sustainability  by  increasing
+emissions without addressing demand-side constraints. Over time, providers become con-
+ditioned to elevated subsidies, making later normalization more disruptive.
+Dashboard Signals:
+•  Short-lived improvements in retention metrics.
+•  Worsening solvency ratios.
+•  Increased sensitivity to subsequent shocks.
+11.3.2    II-B: Incentive Re-Targeting (Adaptive Alignment)
+Definition:  Modification of reward logic to better reflect economically valuable output
+rather than participation volume.
+Onocoy  Context:  Onocoy’s  focus  on  quality,  availability,  and  location  scales  reflects
+an  early  commitment  to  incentive  re-targeting.   The  quadratic  decay  applied  to  dense
+geographic clustering serves as a structural guardrail against over-rewarding redundant
+supply.
+Dashboard Signals:
+•  Improved utilization efficiency.
+50
+
+•  Slower provider growth but higher average profitability.
+•  More stable burn-to-emission trajectories under demand volatility.
+11.4    Archetype III: Narrative Pivot Without Structural Adjustment
+Description:  Rather than modifying tokenomic parameters,  teams shift messaging to-
+ward future use cases, long-term vision, or upcoming integrations. The underlying incen-
+tive structure remains largely unchanged.
+Rationale at the Time: Narrative pivots are low-cost and reversible. They are often em-
+ployed when governance processes are slow or when parameter changes are perceived as
+risky or controversial.
+Interaction with Tokenomics:  Narrative changes have limited impact on provider eco-
+nomics when structural conditions remain unchanged.  Simulation results indicate that,
+absent demand recovery, incentive solvency continues to deteriorate regardless of narra-
+tive framing.
+11.5    Archetype IV: Emergency Centralization
+Description: Under severe stress, extensive intervention leads to temporary or permanent
+centralization of control, infrastructure, or execution environments to preserve network
+functionality.
+Comparative Evidence:  The migration of Helium to Solana represents a clear instance
+where operational survivability was prioritized over architectural purity.
+Interaction with Tokenomics:  Emergency interventions can stabilize capacity and re-
+duce churn in the short term.  However, they introduce governance risk and undermine
+long-term decentralization incentives. Simulations suggest that while collapse probabili-
+ties decrease, recovery elasticity often diminishes.
+11.6    Implications for Onocoy (Diagnostic Alignment)
+The primary contribution of these archetypes is not explanatory storytelling,  but diag-
+nostic alignment.  Each response pattern maps directly to observable signals within the
+stress-testing dashboard developed in this thesis.
+Rather than prescribing specific decisions, the framework allows Onocoy’s operators
+to ask a fundamental question:  Which stress-response pattern are we currently exhibit-
+ing?  For Onocoy, this framing clarifies how specific design choices (such as emission
+decay and location penalties) interact with human decision-making to shape resilience
+trajectories.
+51
+
+11.6.1    Onocoy-Specific Diagnostic Signals
+To make these archetypes actionable for Onocoy governance, we map the abstract patterns
+to concrete internal signals [21]:
+•  Subsidy Inertia Signal:  If the DAO votes to  extend “Beta Rewards” or  “Early
+Mover Boosts” indefinitely despite low data credit burns, this indicates a fear-driven
+refusal to accept demand reality.
+•  Incentive Overfitting Signal:  Launching broad “Bonus Programs” [42] without
+tying them to specific high-demand geographic zones suggests a “bribe” response
+to stop churn, likely attracting mercenary capital.
+•  Narrative Pivot Signal:  If roadmap milestones shift from core “Rover Integra-
+tion” and “RTK Adoption” to vague “AI Data Layer” promises without structural
+substance, it warns of a distraction capability.
+•  Emergency Centralization Signal:  If the Foundation begins operating a signifi-
+cant percentage of reference stations to maintain coverage metrics, the network has
+entered a survival mode that suspends decentralization.
+11.7    Counterexamples, Edge Cases, and Deliberate Exclusions
+The analytical framework presented in this thesis emphasizes comparative robustness of
+DePIN tokenomic mechanisms under stress. As with any applied modeling approach, its
+explanatory power depends on clearly defined boundaries.
+11.7.1    Counterexample I: Demand-Dominant DePIN Regimes
+A  first  class  of  counterexamples  arises  in  DePINs  that  successfully  reach  a  demand-
+dominant regime, where exogenous usage growth overwhelms tokenomic stress dynam-
+ics.  In such cases, increasing service demand drives burn mechanisms and provider rev-
+enue independently of short-term incentive tuning.  Under these conditions, archetypes
+like subsidy inertia become less predictive.  This distinction reinforces the thesis scope:
+the analysis is designed for early-to-mid-stage DePINs operating under demand uncer-
+tainty.
+11.7.2    Counterexample II: Structurally Centralized Networks
+Networks relying on persistent organizational centralization for incentive coordination are
+excluded by design.  Their stability is organizational rather than tokenomic, governed by
+administrative authority rather than decentralized feedback loops.
+52
+
+11.7.3    Excluded Archetypes and Metrics
+Governance Paralysis: While common, this represents a failure to respond rather than a
+stable archetype.
+Speculative Reflexivity:  Dropped to avoid conflating price momentum with infrastruc-
+ture utility.
+Excluded Metrics: Raw token price and market cap were excluded due to high volatility
+and weak interpretability under stress [7].  The analysis prioritizes metrics like provider
+retention and utilization efficiency.
+53
+
+A    Appendix
+54
+
+References
+[1]    Dylan Bane and Salvador Gala. State of DePIN 2024. Messari, 2024.  URL: https:
+//messari.io/report/state-of-depin-2024.
+[2]    Tim P. Morris, Ian R. White, and Michael J. Crowther. “Using simulation studies
+to evaluate statistical methods”. In: Statistics in Medicine 38.11 (2019), pp. 2074–
+2102. URL: https://onlinelibrary.wiley.com/doi/10.1002/sim.8086.
+[3]    Rogier Braakman. “Evolution of Metabolic Networks and Complex Systems Feed-
+back”. In: Proceedings of the National Academy of Sciences (Implicit) (2022). Con-
+textual  citation  regarding  complex  systems;  specific  2022  title  to  be  verified  by
+author.
+[4]    M. Brouwer Burg, H. Peeters, and W. A. Lovis. Uncertainty and sensitivity analysis
+in archaeological computational modeling. Citation provided in text. 2016.
+[5]    C.-F. Wu, C.-M. Ho, and S.-J. Wu. “Cryptocurrency Policy Uncertainty and Bitcoin
+Performance”. In: Finance Research Letters (2022). Discusses macro conditions
+and structural weakness.
+[6]    T. Mardikes. DePIN Stress Testing Framework (Forthcoming). Internal or upcom-
+ing thesis usage. 2025.
+[7]    CFA Institute Research Foundation. Cryptoassets: The Guide to Bitcoin, Blockchain,
+and Cryptocurrency for Investment Professionals. Tech. rep. CFA Institute, June
+2018. URL: https://www.cfainstitute.org/en/research/foundation/2018/cryptoassets
+.
+[8]    Luciana B. Sollaci and Mauricio G. Pereira. “The IMRaD structure: A fifty-year
+survey”. In: Journal of the Medical Library Association 92.3 (2004), pp. 364–371.
+[9]    L. V. Sartori. Three steps for simulation-based testing. Citation provided in text.
+2022.
+[10]    Shermin  Voshmgir  and  Michael  Zargham.  Foundations  of  Cryptoeconomic  Sys-
+tems. Working Paper. 2020. URL: https://epub.wu.ac.at/7782/.
+[11]    Danilo L. Bernardineli. A cadCAD Interactive Calculator to Explore Minting Sce-
+narios in Filecoin. Framework for hardware-based issuance modeling. BlockScience,
+2022. URL: https://blockscience.com/blog/metric-minting-filecoin/.
+[12]    Trent McConaghy. The Web3 Sustainability Loop: A System Design for Long-Term
+Growth.  Tech.  rep.  Foundational  model  for  token  engineering.  Ocean  Protocol,
+2020.  URL:  https : / / blog . oceanprotocol . com / the - web3 - sustainability - loop -
+b2a4097a36e.
+55
+
+[13]    Lisa J. Y. Tan. The Economics and Math of Token Engineering and DeFi: Funda-
+mentals of Token Economics. Comprehensive taxonomy of incentive mechanisms.
+Economics Design, 2020.
+[14]    “Decentralized Physical Infrastructure Networks (DePIN) Tokenomics”. In: Fron-
+tiers in Blockchain (2025). Accessed: 2026-01-19.  URL: https://www.frontiersin.
+org/journals/blockchain/articles/10.3389/fbloc.2025.1644115/full.
+[15]    Rapid  Innovation.  The  Ultimate  Guide  to  DePIN  Tokenomics  2024.  2024.  URL:
+https : / / www . rapidinnovation . io / post / depin - tokenomics - understanding - the -
+economic-model-behind-the-technology.
+[16]    HackMD. Simulating Token Economies: Motivations and Insights. Accessed: 2026-
+01-19. 2025. URL: https://hackmd.io/tIPFH0mZSsuwXTOaPCy7oQ.
+[17]    Coincub. Deep in DePIN: Why Solana is the Execution Layer for Real-World Net-
+works. Accessed: 2026-01-19. 2025. URL: https://coincub.com/depin-solana/.
+[18]    Hacken. Tokenomics Audit Services. Accessed: 2026-01-19. 2024.  URL: https : / /
+hacken.io/services/tokenomics-audit/.
+[19]    “Event studies in international finance research”. In: PubMed Central (2022). Ac-
+cessed: 2026-01-19. URL: https://pmc.ncbi.nlm.nih.gov/articles/PMC9264305/.
+[20]    Render Network Knowledge Base. Burn Mint Equilibrium. Accessed: 2026-01-19.
+2025. URL: https://know.rendernetwork.com/basics/burn-mint-equilibrium.
+[21]    Onocoy Association. Your Guide to Understanding the $ONO Token. 2024.  URL:
+https://onocoy.com/blog/your-guide-to-understanding-the-ono-token.
+[22]    Mike Horton. GEODNET Improvement Proposal 7. Accessed: 2026-01-19. 2025.
+URL: https://medium.com/geodnet/geodnet-improvement-proposal-7-c2313f643b
+9b.
+[23]    Newton. Render Token Price Today, RENDER Updates, and Insights. Accessed:
+2026-01-19. 2025. URL: https://www.newton.co/coins/render.
+[24]    io.net. 2025: io.net Year in Review. Accessed: 2026-01-19. 2025.  URL: https://io.
+net/blog/2025-io-net-year-in-review.
+[25]    CoinMarketCap. Latest Hivemapper (HONEY) Price Analysis. Accessed: 2026-01-
+19. 2025. URL: https://coinmarketcap.com/cmc-ai/hivemapper/price-analysis/.
+[26]    Allora Research. Monitoring tokenomics health - Execution. Accessed: 2026-01-
+19. 2025. URL: https://research.allora.network/t/monitoring-tokenomics-health/82.
+[27]    Gate Square. Solana DePIN Report: From Mining to Mapping. Accessed: 2026-
+01-19. 2025. URL: https://www.gate.com/news/detail/10549221.
+56
+
+[28]    CoinMarketCap. Helium Mobile (MOBILE) Price Prediction For 2026 & Beyond.
+Accessed: 2026-01-19. 2025.  URL: https : / / coinmarketcap . com / cmc - ai / helium -
+mobile/price-prediction/.
+[29]    BitDegree. Helium Price Today - HNT Coin Price Chart. Accessed: 2026-01-19.
+2025. URL: https://www.bitdegree.org/cryptocurrency-prices/helium-hnt-price.
+[30]    SimeonOnSecurity. Triple Mining GPS Revolution: Geodnet, Onocoy, and RTKDi-
+rect Unleashed! 2025.  URL: https://dev.to/simeononsecurity/triple- mining- gps-
+revolution-geodnet-onocoy-and-rtkdirect-unleashed-4klb.
+[31]    GEODNET Docs. Location NFT. Accessed: 2026-01-19. 2025. URL: https://docs.
+geodnet.com/geod-token/location-nft.
+[32]    LLily. Mapping DePIN Tokenomics to Business Models. Accessed: 2026-01-19.
+2026.  URL: https : / / medium . com / @LiesiL / mapping - dtokenomics - to - business -
+models-d205dc8ce9ed.
+[33]    LLily. Render Network: A Data-Driven Thesis (Part II). Accessed: 2026-01-19.
+2025.  URL: https://medium.com/@LiesiL/render- network- a- data- driven- thesis-
+part-ii-c89898f3bb0c.
+[34]    MWC. Things to Consider Before Getting a Helium Miner. Accessed: 2026-01-19.
+2022. URL: https://medium.com/coinmonks/things-to-consider-before-getting-a-
+helium-miner-fall-2022-8dc46968fde6.
+[35]    Santa Fe Institute. Agent-based models working papers. Citation provided in text.
+n.d.
+[36]    Gauntlet Network. Compound Market Risk Assessment: Methodology and Simula-
+tions. Tech. rep. Industry standard for DeFi risk simulation. Gauntlet, 2020.  URL:
+https://gauntlet.network/reports/compound.
+[37]    Gauntlet Network. Gauntlet: Financial Modeling and Simulation for Crypto. Agent-
+Based Simulation Platform. 2024. URL: https://gauntlet.xyz/.
+[38]    Chaos Labs. Automated Risk Management for DeFi. Simulation Platform. 2024.
+URL: https://chaoslabs.xyz/.
+[39]    Resonance Security. Is DePIN Just Another Crypto Hype Bubble? Here’s the Dark
+Reality. 2024.  URL: https : / / www . resonance . security / blog - posts / is - depin - just -
+another-crypto-hype-bubble-heres-the-dark-reality.
+[40]    ResearchGate. “EconAgentic in DePIN Markets: A Large Language Model Ap-
+proach to the Sharing Economy”. In: (2025). Retrieved from ResearchGate.  URL:
+https://www.researchgate.net/publication/395125849.
+57
+
+[41]    Depinport.  GEODNET  ($GEOD)  In-Depth  Research  Report:  The  “Real  Yield”
+King of the DePIN Sector? Dec. 2025.  URL: https://medium.com/@done_71651/
+geodnet-geod-in-depth-research-report-the-real-yield-king-of-the-depin-sector-
+35d3e4a6733f.
+[42]    Onocoy Documentation. Bonus Programs. 2024.  URL: https://docs.onocoy.com/
+documentation/bonus-programs.
+58
+
+--- End of Text ---
+
+Pages: 67
+Info: {"PDFFormatVersion":"1.7","IsAcroFormPresent":false,"IsXFAPresent":false,"Title":" DePIN Tokenomics Under Stress  A Simulation-Based Sustainability Analysis Using the Onocoy Network as a Case Study ","Author":"Author A , Author B , Author C","Subject":"","Keywords":"","Creator":"LaTeX with hyperref","Producer":"pdfTeX-1.40.27","CreationDate":"D:20260216101106+01'00'","ModDate":"D:20260216101106+01'00'","Trapped":{"name":"False"}}

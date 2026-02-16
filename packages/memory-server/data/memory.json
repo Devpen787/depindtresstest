@@ -1,0 +1,40 @@
+{
+    "entries": {
+        "thesis_core_argument": {
+            "key": "thesis_core_argument",
+            "type": "concept",
+            "content": "This thesis evaluates the robustness of DePIN tokenomic mechanisms under standardized stress conditions using a reproducible, simulation-based framework. It argues that DePIN systems are Cyber-Physical Systems where hardware sunk costs create a 'Moat' that prevents immediate churn during price drops, but at the cost of latent capacity degradation. The goal is to move from 'Forecasting' to 'Stress Testing' using the Onocoy network as a case study.",
+            "tags": [
+                "thesis",
+                "core",
+                "argument",
+                "stress_testing"
+            ],
+            "timestamp": "2026-02-16T10:18:00Z"
+        },
+        "cyber_physical_system": {
+            "key": "cyber_physical_system",
+            "type": "definition",
+            "content": "DePIN networks are defined as Cyber-Physical Systems (CPS) where physical hardware (GNSS reference stations) and digital state (token incentives) operate in dynamic, continuous feedback loops. The token acts as a 'Purpose-Driven Token' or steering signal. Citations: Voshmgir & Zargham (2020), Bernardineli (2022).",
+            "tags": [
+                "definition",
+                "cps",
+                "citation",
+                "simulation"
+            ],
+            "timestamp": "2026-02-16T10:18:00Z"
+        },
+        "sunk_cost_moat": {
+            "key": "sunk_cost_moat",
+            "type": "concept",
+            "content": "The 'Sunk Cost Moat' theory posits that the high upfront capital expenditure and installation friction of DePIN hardware (e.g., roof-mounted antennas) acts as a retention buffer. This friction prevents immediate churn during price crashes (unlike liquid DeFi assets) but leads to 'Latent Capacity Degradation' where new growth freezes and maintenance suffers.",
+            "tags": [
+                "concept",
+                "economics",
+                "hardware",
+                "retention"
+            ],
+            "timestamp": "2026-02-16T10:18:00Z"
+        }
+    }
+}

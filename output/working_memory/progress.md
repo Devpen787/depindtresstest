@@ -20,3 +20,6 @@
 - Added state-of-the-art HCI acceptance rubric doc:
   - docs/HCI_ACCEPTANCE_RUBRIC_2026-02-16.md
   - Includes weighted rubric, hard gates, package stack, skills map, and first-user acceptance protocol.
+- Added consolidated control checklist:
+  - docs/MASTER_PLAN_CHECKLIST_2026-02-16.md
+  - Includes phase gates, hard gates, verification commands, and monitoring rhythm.

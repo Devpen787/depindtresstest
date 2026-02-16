@@ -1,0 +1,19 @@
+{
+    "name": "simulator-mcp",
+    "version": "1.0.0",
+    "description": "MCP Server that wraps the DePIN Stress Test Simulation Engine",
+    "main": "src/index.ts",
+    "scripts": {
+        "start": "tsx src/index.ts",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "latest",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "tsx": "^4.7.1",
+        "typescript": "^5.3.3",
+        "@types/node": "^20.11.0"
+    }
+}
