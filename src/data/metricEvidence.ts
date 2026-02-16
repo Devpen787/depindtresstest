@@ -111,6 +111,15 @@ export const METRIC_EVIDENCE_REGISTRY: Record<string, MetricEvidence> = {
         reproducibilityStatus: 'runnable',
         notes: 'Hook is active for Onocoy profile. Inputs remain model-derived until station-level primary exports are wired.',
     },
+    onocoy_reward_telemetry: {
+        metricId: 'onocoy_reward_telemetry',
+        definition: 'Onocoy reward-fidelity estimate from telemetry fields (activeNodes24h/total, networkUptime, avgRewardPerNode).',
+        sourceUrlOrQueryId: 'dune://onocoy_metrics',
+        sourceGrade: 'secondary',
+        timeWindow: 'rolling_24h_snapshot',
+        reproducibilityStatus: 'not_runnable',
+        notes: 'Computed in hook layer from protocol metrics feed; falls back to proxy when telemetry fields are missing.',
+    },
     onocoy_unlock_flow: {
         metricId: 'onocoy_unlock_flow',
         definition: 'Onocoy staged unlock-flow preview from protocol hook scaffolding.',
@@ -128,6 +137,15 @@ export const METRIC_EVIDENCE_REGISTRY: Record<string, MetricEvidence> = {
         timeWindow: 'simulation_horizon_weeks',
         reproducibilityStatus: 'not_runnable',
         notes: 'No direct spoofing/slashing/latency telemetry pipeline is wired yet; panel remains confidence-gated.',
+    },
+    onocoy_integrity_telemetry: {
+        metricId: 'onocoy_integrity_telemetry',
+        definition: 'Onocoy integrity pressure estimate derived from telemetry uptime and active-node activity.',
+        sourceUrlOrQueryId: 'dune://onocoy_metrics',
+        sourceGrade: 'secondary',
+        timeWindow: 'rolling_24h_snapshot',
+        reproducibilityStatus: 'not_runnable',
+        notes: 'Latency pressure is inferred from uptime shortfall; spoofing/slashing remain zero until primary telemetry is wired.',
     },
 
     // Comparison view metrics
