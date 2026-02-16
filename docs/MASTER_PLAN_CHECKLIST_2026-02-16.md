@@ -86,12 +86,36 @@ Exit criteria:
 4. Trust:
 - Recommendations show confidence + evidence metadata.
 
+## 3.1) Golden Math Gate (Must Pass For Any Numeric Change)
+
+Trigger:
+- Any change to formulas, simulation behavior, scoring logic, statistical assumptions, optimizer behavior, or numeric model outputs.
+
+Required sequence:
+1. Regenerate vectors:
+- `npm run generate:golden-vectors`
+2. Cross-language parity:
+- `npm run test:parity`
+3. Invariant checks:
+- `npm run test:math-invariants`
+4. Full numeric safety pass:
+- `npm run test`
+5. Optional audit artifact refresh when math-facing outputs changed:
+- `npm run generate:math-audit`
+
+Fail conditions:
+1. Any parity drift outside tolerance.
+2. Any invariant failure.
+3. Any untracked numeric behavior change without updated audit note.
+
 ## 4) Verification Commands
 
 1. Unit/invariant checks:
 - `npm run test`
 - `npm run test:math-invariants`
 - `npm run test:parity`
+- `npm run generate:golden-vectors`
+- `npm run generate:math-audit`
 
 2. E2E checks:
 - `npm run test:e2e`

@@ -23,3 +23,4 @@
 - Added consolidated control checklist:
   - docs/MASTER_PLAN_CHECKLIST_2026-02-16.md
   - Includes phase gates, hard gates, verification commands, and monitoring rhythm.
+- Confirmed math-rigor skill workflow and added mandatory Golden Math Gate to master checklist.

@@ -1,4 +1,0 @@
-interface:
-  display_name: "DePIN Simulation Optimizer"
-  short_description: "Run deterministic sim and optimizer checks."
-  default_prompt: "Use $depin-simulation-optimizer to run a simulation and optimizer diagnostics report for this repository."
