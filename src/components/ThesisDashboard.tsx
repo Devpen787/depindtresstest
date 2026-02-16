@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import type { ProtocolProfileV1 } from '../data/protocols';
 import { SCENARIOS, SimulationScenario } from '../data/scenarios';
-import { DecisionPromptCard } from './ui/DecisionPromptCard';
+
 import { ChartContextHeader } from './ui/ChartContextHeader';
 import MetricEvidenceBadge from './ui/MetricEvidenceBadge';
 import MetricEvidenceLegend from './ui/MetricEvidenceLegend';
@@ -45,6 +45,8 @@ import {
     PAYBACK_GUARDRAILS,
     RETENTION_GUARDRAILS
 } from '../constants/guardrails';
+import { VolumetricFlowChart } from './charts/VolumetricFlowChart';
+import { AggregateResult } from '../model/types';
 
 // Register ChartJS components
 ChartJS.register(
@@ -64,6 +66,11 @@ interface ThesisDashboardProps {
     protocols?: ProtocolProfileV1[];
     onSelectProtocol?: (profile: ProtocolProfileV1) => void;
 }
+
+const formatCompact = (value: number) => {
+    if (!Number.isFinite(value)) return '0';
+    return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+};
 
 export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
     activeProfile,
@@ -253,9 +260,34 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
             finalPayback,
             retentionRate,
             solvencyText,
-            stabilityStatus
+            stabilityStatus,
+            // [NEW] Adapter for Volumetric Chart
+            volumetricData: priceData.map((p, i) => {
+                const isBurn = revenueStrategy === 'burn';
+                const burnValue = isBurn
+                    ? (1000000 * p) // If burn, we burn 100% of revenue? No, let's assume mechanism.
+                    : (1000000 * p * 0.1); // If reserve, we assume 10% take rate?
+
+                return {
+                    t: i,
+                    dailyMintUsd: { mean: 1000000 * p, min: 0, max: 0 }, // Simplified: Mint Value = Emissions * Price
+                    dailyBurnUsd: { mean: burnValue, min: 0, max: 0 },
+                    // Mocking other required fields to satisfy type
+                    price: { mean: p, min: p, max: p },
+                    providers: { mean: nodeData[i], min: 0, max: 0 },
+                    solvencyScore: { mean: 1, min: 0, max: 0 },
+                    supply: { mean: 0, min: 0, max: 0 },
+                    marketCap: { mean: 0, min: 0, max: 0 },
+                    demand: { mean: 0, min: 0, max: 0 },
+                    revenue: { mean: 0, min: 0, max: 0 },
+                    utilisation: { mean: 0, min: 0, max: 0 }
+                } as unknown as AggregateResult;
+            })
         };
     }, [marketStress, competitorYield, emissionType, revenueStrategy, capex, activeProfile, selectedScenarioId]);
+
+
+
 
     // --- CHART OPTIONS ---
     const commonOptions = {
@@ -291,7 +323,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                 labels: simulationData.months,
                 datasets: [
                     {
-                        label: 'Sim Price (Index)',
+                        label: 'Simulation Price (Normalized)',
                         data: simPriceIndex,
                         borderColor: '#6366f1',
                         backgroundColor: '#6366f1',
@@ -299,7 +331,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                         tension: 0.4
                     },
                     {
-                        label: 'Sim Nodes (Index)',
+                        label: 'Simulation Nodes (Normalized)',
                         data: simNodeIndex,
                         borderColor: '#cbd5e1',
                         backgroundColor: '#cbd5e1',
@@ -308,7 +340,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                         borderDash: [5, 5]
                     },
                     {
-                        label: 'Helium \'22 Price',
+                        label: 'Helium \'22 Price (Historical)',
                         data: HELIUM_2022_DATA.priceIndex.slice(0, 12), // Align to 12 months
                         borderColor: 'rgba(239, 68, 68, 0.5)', // Red (Crash)
                         borderDash: [2, 2],
@@ -317,12 +349,22 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Helium \'22 Nodes',
+                        label: 'Helium \'22 Nodes (Historical)',
                         data: HELIUM_2022_DATA.nodeCountIndex.slice(0, 12),
                         borderColor: 'rgba(16, 185, 129, 0.5)', // Green (Growth)
                         borderDash: [2, 2],
                         pointRadius: 0,
                         borderWidth: 2,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Index Baseline (100)',
+                        data: simulationData.months.map(() => 100),
+                        borderColor: 'rgba(148, 163, 184, 0.35)',
+                        backgroundColor: 'rgba(148, 163, 184, 0.35)',
+                        borderDash: [6, 6],
+                        pointRadius: 0,
+                        borderWidth: 1,
                         yAxisID: 'y'
                     }
                 ]
@@ -353,6 +395,70 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
             };
         }
     }, [simulationData, showHistoricalOverlay]);
+
+    const stabilityOptions = useMemo(() => ({
+        ...commonOptions,
+        plugins: {
+            ...commonOptions.plugins,
+            tooltip: {
+                ...commonOptions.plugins.tooltip,
+                callbacks: {
+                    label: (context: any) => {
+                        const label = context.dataset.label || '';
+                        const rawValue = Number(context.raw ?? 0);
+                        if (showHistoricalOverlay) {
+                            return `${label}: ${rawValue.toFixed(1)} idx`;
+                        }
+                        if (context.dataset.yAxisID === 'y') {
+                            return `${label}: $${rawValue.toFixed(3)}`;
+                        }
+                        return `${label}: ${formatCompact(rawValue)} nodes`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#64748b' },
+                title: { display: true, text: 'Month', color: '#94a3b8', font: { size: 11, weight: 'bold' as const } }
+            },
+            y: {
+                type: 'linear' as const,
+                display: true,
+                position: 'left' as const,
+                grid: { color: '#334155' },
+                ticks: {
+                    color: '#64748b',
+                    callback: (value: any) => showHistoricalOverlay
+                        ? `${Number(value).toFixed(0)}`
+                        : `$${Number(value).toFixed(2)}`
+                },
+                title: {
+                    display: true,
+                    text: showHistoricalOverlay ? 'Normalized Index (Month 0 = 100)' : 'Token Price (USD)',
+                    color: '#94a3b8',
+                    font: { size: 11, weight: 'bold' as const }
+                }
+            },
+            y1: {
+                type: 'linear' as const,
+                display: !showHistoricalOverlay,
+                position: 'right' as const,
+                grid: { drawOnChartArea: false },
+                ticks: {
+                    color: '#64748b',
+                    callback: (value: any) => formatCompact(Number(value))
+                },
+                title: {
+                    display: !showHistoricalOverlay,
+                    text: 'Active Nodes',
+                    color: '#94a3b8',
+                    font: { size: 11, weight: 'bold' as const }
+                }
+            }
+        }
+    }), [commonOptions, showHistoricalOverlay]);
 
     // Chart 2: Network Composition (Urban vs Rural) - RESTORED
     const compositionData = {
@@ -523,23 +629,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
 
                     <div className="w-full h-px bg-slate-800" />
 
-                    <DecisionPromptCard
-                        title="Thesis Storyline"
-                        tone={thesisStatus.tone}
-                        statusLabel={thesisStatus.label}
-                        statusDetail={thesisStatus.detail}
-                        provenance={`Scenario: ${selectedScenarioId} • Strategy: ${revenueStrategy} • Emissions: ${emissionType}`}
-                        decisions={[
-                            'Should emissions remain fixed or switch to KPI-based adaptation?',
-                            'Should value accrue through burn or through reserve runway?',
-                            'Is current CapEx level still compatible with survivable payback under stress?'
-                        ]}
-                        questions={[
-                            `If retention falls below ${RETENTION_GUARDRAILS.thesisMinPct}%, which lever restores it with least downside?`,
-                            `Does final payback (${simulationData.finalPayback.toFixed(1)}m) justify current miner participation risk?`,
-                            'What parameter change would most improve resilience without relying on bullish markets?'
-                        ]}
-                    />
+
 
                     <MetricEvidenceLegend />
 
@@ -720,17 +810,15 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                                         </button>
                                     </div>
                                 </div>
+                                <p className="mb-3 text-[11px] text-slate-400">
+                                    {showHistoricalOverlay
+                                        ? 'Overlay mode: all lines are normalized to index 100 at Month 0 to compare slope and direction only.'
+                                        : 'Dual-axis mode: price is on the left axis (USD) and active nodes are on the right axis (count).'}
+                                </p>
                                 <div className="h-[200px]">
                                     <Line
                                         data={stabilityData}
-                                        options={{
-                                            ...commonOptions,
-                                            scales: {
-                                                y: { type: 'linear', display: true, position: 'left', grid: { color: '#334155' } },
-                                                y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } },
-                                                x: { grid: { display: false } }
-                                            }
-                                        }}
+                                        options={stabilityOptions as any}
                                     />
                                 </div>
                             </div>
@@ -749,6 +837,23 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                                 </div>
                                 <div className="h-[200px]">
                                     <Line data={compositionData} options={commonOptions} />
+                                </div>
+                            </div>
+
+                            {/* Chart 3: Volumetric Flow (D3) */}
+                            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">Volumetric Flow (Mint vs Burn)</h3>
+                                        <p className="text-xs text-slate-400">Visualizing the "Subsidy Gap" (Thesis 6.2.1)</p>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs">
+                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-400 rounded-sm"></span> Incentives (Mint)</div>
+                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-red-400 rounded-sm"></span> Revenue (Burn)</div>
+                                    </div>
+                                </div>
+                                <div className="h-[250px] w-full">
+                                    <VolumetricFlowChart data={simulationData.volumetricData} width={600} height={250} />
                                 </div>
                             </div>
 

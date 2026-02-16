@@ -20,7 +20,7 @@ import { AggregateResult, SimulationParams } from '../../model/types';
 import { ShieldAlert, Activity, Info, Skull } from 'lucide-react';
 import { calculateDiagnosticState } from '../../audit/diagnosticViewMath';
 import { DIAGNOSTIC_ARCHETYPE_TO_PROTOCOL_ID } from '../../data/diagnosticArchetypes';
-import { DecisionPromptCard } from '../ui/DecisionPromptCard';
+
 import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 import { GUARDRAIL_BAND_LABELS } from '../../constants/guardrails';
 
@@ -48,6 +48,9 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
 
     // --- LOGIC: Resilience Scorecard Algorithm ---
     const diagnosticState = useMemo((): DiagnosticState => calculateDiagnosticState(inputs), [inputs]);
+
+
+
 
     const diagnosticTone = diagnosticState.verdict === 'Robust'
         ? 'healthy'
@@ -177,23 +180,7 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     </div>
                 </div>
 
-                <DecisionPromptCard
-                    title="Diagnostic Storyline"
-                    tone={diagnosticTone}
-                    statusLabel={diagnosticState.verdict}
-                    statusDetail={`Resilience ${diagnosticState.resilienceScore}/100`}
-                    provenance={`Archetype: ${inputs.selectedArchetype || 'onocoy'} • Framework verdict from stress assumptions`}
-                    decisions={[
-                        'Do we change emission regime now or monitor one more cycle?',
-                        'Is the current miner profile resilient enough for the selected shock path?',
-                        'Should growth coordination become stricter under this risk profile?'
-                    ]}
-                    questions={[
-                        `Which signal drives most fragility right now: BER ${diagnosticState.r_be.toFixed(2)} or NRR ${diagnosticState.nrr}%?`,
-                        'What policy is least costly while still lifting the resilience score by 10+ points?',
-                        'What threshold should trigger immediate governance intervention?'
-                    ]}
-                />
+
             </div>
 
             {/* 2. Top Bar: Signals of Death */}

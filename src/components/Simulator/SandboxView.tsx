@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, AreaChart, ReferenceLine, ComposedChart, ReferenceArea, ResponsiveContainer
 } from 'recharts';
@@ -12,7 +12,8 @@ import { LegacySimulationParams as SimulationParams, LegacyAggregateResult as Ag
 import { IncentiveRegime } from '../../utils/regime';
 import { FlywheelWidget } from '../FlywheelWidget';
 import { SectionLayout } from '../SectionLayout';
-import MetricCard from '../ui/MetricCard';
+
+import { InsightCard } from '../Story/InsightCard';
 import BaseChartBox from '../ui/BaseChartBox';
 import { GeoCoverageView } from '../GeoCoverageView';
 import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
@@ -69,6 +70,8 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
         stabilityResult,
         lastMetrics
     } = useSandboxViewModel(aggregated, params, playbackWeek, showBenchmark);
+
+
 
     const resolveFocusedMetric = (value: string | null) => {
         if (!value) return null;
@@ -353,23 +356,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
             />
 
             <div className="space-y-20 pb-32">
-                {/* Hero Section */}
-                <section className="relative py-20 px-4 md:px-0">
-                    <div className="max-w-4xl mx-auto text-center space-y-6">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-widest">
-                            <CheckCircle2 size={12} />
-                            <span>Thesis Validation Framework 1.2</span>
-                        </div>
-                        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase">
-                            {activeProfile.metadata.name}
-                            <span className="block text-slate-500 text-lg md:text-2xl font-bold tracking-widest mt-4">Stress Test Environment</span>
-                        </h1>
-                        <p className="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
-                            This dashboard subjects the protocol to the three canonical stress-tests defined in <strong>Chapter 9</strong> of the Thesis.
-                            Scroll to explore the narrative impact of solvency, capitulation, and liquidity shocks.
-                        </p>
-                    </div>
-                </section>
+
 
                 {/* Tier Quick-Nav */}
                 <div className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-sm border-b border-slate-800/50 py-3 px-4 -mx-6 mb-8">
@@ -475,8 +462,14 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <div>
                                 <h3 className="text-[11px] font-black text-white uppercase tracking-widest">Onocoy Hook Layer</h3>
                                 <p className="text-[11px] text-slate-400">
-                                    Protocol-specific scaffolds are active for this profile. Values remain gated as model/proxy until primary telemetry is wired.
+                                    Reward and integrity now consume protocol telemetry when available. Unlock flow remains scenario-proxy until vesting exports are wired.
                                 </p>
+                                {(onocoyHookSnapshot.telemetrySourceType || onocoyHookSnapshot.telemetryLastUpdated) && (
+                                    <p className="text-[10px] text-slate-500 mt-1">
+                                        Source {onocoyHookSnapshot.telemetrySourceType || 'telemetry'} ·
+                                        Updated {onocoyHookSnapshot.telemetryLastUpdated ? new Date(onocoyHookSnapshot.telemetryLastUpdated).toLocaleString() : 'n/a'}
+                                    </p>
+                                )}
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 {onocoyHookSnapshot.sourceTagIds.map((tagId) => (
@@ -486,7 +479,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
-                                <p className="text-[10px] uppercase tracking-wider text-slate-400">Reward Fidelity Proxy</p>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                                    Reward Fidelity {onocoyHookSnapshot.rewardSource === 'telemetry' ? '(Telemetry)' : '(Proxy)'}
+                                </p>
                                 <p className="text-sm font-semibold text-white mt-1">
                                     {(onocoyHookSnapshot.rewardProxy.rewardTokens * 100).toFixed(1)}%
                                 </p>
@@ -497,7 +492,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 </p>
                             </div>
                             <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
-                                <p className="text-[10px] uppercase tracking-wider text-slate-400">Unlock Curve Preview</p>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                                    Unlock Curve {onocoyHookSnapshot.unlockSource === 'telemetry' ? '(Telemetry)' : '(Proxy)'}
+                                </p>
                                 <p className="text-sm font-semibold text-white mt-1">
                                     {onocoyHookSnapshot.unlockPreview.length} points
                                 </p>
@@ -507,7 +504,9 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 </p>
                             </div>
                             <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
-                                <p className="text-[10px] uppercase tracking-wider text-slate-400">Integrity Pressure Proxy</p>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                                    Integrity Pressure {onocoyHookSnapshot.integritySource === 'telemetry' ? '(Telemetry)' : '(Proxy)'}
+                                </p>
                                 <p className="text-sm font-semibold text-white mt-1">
                                     {onocoyHookSnapshot.integrityProxy.integrityPressureScore.toFixed(2)}
                                 </p>
@@ -518,6 +517,29 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 </p>
                             </div>
                         </div>
+                        {onocoyHookSnapshot.missingInputs.length > 0 && (
+                            <div className="mt-3 bg-slate-950/60 border border-amber-500/30 rounded-lg p-3">
+                                <p className="text-[10px] uppercase tracking-wider text-amber-300">
+                                    Missing Primary Inputs
+                                </p>
+                                <div className="mt-2 space-y-2">
+                                    {onocoyHookSnapshot.missingInputs.map((input) => (
+                                        <div key={input.key} className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-[11px] text-slate-200 font-medium">{input.key}</p>
+                                                <p className="text-[10px] text-slate-500">{input.description}</p>
+                                            </div>
+                                            <span className={`text-[9px] px-2 py-0.5 rounded-full border ${input.status === 'missing'
+                                                ? 'text-rose-300 border-rose-400/30 bg-rose-500/10'
+                                                : 'text-amber-300 border-amber-400/30 bg-amber-500/10'
+                                                }`}>
+                                                {input.status === 'missing' ? 'missing' : 'proxy only'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -535,35 +557,26 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                     <div className="space-y-6">
                         {/* Status Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <MetricCard
+                            <InsightCard
                                 title={METRICS.solvency_ratio.label}
                                 value={aggregated[aggregated.length - 1]?.solvencyScore?.mean > 0 ? formatCompact(aggregated[aggregated.length - 1]?.solvencyScore?.mean) : '-'}
-                                subValue={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'Dilutive' : 'Deflationary'}
-                                subColor={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'text-amber-400' : 'text-emerald-400'}
-                                icon={Activity}
-                                tooltip={METRICS.solvency_ratio.description}
-                                formula={METRICS.solvency_ratio.formula}
-                                evidence={getMetricEvidence('solvency_ratio')}
+                                trend={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'down' : 'up'}
+                                trendValue={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'Dilutive' : 'Deflationary'}
+                                description={METRICS.solvency_ratio.description}
                             />
-                            <MetricCard
+                            <InsightCard
                                 title={METRICS.weekly_retention_rate.label}
                                 value={aggregated[aggregated.length - 1]?.retentionRate ? `${(aggregated[aggregated.length - 1]?.retentionRate).toFixed(1)}%` : '100%'}
-                                subValue="Provider Loyalty"
-                                subColor="text-slate-500"
-                                icon={CheckCircle2}
-                                tooltip={METRICS.weekly_retention_rate.description}
-                                formula={METRICS.weekly_retention_rate.formula}
-                                evidence={getMetricEvidence('weekly_retention_rate')}
+                                trend="neutral"
+                                trendValue="Provider Loyalty"
+                                description={METRICS.weekly_retention_rate.description}
                             />
-                            <MetricCard
+                            <InsightCard
                                 title={METRICS.treasury_balance.label}
                                 value={params.revenueStrategy === 'reserve' ? `$${formatCompact(aggregated[aggregated.length - 1]?.treasuryBalance?.mean || 0)}` : 'N/A'}
-                                subValue={params.revenueStrategy === 'reserve' ? 'Accumulated' : 'Burn Strategy'}
-                                subColor={params.revenueStrategy === 'reserve' ? 'text-emerald-400' : 'text-slate-500'}
-                                icon={Wallet}
-                                tooltip={METRICS.treasury_balance.description}
-                                formula={METRICS.treasury_balance.formula}
-                                evidence={getMetricEvidence('treasury_balance')}
+                                trend={params.revenueStrategy === 'reserve' ? 'up' : 'neutral'}
+                                trendValue={params.revenueStrategy === 'reserve' ? 'Accumulated' : 'Burn Strategy'}
+                                description={METRICS.treasury_balance.description}
                             />
                         </div>
 
@@ -664,7 +677,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                 >
                     <div className="space-y-6">
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <MetricCard
+                            <InsightCard
                                 title={METRICS.payback_period.label}
                                 value={(() => {
                                     const last = aggregated[aggregated.length - 1];
@@ -672,32 +685,23 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                     const months = calculatePaybackMonths(last);
                                     return months >= 36 ? '>36mo' : `${months.toFixed(1)}mo`;
                                 })()}
-                                subValue="ROI Time"
-                                subColor="text-slate-500"
-                                icon={DollarSign}
-                                tooltip={METRICS.payback_period.description}
-                                formula={METRICS.payback_period.formula}
-                                evidence={getMetricEvidence('payback_period')}
+                                trend="down"
+                                trendValue="ROI Time"
+                                description={METRICS.payback_period.description}
                             />
-                            <MetricCard
+                            <InsightCard
                                 title={METRICS.network_coverage_score.label}
                                 value={formatCompact(aggregated[aggregated.length - 1]?.weightedCoverage?.mean || 0)}
-                                subValue="Network Utility"
-                                subColor="text-indigo-400"
-                                icon={MapPin}
-                                tooltip={METRICS.network_coverage_score.description}
-                                formula={METRICS.network_coverage_score.formula}
-                                evidence={getMetricEvidence('network_coverage_score')}
+                                trend="up"
+                                trendValue="Network Utility"
+                                description={METRICS.network_coverage_score.description}
                             />
-                            <MetricCard
+                            <InsightCard
                                 title={METRICS.vampire_churn.label}
                                 value={aggregated[aggregated.length - 1]?.vampireChurn?.mean > 1 ? formatCompact(aggregated[aggregated.length - 1]?.vampireChurn?.mean) : '0'}
-                                subValue={params.competitorYield > 0.5 ? 'Active Attack' : 'Standard'}
-                                subColor={params.competitorYield > 0.5 ? 'text-rose-400' : 'text-emerald-400'}
-                                icon={Zap}
-                                tooltip={METRICS.vampire_churn.description}
-                                formula={METRICS.vampire_churn.formula}
-                                evidence={getMetricEvidence('vampire_churn')}
+                                trend="down"
+                                trendValue={params.competitorYield > 0.5 ? 'Active Attack' : 'Standard'}
+                                description={METRICS.vampire_churn.description}
                             />
                         </div>
 

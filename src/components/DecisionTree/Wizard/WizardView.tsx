@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, Zap, TrendingUp, ShieldAlert, ChevronRight } from 'lucide-react';
-import { DecisionPromptCard } from '../../ui/DecisionPromptCard';
+
 import MetricEvidenceBadge from '../../ui/MetricEvidenceBadge';
 import MetricEvidenceLegend from '../../ui/MetricEvidenceLegend';
 import { getMetricEvidence } from '../../../data/metricEvidence';
@@ -29,6 +29,7 @@ interface WizardViewProps {
         resilience: number;
         peerCount: number;
     } | null;
+
 }
 
 export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics, percentiles }) => {
@@ -117,23 +118,7 @@ export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics,
                     )}
                 </div>
 
-                <DecisionPromptCard
-                    title="Decision Tree Storyline"
-                    tone={wizardTone}
-                    statusLabel="Guardrail Status"
-                    statusDetail={`Resilience ${metrics.resilienceScore}/100`}
-                    provenance={showPercentiles ? `Percentile mode vs ${percentiles!.peerCount} peers` : 'Absolute mode on current simulation'}
-                    decisions={[
-                        'Prioritize the branch with the largest risk-adjusted gap first (financial, miner, utility, or tail risk).',
-                        'Decide whether to optimize for short-term survivability or long-term utility growth.',
-                        'Set explicit threshold triggers for policy changes before running the next scenario.'
-                    ]}
-                    questions={[
-                        `Is the main bottleneck solvency (${metrics.solvencyScore.toFixed(2)}x), payback (${paybackLabel}), or utilization (${metrics.networkUtilization.toFixed(1)}%)?`,
-                        `How many insolvency weeks (${metrics.insolvencyWeeks}) are acceptable before governance action?`,
-                        'Which branch result would change an executive decision today?'
-                    ]}
-                />
+
 
                 <MetricEvidenceLegend />
 

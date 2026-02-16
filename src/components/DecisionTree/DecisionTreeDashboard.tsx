@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSimulationRunner } from '../../hooks/useSimulationRunner';
-import { useStoryGenerator } from '../../hooks/useStoryGenerator';
+
 import { WizardView } from './Wizard/WizardView';
 import { BranchLayout } from './Shared/BranchLayout';
 import { FinancialStabilityView } from './Branches/Financial/FinancialStabilityView';
@@ -91,11 +91,7 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
         }
     }, [hasSimulationData, sim.multiAggregated, sim.peerWizardAggregated, sim.activeProfile?.metadata?.id, sim.params?.hardwareCost]);
 
-    // --- 3. STORY ENGINE ---
-    const story = useStoryGenerator({
-        data: aggregatedData,
-        scenario: sim.params?.scenario
-    });
+
 
     // --- 2. BRANCH RENDERING ---
     const renderBranch = () => {
@@ -219,7 +215,7 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                             onSelectBranch={(b) => setActiveView(b as ViewState)}
                             metrics={wizardMetrics}
                             percentiles={wizardPercentiles}
-                            story={story}
+
                         />
                     </div>
                 );

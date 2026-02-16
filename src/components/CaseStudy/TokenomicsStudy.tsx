@@ -5,7 +5,8 @@ import {
 } from 'recharts';
 import { ShieldCheck, TrendingDown, RefreshCw, Zap, AlertTriangle, CheckCircle2, Flame, Database, Radio, TrendingUp, Shield, Wifi, Wallet, ArrowUpDown, ChevronDown, Map, Car, Box, Cpu, Layers, HardDrive, BrainCircuit, Cloud, Lock } from 'lucide-react';
 import { CASE_STUDIES, CaseStudy } from '../../data/caseStudies';
-import { DecisionPromptCard } from '../ui/DecisionPromptCard';
+
+import { DiagnosticState, DiagnosticVerdict } from '../Diagnostic/types';
 import { ChartContextHeader } from '../ui/ChartContextHeader';
 import {
     classifyPaybackBand,
@@ -184,22 +185,46 @@ export const TokenomicsStudy: React.FC = () => {
             return {
                 tone: 'critical' as const,
                 label: GUARDRAIL_BAND_LABELS.intervention,
-                detail: `Worst payback ${worstPayback}m (>${PAYBACK_GUARDRAILS.watchlistMaxMonths}m guardrail)`
+                detail: `Worst payback ${worstPayback}m (>${PAYBACK_GUARDRAILS.watchlistMaxMonths}m guardrail)`,
+                verdict: 'Critical' as DiagnosticVerdict,
+                score: 45
             };
         }
         if (paybackBand === 'watchlist') {
             return {
                 tone: 'caution' as const,
                 label: GUARDRAIL_BAND_LABELS.watchlist,
-                detail: `Worst payback ${worstPayback}m (${PAYBACK_GUARDRAILS.healthyMaxMonths}-${PAYBACK_GUARDRAILS.watchlistMaxMonths}m watchlist)`
+                detail: `Worst payback ${worstPayback}m (${PAYBACK_GUARDRAILS.healthyMaxMonths}-${PAYBACK_GUARDRAILS.watchlistMaxMonths}m watchlist)`,
+                verdict: 'Fragile' as DiagnosticVerdict,
+                score: 70
             };
         }
         return {
             tone: 'healthy' as const,
             label: GUARDRAIL_BAND_LABELS.healthy,
-            detail: `Worst payback ${worstPayback}m (<=${PAYBACK_GUARDRAILS.healthyMaxMonths}m target)`
+            detail: `Worst payback ${worstPayback}m (<=${PAYBACK_GUARDRAILS.healthyMaxMonths}m target)`,
+            verdict: 'Robust' as DiagnosticVerdict,
+            score: 92
         };
     }, [activeStudy]);
+
+    // --- STORY ENGINE ---
+    const diagnosticState: DiagnosticState = useMemo(() => ({
+        verdict: caseStatus.verdict,
+        resilienceScore: caseStatus.score,
+        r_be: caseStatus.tone === 'healthy' ? 1.2 : 0.8, // Approximation based on tone
+        // Mocking other required fields if necessary or ensuring type compatibility
+        dimensions: {
+            monetary: { score: caseStatus.score, status: 'Stable', signal: 'Neutral' },
+            fiscal: { score: caseStatus.score, status: 'Stable', signal: 'Neutral' },
+            utilization: { score: caseStatus.score, status: 'Stable', signal: 'Neutral' },
+            perceptions: { score: caseStatus.score, status: 'Stable', signal: 'Neutral' }
+        },
+        signals: []
+    }), [caseStatus]);
+
+
+
 
     const stabilitySignal = useMemo(() => {
         const points = activeStudy.charts.stability || [];
@@ -341,24 +366,7 @@ export const TokenomicsStudy: React.FC = () => {
                     </div>
                 </section>
 
-                <DecisionPromptCard
-                    title="Case Study Storyline"
-                    tone={caseStatus.tone}
-                    statusLabel={caseStatus.label}
-                    statusDetail={caseStatus.detail}
-                    provenance={`Source mode: Curated case-study dataset for ${activeStudy.meta.title}`}
-                    variant="light"
-                    decisions={[
-                        'Should this design emphasize demand-coupled emissions or stronger supply constraints?',
-                        'Is provider ROI robust enough across stressed scenarios to prevent capitulation?',
-                        'Which mechanism is the primary resilience moat in this case?'
-                    ]}
-                    questions={[
-                        'What assumption in this case has the highest uncertainty and should be validated first?',
-                        'Which failure mode appears first when demand lags: inflation pressure, churn, or liquidity stress?',
-                        'What real-world signal would confirm this narrative is happening now?'
-                    ]}
-                />
+
 
                 {/* 2. MECHANISM: LEARN FLOW */}
                 <section className="bg-white rounded-3xl shadow-xl p-8 md:p-12 border-l-8 border-orange-500 relative overflow-hidden">

@@ -9,7 +9,6 @@ import { useSensitivityAnalysis } from '../../hooks/useSensitivityAnalysis';
 // Components
 import { BenchmarkHeader } from './BenchmarkHeader';
 import { PeerToggle, PeerId } from './PeerToggle';
-import { BenchmarkMetricCard } from './BenchmarkMetricCard';
 import { ComparativeMatrix } from './ComparativeMatrix';
 import { AIInsights, generateInsights } from './AIInsights';
 import { SensitivitySummary } from './SensitivitySummary';
@@ -18,7 +17,8 @@ import { SolvencyProjectionChart } from './SolvencyProjectionChart';
 import { HealthMetricsBarChart } from './HealthMetricsBarChart';
 import { StrategicEdgeRadar } from './StrategicEdgeRadar';
 import { PEER_GROUPS, BENCHMARK_PEERS } from '../../data/peerGroups';
-import { DecisionPromptCard } from '../ui/DecisionPromptCard';
+
+import { InsightCard } from '../Story/InsightCard';
 import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 import { getMetricEvidence, withExtractionTimestamp } from '../../data/metricEvidence';
 import {
@@ -103,6 +103,8 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
         params,
         activeProfile
     );
+
+
 
     // 3. V2 State: Selected Peers & Active Tab
     const [activeGroupId, setActiveGroupId] = useState<string>(PEER_GROUPS[0].id);
@@ -438,58 +440,37 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                             <>
                                 {/* Key Metrics Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                                    <BenchmarkMetricCard
-                                        label="Payback Period"
-                                        value={onocoyData.payback.toFixed(1)}
-                                        unit=" mo"
-                                        delta={deltas.payback}
-                                        deltaType={deltas.payback < 0 ? 'better' : 'worse'}
-                                        inverse={true}
-                                        evidence={benchmarkEvidence.payback}
+                                    <InsightCard
+                                        title="Payback Period"
+                                        value={`${onocoyData.payback.toFixed(1)} mo`}
+                                        trend={deltas.payback < 0 ? 'up' : 'down'}
+                                        trendValue={`${deltas.payback > 0 ? '+' : ''}${deltas.payback.toFixed(1)} mo`}
+                                        description="vs Peer Median (Lower is correct)"
                                     />
-                                    <BenchmarkMetricCard
-                                        label="Coverage Efficiency"
-                                        value={onocoyData.efficiency}
-                                        unit="%"
-                                        delta={deltas.efficiency}
-                                        deltaType={deltas.efficiency > 0 ? 'better' : 'worse'}
-                                        evidence={benchmarkEvidence.efficiency}
+                                    <InsightCard
+                                        title="Coverage Efficiency"
+                                        value={`${onocoyData.efficiency.toFixed(0)}%`}
+                                        trend={deltas.efficiency > 0 ? 'up' : 'down'}
+                                        trendValue={`${deltas.efficiency > 0 ? '+' : ''}${deltas.efficiency.toFixed(0)}%`}
+                                        description="vs Peer Median"
                                     />
-                                    <BenchmarkMetricCard
-                                        label="Sustainability Ratio"
-                                        value={onocoyData.sustain.toFixed(1)}
-                                        unit="x"
-                                        delta={deltas.sustain}
-                                        deltaType={Math.abs(deltas.sustain) < 0.1 ? 'parity' : deltas.sustain > 0 ? 'better' : 'worse'}
-                                        evidence={benchmarkEvidence.sustain}
+                                    <InsightCard
+                                        title="Sustainability Ratio"
+                                        value={`${onocoyData.sustain.toFixed(1)}x`}
+                                        trend={Math.abs(deltas.sustain) < 0.1 ? 'neutral' : deltas.sustain > 0 ? 'up' : 'down'}
+                                        trendValue={`${deltas.sustain > 0 ? '+' : ''}${deltas.sustain.toFixed(1)}x`}
+                                        description="vs Peer Median"
                                     />
-                                    <BenchmarkMetricCard
-                                        label="Retention (Est. Weekly)"
-                                        value={onocoyData.retention.toFixed(1)}
-                                        unit="%"
-                                        delta={deltas.retention}
-                                        deltaType={deltas.retention > 0 ? 'better' : 'worse'}
-                                        evidence={benchmarkEvidence.retention}
+                                    <InsightCard
+                                        title="Retention (Est. Weekly)"
+                                        value={`${onocoyData.retention.toFixed(1)}%`}
+                                        trend={deltas.retention > 0 ? 'up' : 'down'}
+                                        trendValue={`${deltas.retention > 0 ? '+' : ''}${deltas.retention.toFixed(1)}%`}
+                                        description="vs Peer Median"
                                     />
                                 </div>
 
-                                <DecisionPromptCard
-                                    title="Benchmark Storyline"
-                                    tone={benchmarkStatus.tone}
-                                    statusLabel={benchmarkStatus.label}
-                                    statusDetail={benchmarkStatus.detail}
-                                    provenance={`Scenario: ${scenarioName} • Cohort: Onocoy vs ${selectedPeers.length} selected peers`}
-                                    decisions={[
-                                        `Should we optimize for faster payback (<${PAYBACK_GUARDRAILS.healthyMaxMonths} months) or higher long-run sustainability?`,
-                                        'Which peer gap matters most this quarter: efficiency, retention, or solvency trend?',
-                                        'Is current emission/burn policy sufficient under this scenario?'
-                                    ]}
-                                    questions={[
-                                        'If retention drops 3-5 points, which lever restores it without harming sustainability?',
-                                        'Are gains coming from real demand coverage or from temporary emissions support?',
-                                        'What guardrail breach should trigger a scenario re-run and governance review?'
-                                    ]}
-                                />
+
 
                                 {/* Charts Row */}
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
