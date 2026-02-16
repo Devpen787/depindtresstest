@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-02-16T14:08:46.041Z",
+  "mode": "quick",
+  "datasetPath": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/depin_optimizer_quick_dataset.csv",
+  "tableName": "depin_optimizer_quick_dataset",
+  "totalProtocols": 1,
+  "gateFailCount": 0,
+  "files": {
+    "sql": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/query_pack/depin_optimizer_quick_query_pack.sql",
+    "markdown": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/query_pack/depin_optimizer_quick_query_pack.md",
+    "summary": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/query_pack/depin_optimizer_quick_query_pack_summary.json",
+    "topFailingCsv": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/query_pack/depin_optimizer_quick_query_pack_top_failing.csv",
+    "sensitivityCsv": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/query_pack/depin_optimizer_quick_query_pack_sensitivity_hotspots.csv",
+    "chainComparisonCsv": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/query_pack/depin_optimizer_quick_query_pack_chain_comparison.csv"
+  }
+}

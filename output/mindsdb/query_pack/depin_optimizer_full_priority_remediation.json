@@ -1,0 +1,62 @@
+[
+  {
+    "rank": 1,
+    "protocol_id": "nosana_v1",
+    "protocol_name": "Nosana",
+    "chain": "solana",
+    "baseline_min_solvency": 0,
+    "priority": "P0 critical",
+    "primary_focus": "Fix break-even failure first; raise solvency floor at suggested price before other optimizations.",
+    "secondary_focus": "Tune hardware assumptions (`hardwareCost`, `proTierPct`, `proTierEfficiency`) before scale tests.",
+    "validation_command": "npm run skill:optimizer:quick -- --profile nosana_v1",
+    "flags_text": "Break-even threshold is not met at suggested price."
+  },
+  {
+    "rank": 2,
+    "protocol_id": "filecoin_v1",
+    "protocol_name": "Filecoin",
+    "chain": "filecoin",
+    "baseline_min_solvency": 0.0036,
+    "priority": "P0 critical",
+    "primary_focus": "Fix break-even failure first; raise solvency floor at suggested price before other optimizations.",
+    "secondary_focus": "Reduce dilution pressure (`kMintPrice`, `maxMintWeekly`, burn alignment) and validate minimum solvency.",
+    "validation_command": "npm run skill:optimizer:quick -- --profile filecoin_v1",
+    "flags_text": "Break-even threshold is not met at suggested price."
+  },
+  {
+    "rank": 3,
+    "protocol_id": "akash_v1",
+    "protocol_name": "Akash",
+    "chain": "cosmos",
+    "baseline_min_solvency": 0.005,
+    "priority": "P0 critical",
+    "primary_focus": "Fix break-even failure first; raise solvency floor at suggested price before other optimizations.",
+    "secondary_focus": "Reduce dilution pressure (`kMintPrice`, `maxMintWeekly`, burn alignment) and validate minimum solvency.",
+    "validation_command": "npm run skill:optimizer:quick -- --profile akash_v1",
+    "flags_text": "Break-even threshold is not met at suggested price."
+  },
+  {
+    "rank": 4,
+    "protocol_id": "aleph_v1",
+    "protocol_name": "Aleph.im",
+    "chain": "solana",
+    "baseline_min_solvency": 0.0098,
+    "priority": "P0 critical",
+    "primary_focus": "Fix break-even failure first; raise solvency floor at suggested price before other optimizations.",
+    "secondary_focus": "Recalibrate demand side (`kBuyPressure`, `baseDemand`, demand regime) and rerun break-even check.",
+    "validation_command": "npm run skill:optimizer:quick -- --profile aleph_v1",
+    "flags_text": "Break-even threshold is not met at suggested price."
+  },
+  {
+    "rank": 5,
+    "protocol_id": "xnet_v1",
+    "protocol_name": "XNET",
+    "chain": "solana",
+    "baseline_min_solvency": 0.1681,
+    "priority": "P2 elevated",
+    "primary_focus": "Fix break-even failure first; raise solvency floor at suggested price before other optimizations.",
+    "secondary_focus": "Reduce dilution pressure (`kMintPrice`, `maxMintWeekly`, burn alignment) and validate minimum solvency.",
+    "validation_command": "npm run skill:optimizer:quick -- --profile xnet_v1",
+    "flags_text": "Break-even threshold is not met at suggested price."
+  }
+]

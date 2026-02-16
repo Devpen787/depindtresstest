@@ -35,6 +35,22 @@ Prerequisites: Node.js 18+
 - `npm run dev` - start local dev server
 - `npm run build` - production build
 - `npm run test` - test suite
+- `npm run ci:optimizer` - run optimizer diagnostics + gate and write done-marker summary to `output/skill_reports/*_done_marker.md`
+- `npm run acceptance:generate` - generate acceptance snapshots from live evaluator outputs
+- `npm run ci:dashboard:acceptance` - generate acceptance snapshots and enforce temporary waiver gate (`M1,M2,M3`)
+
+Acceptance notes:
+- default generation applies interim operational promotion (`P -> Y`) for reproducible high-confidence answers.
+- strict mode disables promotion: `npm run acceptance:generate -- --strict`
+- dashboard acceptance gate enforces `>=80%` practical coverage for all sections except `I Onocoy Inputs` (excluded until primary inputs are wired).
+
+## Done Marker
+
+Completion criteria for this workstream are defined in:
+
+- `/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/docs/DASHBOARD_DONE_MARKER.md`
+
+Default CI scope is `optimizer`; switch to `dashboard` scope when you want full stakeholder acceptance coverage to block completion.
 
 ## Data Notes
 

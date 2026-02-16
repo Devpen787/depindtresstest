@@ -1,0 +1,4 @@
+factor,mentions,failing_mentions,avg_delta,max_delta
+Demand Strength,1,0,0.01,0.01
+Dilution Sensitivity,1,0,0.01,0.01
+Hardware CapEx,1,0,0,0

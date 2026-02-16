@@ -1,6 +1,6 @@
 # Paper-Grade Stress Pack Report
 
-Generated: 2026-02-11T16:55:46.185Z
+Generated: 2026-02-16T11:27:21.700Z
 Runs per cell: 30
 Failure threshold: 1.00%
 

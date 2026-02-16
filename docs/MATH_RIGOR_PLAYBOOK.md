@@ -43,6 +43,9 @@ Use this process when modifying:
 cd /Users/devinsonpena/Desktop/Files/DePin-Stress-Test
 npm run generate:golden-vectors
 npm run test:parity
+npm run test:math-invariants
+npm run test:backtest-calibration
+npm run generate:math-audit
 npm test
 npm run generate:paper-stress-report
 ```

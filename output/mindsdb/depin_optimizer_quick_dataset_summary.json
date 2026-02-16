@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-02-16T14:08:13.158Z",
+  "mode": "quick",
+  "selectedProfiles": [
+    "akash_v1"
+  ],
+  "totals": {
+    "selected": 1,
+    "exported": 1,
+    "diagnosticsFailures": 0,
+    "gatePass": 1,
+    "gateFail": 0
+  },
+  "files": {
+    "csv": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/depin_optimizer_quick_dataset.csv",
+    "jsonl": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/depin_optimizer_quick_dataset.jsonl",
+    "markdown": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/depin_optimizer_quick_dataset.md"
+  },
+  "failures": []
+}

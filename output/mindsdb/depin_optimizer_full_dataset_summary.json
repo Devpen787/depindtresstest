@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-02-16T11:29:29.484Z",
+  "mode": "full",
+  "selectedProfiles": [
+    "akash_v1",
+    "aleph_v1",
+    "dimo_v1",
+    "filecoin_v1",
+    "geodnet_v1",
+    "grass_v1",
+    "helium_bme_v1",
+    "hivemapper_v1",
+    "ionet_v1",
+    "nosana_v1",
+    "ono_v3_calibrated",
+    "adaptive_elastic_v1",
+    "xnet_v1"
+  ],
+  "totals": {
+    "selected": 13,
+    "exported": 13,
+    "diagnosticsFailures": 0,
+    "gatePass": 6,
+    "gateFail": 7
+  },
+  "files": {
+    "csv": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/depin_optimizer_full_dataset.csv",
+    "jsonl": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/depin_optimizer_full_dataset.jsonl",
+    "markdown": "/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/output/mindsdb/depin_optimizer_full_dataset.md"
+  },
+  "failures": []
+}

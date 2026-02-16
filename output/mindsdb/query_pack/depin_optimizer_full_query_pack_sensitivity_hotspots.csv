@@ -1,0 +1,6 @@
+factor,mentions,failing_mentions,avg_delta,max_delta
+Dilution Sensitivity,10,5,5.72,10.96
+Demand Strength,9,4,3.4744,19.93
+Emission Cap,9,6,2.8767,11.66
+Churn Sensitivity,7,3,0.4229,2.08
+Hardware CapEx,4,3,1.235,3.57

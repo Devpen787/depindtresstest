@@ -1,0 +1,2 @@
+chain,protocols,gate_pass_count,gate_pass_rate,break_even_pass_rate,defense_improved_rate,avg_baseline_min_solvency,median_scale_max_providers
+cosmos,1,1,1,1,1,0.0044,600

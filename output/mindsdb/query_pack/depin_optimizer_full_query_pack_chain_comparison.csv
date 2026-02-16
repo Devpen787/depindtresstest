@@ -1,0 +1,5 @@
+chain,protocols,gate_pass_count,gate_pass_rate,break_even_pass_rate,defense_improved_rate,avg_baseline_min_solvency,median_scale_max_providers
+polygon,1,1,1,1,1,0.7086,18750
+solana,10,5,0.5,0.5,1,0.7342,225
+filecoin,1,0,0,0,1,0.0036,300
+cosmos,1,0,0,0,1,0.005,80

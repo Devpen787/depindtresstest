@@ -1,0 +1,10 @@
+section	questions	Y	P	N	direct_coverage_pct	practical_coverage_pct	pass_80_practical
+A Core	12	12	0	0	100.0	100.0	PASS
+B Builders	18	13	5	0	72.2	86.1	PASS
+C Governance	18	11	7	0	61.1	80.6	PASS
+D Providers	12	11	1	0	91.7	95.8	PASS
+E Users	8	6	2	0	75.0	87.5	PASS
+F Researchers	14	11	3	0	78.6	89.3	PASS
+G Comparative	8	6	2	0	75.0	87.5	PASS
+H Token	10	9	1	0	90.0	95.0	PASS
+I Onocoy Inputs	3	0	0	3	0.0	0.0	FAIL

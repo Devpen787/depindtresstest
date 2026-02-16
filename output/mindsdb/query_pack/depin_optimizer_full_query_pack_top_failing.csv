@@ -1,0 +1,8 @@
+protocol_id,protocol_name,chain,baseline_min_solvency,break_even_pass,defense_improved,flag_count,flags_text
+nosana_v1,Nosana,solana,0,false,true,1,Break-even threshold is not met at suggested price.
+filecoin_v1,Filecoin,filecoin,0.0036,false,true,1,Break-even threshold is not met at suggested price.
+akash_v1,Akash,cosmos,0.005,false,true,1,Break-even threshold is not met at suggested price.
+aleph_v1,Aleph.im,solana,0.0098,false,true,1,Break-even threshold is not met at suggested price.
+xnet_v1,XNET,solana,0.1681,false,true,1,Break-even threshold is not met at suggested price.
+ono_v3_calibrated,ONOCOY,solana,0.1923,false,true,1,Break-even threshold is not met at suggested price.
+geodnet_v1,Geodnet,solana,0.3624,false,true,1,Break-even threshold is not met at suggested price.
