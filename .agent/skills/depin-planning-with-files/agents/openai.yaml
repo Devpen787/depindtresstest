@@ -1,0 +1,4 @@
+interface:
+  display_name: "DePIN Planning With Files"
+  short_description: "Persistent file-based planning for multi-phase tasks."
+  default_prompt: "Use $depin-planning-with-files to set up plan, findings, and progress files before we run this complex task."

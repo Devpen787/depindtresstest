@@ -1,0 +1,4 @@
+interface:
+  display_name: "DePIN Verification Gate"
+  short_description: "Require fresh command evidence before completion claims."
+  default_prompt: "Use $depin-verification-before-completion to verify this change with the correct command set before we mark it done."

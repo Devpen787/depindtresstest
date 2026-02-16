@@ -1,0 +1,4 @@
+interface:
+  display_name: "DePIN Systematic Debugging"
+  short_description: "Root-cause-first debugging for model and optimizer regressions."
+  default_prompt: "Use $depin-systematic-debugging to diagnose this simulation or optimizer issue and provide root-cause evidence before proposing fixes."

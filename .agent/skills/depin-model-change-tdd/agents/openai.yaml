@@ -1,0 +1,4 @@
+interface:
+  display_name: "DePIN Model TDD"
+  short_description: "Test-first workflow for simulation and optimizer logic."
+  default_prompt: "Use $depin-model-change-tdd to drive this model change with a red-green-refactor loop and parity-safe checks."
