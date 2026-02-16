@@ -512,11 +512,11 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "tokens"
             },
             "emissions": {
-                "value": 770000,
+                "value": 15000,
                 "unit": "tokens/week"
             },
             "burn_fraction": {
-                "value": 0,
+                "value": 0.9,
                 "unit": "decimal"
             },
             "adjustment_lag": {
@@ -529,20 +529,20 @@ export const GENERATED_PROTOCOL_PROFILES = [
             },
             "provider_economics": {
                 "opex_weekly": {
-                    "value": 150,
+                    "value": 20,
                     "unit": "usd/week"
                 },
                 "churn_threshold": {
-                    "value": 50,
+                    "value": 0,
                     "unit": "usd/week_profit"
                 }
             },
             "initial_active_providers": {
-                "value": 50000,
+                "value": 20,
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 2,
+                "value": 0.03,
                 "unit": "usd"
             },
             "hardware_cost": {

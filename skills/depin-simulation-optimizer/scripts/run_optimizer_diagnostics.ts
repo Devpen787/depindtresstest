@@ -3,6 +3,7 @@ import path from 'path';
 import { runSimulation } from '../../../src/model/simulation.ts';
 import type { SimulationParams, AggregateResult } from '../../../src/model/types.ts';
 import { GENERATED_PROTOCOL_PROFILES } from '../../../src/data/generated/protocolProfiles.generated.ts';
+import { getProtocolRuntimeCalibration } from '../../../src/data/protocolRuntimeCalibrations.ts';
 
 type Mode = 'quick' | 'full';
 
@@ -337,6 +338,7 @@ function resolveProfile(profileId?: string): ProtocolProfileV1 {
 function buildParams(profile: ProtocolProfileV1, mode: Mode): SimulationParams {
     const nSims = mode === 'quick' ? 8 : 25;
     const horizon = mode === 'quick' ? 26 : 52;
+    const runtimeCalibration = getProtocolRuntimeCalibration(profile.metadata.id);
     const baseDemand = Math.max(
         12_000,
         Math.round(profile.parameters.initial_active_providers.value * 180 * 0.65)
@@ -366,12 +368,12 @@ function buildParams(profile: ProtocolProfileV1, mode: Mode): SimulationParams {
         profitThresholdToJoin: 15,
         maxProviderGrowthRate: 0.15,
         maxProviderChurnRate: 0.10,
-        kBuyPressure: 0.08,
-        kSellPressure: 0.12,
-        kDemandPrice: 0.15,
-        kMintPrice: 0.35,
-        baseServicePrice: 0.5,
-        servicePriceElasticity: 0.6,
+        kBuyPressure: runtimeCalibration.kBuyPressure ?? 0.08,
+        kSellPressure: runtimeCalibration.kSellPressure ?? 0.12,
+        kDemandPrice: runtimeCalibration.kDemandPrice ?? 0.15,
+        kMintPrice: runtimeCalibration.kMintPrice ?? 0.35,
+        baseServicePrice: runtimeCalibration.baseServicePrice ?? 0.5,
+        servicePriceElasticity: runtimeCalibration.servicePriceElasticity ?? 0.6,
         minServicePrice: 0.05,
         maxServicePrice: 5.0,
         rewardLagWeeks: profile.parameters.adjustment_lag.value,
