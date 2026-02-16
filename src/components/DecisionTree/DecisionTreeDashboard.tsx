@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSimulationRunner } from '../../hooks/useSimulationRunner';
+import { useStoryGenerator } from '../../hooks/useStoryGenerator';
 import { WizardView } from './Wizard/WizardView';
 import { BranchLayout } from './Shared/BranchLayout';
 import { FinancialStabilityView } from './Branches/Financial/FinancialStabilityView';
@@ -19,20 +20,25 @@ type ViewState = 'wizard' | 'financial' | 'miner' | 'utility' | 'risk';
 
 export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ sim, onBackToLegacy }) => {
     const [activeView, setActiveView] = useState<ViewState>('wizard');
-
-    // SAFEGUARD: Ensure simulation data exists before rendering
-    if (!sim || !sim.aggregated || sim.aggregated.length === 0 || !sim.activeProfile) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400 font-mono animate-pulse">
-                Initializing Decision Engine...
-            </div>
-        );
-    }
+    const hasSimulationData = Boolean(sim && sim.aggregated && sim.aggregated.length > 0 && sim.activeProfile);
+    const aggregatedData = hasSimulationData ? sim.aggregated : [];
 
     // --- 1. CALCULATE HIGH-LEVEL METRICS FOR WIZARD ---
     const wizardMetrics = useMemo(() => {
+        if (!hasSimulationData) {
+            return {
+                solvencyScore: 0,
+                solvencyFloor: 0,
+                paybackMonths: 0,
+                networkUtilization: 0,
+                resilienceScore: 0,
+                maxDrawdown: 0,
+                avgChurnRate: 0,
+                insolvencyWeeks: 0
+            };
+        }
         try {
-            return calculateWizardMetrics(sim.aggregated, sim.params?.hardwareCost || 1000);
+            return calculateWizardMetrics(aggregatedData, sim.params?.hardwareCost || 1000);
         } catch (e) {
             console.error("Error calculating V2 metrics:", e);
             return {
@@ -46,9 +52,10 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                 insolvencyWeeks: 0
             };
         }
-    }, [sim.aggregated, sim.params]);
+    }, [hasSimulationData, aggregatedData, sim.params]);
 
     const wizardPercentiles = useMemo(() => {
+        if (!hasSimulationData) return null;
         try {
             const candidateAggregates = sim.peerWizardAggregated && Object.keys(sim.peerWizardAggregated).length > 1
                 ? sim.peerWizardAggregated
@@ -58,7 +65,8 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
 
             const peerMetrics = Object.entries(candidateAggregates)
                 .map(([profileId, series]) => {
-                    if (!series || series.length === 0) return null;
+                    const typedSeries = series as any[];
+                    if (!typedSeries || typedSeries.length === 0) return null;
                     const profile = PROTOCOL_PROFILES.find((p) => p.metadata.id === profileId);
                     const hardwareCost = profile?.parameters?.hardware_cost?.value ?? sim.params?.hardwareCost ?? 1000;
                     return {
@@ -81,7 +89,13 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
             console.error('Failed to compute wizard percentiles', error);
             return null;
         }
-    }, [sim.multiAggregated, sim.peerWizardAggregated, sim.activeProfile?.metadata?.id, sim.params?.hardwareCost]);
+    }, [hasSimulationData, sim.multiAggregated, sim.peerWizardAggregated, sim.activeProfile?.metadata?.id, sim.params?.hardwareCost]);
+
+    // --- 3. STORY ENGINE ---
+    const story = useStoryGenerator({
+        data: aggregatedData,
+        scenario: sim.params?.scenario
+    });
 
     // --- 2. BRANCH RENDERING ---
     const renderBranch = () => {
@@ -98,7 +112,7 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                         onOpenSandbox={() => onBackToLegacy()} // TODO: Add Deep Link context
                     >
                         <FinancialStabilityView
-                            data={sim.aggregated}
+                            data={aggregatedData}
                             onOpenSandbox={() => onBackToLegacy()}
                         />
                     </BranchLayout>
@@ -115,7 +129,7 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                         onOpenSandbox={() => onBackToLegacy()}
                     >
                         <MinerProfitabilityView
-                            data={sim.aggregated}
+                            data={aggregatedData}
                             hardwareCost={sim.params.hardwareCost || 1000}
                             onOpenSandbox={onBackToLegacy}
                         />
@@ -133,7 +147,7 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                         onOpenSandbox={() => onBackToLegacy()}
                     >
                         <RealUtilityView
-                            data={sim.aggregated}
+                            data={aggregatedData}
                             onOpenSandbox={() => onBackToLegacy()}
                         />
                     </BranchLayout>
@@ -150,15 +164,25 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                         onOpenSandbox={() => onBackToLegacy()}
                     >
                         <RiskStabilityView
-                            data={sim.aggregated}
+                            data={aggregatedData}
                             onRunAnalysis={sim.runSensitivityAnalysis}
                             onOpenSandbox={onBackToLegacy}
                         />
                     </BranchLayout>
                 );
             default:
+                if (!hasSimulationData) {
+                    return (
+                        <div
+                            data-cy="decision-tree-loading"
+                            className="flex h-screen items-center justify-center bg-slate-950 text-slate-400 font-mono animate-pulse"
+                        >
+                            Initializing Decision Engine...
+                        </div>
+                    );
+                }
                 return (
-                    <div className="flex flex-col h-screen bg-slate-950">
+                    <div data-cy="decision-tree-root" className="flex flex-col h-screen bg-slate-950">
                         {/* Main Wizard Layer - Header with Profile Switcher */}
                         <header className="h-16 flex items-center justify-between px-8 border-b border-slate-900 bg-slate-950/50 backdrop-blur-md sticky top-0 z-10">
                             <div className="flex items-center gap-4">
@@ -182,7 +206,11 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                                     </select>
                                 </div>
                             </div>
-                            <button onClick={onBackToLegacy} className="text-xs font-bold text-slate-400 hover:text-white transition-colors">
+                            <button
+                                data-cy="decision-tree-exit"
+                                onClick={onBackToLegacy}
+                                className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                            >
                                 Exit to Sandbox
                             </button>
                         </header>
@@ -191,6 +219,7 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                             onSelectBranch={(b) => setActiveView(b as ViewState)}
                             metrics={wizardMetrics}
                             percentiles={wizardPercentiles}
+                            story={story}
                         />
                     </div>
                 );

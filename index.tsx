@@ -29,16 +29,21 @@ import { DecisionTreeDashboard } from './src/components/DecisionTree/DecisionTre
 // Hooks & Utils
 import { useSimulationRunner } from './src/hooks/useSimulationRunner';
 import { calculateRegime } from './src/utils/regime';
-import { getMockOnChainMetrics, type OnChainMetrics } from './src/services/dune';
 import { fetchMultipleTokens, type TokenMarketData, ALL_DEPIN_TOKEN_IDS, getTimeUntilNextRefresh, autoRefreshManager } from './src/services/coingecko';
 import { SolanaVerifier, type NetworkStatus } from './src/model/solana';
 import { useProtocolMetrics } from './src/hooks/useProtocolMetrics'; // Import Hook
 import { PROTOCOL_PROFILES } from './src/data/protocols';
 import { PEER_GROUPS } from './src/data/peerGroups';
 
+
 const App: React.FC = () => {
+  const profiles = PROTOCOL_PROFILES;
+  const { metrics: onChainMetrics } = useProtocolMetrics(
+    profiles.map(p => p.metadata.id)
+  );
+
   // Use Custom Hook for Simulation Logic
-  const sim = useSimulationRunner();
+  const sim = useSimulationRunner(onChainMetrics);
 
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState<'simulator' | 'thesis' | 'case_study' | 'benchmark' | 'diagnostic'>('simulator');
@@ -116,12 +121,6 @@ const App: React.FC = () => {
 
   // --- EFFECTS ---
 
-  // NEW: Unified Protocol Metrics Hook (Dune + Snapshots)
-  const profiles = PROTOCOL_PROFILES; // Ensure scope validity
-  const { metrics: onChainMetrics, loading: protocolsLoading } = useProtocolMetrics(
-    profiles.map(p => p.metadata.id)
-  );
-
   useEffect(() => {
     // Initial Loads (Network Status)
     SolanaVerifier.getNetworkStatus().then(setNetworkStatus);
@@ -159,6 +158,8 @@ const App: React.FC = () => {
 
   const incentiveRegime = React.useMemo(() => calculateRegime(sim.aggregated, sim.activeProfile), [sim.aggregated, sim.activeProfile]);
 
+
+
   // V2 RENDER BRANCH
   if (dashboardMode === 'v2') {
     return (
@@ -170,7 +171,10 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-hidden">
+    <div
+      data-cy="dashboard-root"
+      className="h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-hidden"
+    >
       {/* HEADER */}
       <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-xl shrink-0 z-[100]">
         <div className="flex items-center gap-8">
@@ -179,7 +183,7 @@ const App: React.FC = () => {
               <Scale className="text-white" size={20} />
             </div>
             <div>
-              <h1 className="text-md font-extrabold tracking-tight">DePIN Stress Test</h1>
+              <h1 data-cy="app-title" className="text-md font-extrabold tracking-tight">DePIN Stress Test</h1>
               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">CAS Thesis Architecture</p>
             </div>
           </div>
@@ -189,6 +193,8 @@ const App: React.FC = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
+                data-cy={`tab-${tab}`}
+                aria-pressed={activeTab === tab}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab
                   ? tab === 'simulator' ? 'bg-indigo-600 text-white shadow-lg' :
                     tab === 'benchmark' ? 'bg-indigo-600 text-white shadow-lg' :
@@ -205,6 +211,8 @@ const App: React.FC = () => {
           <nav className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => { setActiveTab('simulator'); sim.setViewMode('explorer'); }}
+              data-cy="sim-view-explorer"
+              aria-pressed={activeTab === 'simulator' && sim.viewMode === 'explorer'}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'explorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
             >
               <Search size={14} /> Explorer
@@ -214,12 +222,16 @@ const App: React.FC = () => {
                 setActiveTab('simulator');
                 sim.setViewMode('comparison');
               }}
+              data-cy="sim-view-comparison"
+              aria-pressed={activeTab === 'simulator' && sim.viewMode === 'comparison'}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'comparison' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
             >
               <GitCompare size={14} /> Comparison
             </button>
             <button
               onClick={() => { setActiveTab('simulator'); sim.setViewMode('sandbox'); }}
+              data-cy="sim-view-sandbox"
+              aria-pressed={activeTab === 'simulator' && sim.viewMode === 'sandbox'}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'sandbox' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
             >
               <LayoutGrid size={14} /> Sandbox
@@ -244,25 +256,44 @@ const App: React.FC = () => {
             <DropdownToggle icon={<Zap size={14} />} checked={useNewModel} onChange={() => setUseNewModel(!useNewModel)} description={useNewModel ? 'V2: With sell pressure model' : 'V1: Legacy model'}>Use V2 Model</DropdownToggle>
           </HeaderDropdown>
 
-          <button onClick={() => { setActiveTab('simulator'); sim.setViewMode('settings'); }} className={`p-2.5 rounded-xl border transition-all ${sim.viewMode === 'settings' && activeTab === 'simulator' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`} title="Settings">
+          <button
+            onClick={() => { setActiveTab('simulator'); sim.setViewMode('settings'); }}
+            data-cy="open-settings"
+            className={`p-2.5 rounded-xl border transition-all ${sim.viewMode === 'settings' && activeTab === 'simulator' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
+            title="Settings"
+          >
             <Settings2 size={16} />
           </button>
 
-          <button onClick={() => setShowExportPanel(!showExportPanel)} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-[10px] font-bold ${showExportPanel ? 'bg-emerald-600 text-white border-emerald-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-emerald-400 hover:border-emerald-500/50'}`}>
+          <button
+            onClick={() => setShowExportPanel(!showExportPanel)}
+            data-cy="toggle-export"
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-[10px] font-bold ${showExportPanel ? 'bg-emerald-600 text-white border-emerald-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-emerald-400 hover:border-emerald-500/50'}`}
+          >
             <Download size={14} /> Export
           </button>
 
-          <button onClick={() => setDashboardMode('v2')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-bold transition-all">
+          <button
+            onClick={() => setDashboardMode('v2')}
+            data-cy="open-decision-tree"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-bold transition-all"
+          >
             <LayoutGrid size={14} /> Decision Tree
           </button>
 
           {activeTab === 'simulator' && (
-            <button onClick={sim.runSimulation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95">
+            <button
+              onClick={sim.runSimulation}
+              data-cy="run-matrix"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 active:scale-95"
+            >
               {sim.loading ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />} Run Matrix
             </button>
           )}
         </div>
       </header>
+
+
 
       {/* MAIN CONTENT AREA */}
       {activeTab === 'benchmark' ? (

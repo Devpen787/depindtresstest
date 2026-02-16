@@ -27,3 +27,6 @@ dist-ssr
 *.pdf
 tmp/
 output/skill_reports/
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
