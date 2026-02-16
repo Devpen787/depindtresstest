@@ -14,6 +14,7 @@ import type {
 } from './types';
 import { SeededRNG } from './rng.ts';
 import { generateDemandSeries } from './demand.ts';
+import { validateSimulationResult } from '../utils/quality/validation.ts';
 
 // ============================================================================
 // PROVIDER AGENT FUNCTIONS
@@ -113,7 +114,8 @@ function processProviderDecisions(
   providerProfits: Map<string, number>,
   params: SimulationParams,
   currentWeek: number,
-  rng: SeededRNG
+  rng: SeededRNG,
+  forcedJoinCount: number = 0,
 ): { pool: ProviderPool; churnCount: number; joinCount: number } {
   const newActive: Provider[] = [];
   const newChurned: Provider[] = [...pool.churned];
@@ -134,10 +136,12 @@ function processProviderDecisions(
 
     // Churn decision based on consecutive loss weeks
     // Probability increases with consecutive losses
+    const providerAgeWeeks = Math.max(0, currentWeek - provider.joinedWeek);
     const churnProbability = calculateChurnProbability(
       provider.consecutiveLossWeeks,
       profit,
-      params
+      params,
+      providerAgeWeeks,
     );
 
     if (rng.next() < churnProbability) {
@@ -208,8 +212,9 @@ function processProviderDecisions(
   // Cap at 0 if negative, AND HARD BLOCK if average profit is negative (Death Spiral Prevention)
   potentialJoins = avgProfit < 0 ? 0 : Math.max(0, potentialJoins);
 
-  if (potentialJoins > 0) {
-    for (let i = 0; i < potentialJoins; i++) {
+  const totalPlannedJoins = Math.max(0, potentialJoins) + Math.max(0, Math.floor(forcedJoinCount));
+  if (totalPlannedJoins > 0) {
+    for (let i = 0; i < totalPlannedJoins; i++) {
       // Add to pending (will come online after lead time)
       newPending.push(createProvider(rng, params, currentWeek));
     }
@@ -232,7 +237,8 @@ function processProviderDecisions(
 export function calculateChurnProbability(
   consecutiveLossWeeks: number,
   currentProfit: number,
-  params: SimulationParams
+  params: SimulationParams,
+  _providerAgeWeeks: number = 0,
 ): number {
   // Base probability increases with consecutive losses
   let prob = 0;
@@ -255,7 +261,13 @@ export function calculateChurnProbability(
     prob += 0.1;
   }
 
-  return Math.min(prob, 0.9); // Cap at 90%
+  // Optional sunk-cost damping: lowers churn under losses for capex-heavy deployments.
+  const damping = Math.max(0, Math.min(0.95, params.sunkCostChurnDamping || 0));
+  if (damping > 0 && currentProfit < 0) {
+    prob *= (1 - damping);
+  }
+
+  return Math.min(Math.max(prob, 0), 0.9); // Cap at 90%
 }
 
 /**
@@ -485,6 +497,9 @@ export function simulateOne(
 
   // Initialise Providers (Micro Pool)
   let providerPool = initialiseProviders(rng, params);
+  const backlogFraction = Math.max(0, Math.min(2, params.preorderBacklogFraction || 0));
+  const backlogReleaseWeeks = Math.max(0, Math.floor(params.preorderReleaseWeeks || 0));
+  let backlogRemaining = Math.floor(providerPool.active.length * backlogFraction);
 
   // Liquidity Pool State (Module 3)
   // Global Liquidity
@@ -515,17 +530,29 @@ export function simulateOne(
     let churnCount = 0;
     let joinCount = 0;
 
+    let forcedBacklogJoins = 0;
+    if (backlogRemaining > 0 && backlogReleaseWeeks > 0 && t < backlogReleaseWeeks) {
+      const weeksLeft = Math.max(1, backlogReleaseWeeks - t);
+      forcedBacklogJoins = Math.max(0, Math.ceil(backlogRemaining / weeksLeft));
+      backlogRemaining = Math.max(0, backlogRemaining - forcedBacklogJoins);
+    }
+
     if (previousProfits) {
       const decision = processProviderDecisions(
         providerPool,
         previousProfits,
         params,
         t,
-        rng
+        rng,
+        forcedBacklogJoins,
       );
       providerPool = decision.pool;
       churnCount = decision.churnCount;
       joinCount = decision.joinCount;
+    } else if (forcedBacklogJoins > 0) {
+      for (let i = 0; i < forcedBacklogJoins; i++) {
+        providerPool.pending.push(createProvider(rng, params, t));
+      }
     }
 
     // Vampire Attack Logic (Module 4)
@@ -951,6 +978,12 @@ export function runSimulation(params: SimulationParams): AggregateResult[] {
     }
 
     aggregate.push(step as AggregateResult);
+  }
+
+  // Post-Simulation Validation (Thesis Integrity)
+  const validation = validateSimulationResult(aggregate);
+  if (!validation.isValid) {
+    console.warn('Simulation Integrity Warning:', validation.issues);
   }
 
   return aggregate;

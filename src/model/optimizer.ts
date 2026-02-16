@@ -11,34 +11,81 @@ export class Optimizer {
         targetMetric: 'solvency' | 'profit' = 'solvency',
         threshold: number = 1.0 // Deflationary Break Even > 1.0 (Burn > Mint)
     ): number {
+        const fastParams = { ...baseParams, nSims: 8 };
+
+        if (targetMetric === 'solvency') {
+            // In this model, higher price can increase dilution pressure (USD value of fixed token emissions).
+            // Search for the HIGHEST price that still clears the solvency threshold.
+            const probes = [0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000];
+
+            const passesThreshold = (price: number): boolean => {
+                fastParams.initialPrice = price;
+                const results = runSimulation(fastParams);
+                const minSolvency = Math.min(...results.map(r => r.solvencyScore.mean));
+                return minSolvency >= threshold;
+            };
+
+            let bestPassing = probes[0];
+            let foundPassing = false;
+            let lowerBound = probes[0];
+            let upperBound = probes[probes.length - 1];
+            let foundBracket = false;
+
+            for (const probe of probes) {
+                const pass = passesThreshold(probe);
+                if (pass) {
+                    bestPassing = probe;
+                    lowerBound = probe;
+                    foundPassing = true;
+                    continue;
+                }
+                if (foundPassing) {
+                    upperBound = probe;
+                    foundBracket = true;
+                    break;
+                }
+            }
+
+            if (!foundPassing) {
+                return parseFloat(probes[0].toFixed(6));
+            }
+
+            if (!foundBracket) {
+                return parseFloat(bestPassing.toFixed(6));
+            }
+
+            let bestPrice = bestPassing;
+            for (let i = 0; i < 18; i++) {
+                const mid = (lowerBound + upperBound) / 2;
+                if (passesThreshold(mid)) {
+                    bestPrice = mid;
+                    lowerBound = mid;
+                } else {
+                    upperBound = mid;
+                }
+            }
+
+            return bestPrice;
+        }
+
+        // Profit target keeps the original search direction: find minimum price that clears threshold.
         let low = 0.01;
         let high = 1000.0;
         let bestPrice = high;
-
-        const fastParams = { ...baseParams, nSims: 5 };
 
         for (let i = 0; i < 15; i++) {
             const mid = (low + high) / 2;
             fastParams.initialPrice = mid;
 
             const results = runSimulation(fastParams);
-
-            let isPassing = false;
-
-            if (targetMetric === 'solvency') {
-                // Check minimum weekly solvency (avoid any insolvency periods)
-                const minSolvency = Math.min(...results.map(r => r.solvencyScore.mean));
-                isPassing = minSolvency >= threshold;
-            } else {
-                const avgProfit = results.reduce((sum, r) => sum + r.profit.mean, 0) / results.length;
-                isPassing = avgProfit >= threshold;
-            }
+            const avgProfit = results.reduce((sum, r) => sum + r.profit.mean, 0) / results.length;
+            const isPassing = avgProfit >= threshold;
 
             if (isPassing) {
                 bestPrice = mid;
-                high = mid; // Try lower
+                high = mid;
             } else {
-                low = mid; // Need higher
+                low = mid;
             }
         }
 
@@ -50,31 +97,57 @@ export class Optimizer {
      * (Scale Limit Test)
      */
     static findMaxScalableSupply(baseParams: SimulationParams): number {
-        let low = 100;
-        let high = 5_000_000;
-        let bestScale = low;
+        const fastParams = { ...baseParams, nSims: 8 };
 
-        const fastParams = { ...baseParams, nSims: 5 };
+        const evaluate = (initialProviders: number) => {
+            const results = runSimulation({ ...fastParams, initialProviders });
+            const finalProviders = results[results.length - 1].providers.mean;
+            const retentionRatio = finalProviders / Math.max(initialProviders, 1);
+            return { initialProviders, finalProviders, retentionRatio };
+        };
 
-        for (let i = 0; i < 15; i++) {
-            const mid = Math.floor((low + high) / 2);
-            fastParams.initialProviders = mid;
+        const searchCap = Math.max(1000, Math.floor(baseParams.initialProviders * 10));
+        const coarseCandidates = [
+            1, 2, 5, 10, 20, 30, 40, 50, 60, 80, 100, 120, 150, 200, 300, 500, 800, 1000
+        ];
+        const multipliers = [
+            0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2, 3, 4, 5, 7.5, 10
+        ];
 
-            const results = runSimulation(fastParams);
+        const candidateSet = new Set<number>(coarseCandidates);
+        for (const multiplier of multipliers) {
+            candidateSet.add(Math.max(1, Math.floor(baseParams.initialProviders * multiplier)));
+        }
 
-            // Pass if Solvency > 1.0
-            const minSolvency = Math.min(...results.map(r => r.solvencyScore.mean));
-            const isPassing = minSolvency >= 1.0;
+        const candidates = Array.from(candidateSet)
+            .filter((value) => value <= searchCap)
+            .sort((a, b) => a - b);
 
-            if (isPassing) {
-                bestScale = mid;
-                low = mid; // Try higher (maximize)
-            } else {
-                high = mid; // Too big, scale down
+        let bestFeasible: { initialProviders: number; finalProviders: number; retentionRatio: number } | null = null;
+        let bestFallback: { initialProviders: number; finalProviders: number; retentionRatio: number } | null = null;
+
+        for (const candidate of candidates) {
+            const score = evaluate(candidate);
+
+            if (
+                bestFallback === null ||
+                score.retentionRatio > bestFallback.retentionRatio ||
+                (score.retentionRatio === bestFallback.retentionRatio && score.initialProviders > bestFallback.initialProviders)
+            ) {
+                bestFallback = score;
+            }
+
+            if (score.retentionRatio >= 1) {
+                if (bestFeasible === null || score.initialProviders > bestFeasible.initialProviders) {
+                    bestFeasible = score;
+                }
             }
         }
-        console.log(`[Optimizer] Max Scale: ${bestScale}`);
-        return bestScale;
+
+        const selected = bestFeasible ?? bestFallback;
+        const maxScale = selected ? selected.initialProviders : Math.max(1, Math.floor(baseParams.initialProviders));
+        console.log(`[Optimizer] Max Scale: ${maxScale}`);
+        return maxScale;
     }
 
     /**
@@ -85,37 +158,56 @@ export class Optimizer {
         // If no competitor, no need to defend.
         if (baseParams.competitorYield <= 0) return baseParams.maxMintWeekly;
 
-        let low = baseParams.maxMintWeekly; // Can't go lower than current if currently losing nodes? Actually we can.
-        // Let's assume we search from 0 to 10x current.
-        low = 100;
-        let high = baseParams.maxMintWeekly * 20;
-        let bestEmission = high; // Default to paying a lot to be safe
+        const fastParams = { ...baseParams, nSims: 8 };
+        const baselineRun = runSimulation(fastParams);
+        const baselineChurnRate =
+            baselineRun.reduce((sum, r) => sum + r.churnCount.mean, 0) / Math.max(baseParams.initialProviders, 1);
+        const baselineFinalProviders = baselineRun[baselineRun.length - 1].providers.mean;
 
-        const fastParams = { ...baseParams, nSims: 5 };
+        const minEmission = 100;
+        const maxEmission = Math.max(minEmission, baseParams.maxMintWeekly * 20);
+        const multipliers = [0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 5, 8, 12, 20];
+        const candidates = Array.from(
+            new Set(
+                multipliers.map((m) =>
+                    Math.floor(
+                        Math.max(minEmission, Math.min(maxEmission, baseParams.maxMintWeekly * m))
+                    )
+                )
+            )
+        ).sort((a, b) => a - b);
 
-        for (let i = 0; i < 15; i++) {
-            const mid = (low + high) / 2;
-            fastParams.maxMintWeekly = mid;
+        let bestFallback = {
+            emission: Math.floor(baseParams.maxMintWeekly),
+            churnRate: baselineChurnRate,
+            finalProviders: baselineFinalProviders
+        };
+        let bestFeasible: typeof bestFallback | null = null;
 
-            const results = runSimulation(fastParams);
+        for (const emission of candidates) {
+            const results = runSimulation({ ...fastParams, maxMintWeekly: emission });
+            const churnRate =
+                results.reduce((sum, r) => sum + r.churnCount.mean, 0) / Math.max(baseParams.initialProviders, 1);
+            const finalProviders = results[results.length - 1].providers.mean;
 
-            // Pass if total Churn < 5% of initial
-            // Vampire Churn is logged in `vampireChurn`.
-            // We want to minimize `vampireChurn` or `churnCount`.
-            const totalChurn = results.reduce((sum, r) => sum + r.churnCount.mean, 0);
-            const initial = baseParams.initialProviders;
-            const churnRate = totalChurn / initial;
+            if (
+                churnRate < bestFallback.churnRate ||
+                (churnRate === bestFallback.churnRate && finalProviders > bestFallback.finalProviders)
+            ) {
+                bestFallback = { emission, churnRate, finalProviders };
+            }
 
-            const isPassing = churnRate < 0.10; // Allow max 10% churn over the period
+            const improvesChurn = churnRate <= baselineChurnRate;
+            const preservesEndState = finalProviders >= baselineFinalProviders;
 
-            if (isPassing) {
-                bestEmission = mid;
-                high = mid; // Try lower emission (optimize cost)
-            } else {
-                low = mid; // Need more emission
+            if (improvesChurn && preservesEndState) {
+                if (bestFeasible === null || emission < bestFeasible.emission) {
+                    bestFeasible = { emission, churnRate, finalProviders };
+                }
             }
         }
-        return Math.floor(bestEmission);
+
+        return bestFeasible ? bestFeasible.emission : bestFallback.emission;
     }
 
     /**

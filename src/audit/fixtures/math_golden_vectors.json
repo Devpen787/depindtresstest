@@ -1,7 +1,7 @@
 {
   "default_tolerance": 1e-09,
   "metadata": {
-    "generated_at_utc": "2026-02-11T16:53:53.205559+00:00",
+    "generated_at_utc": "2026-02-16T11:26:47.717301+00:00",
     "generator": "src/audit/python/generate_golden_vectors.py",
     "schema_version": "1.2.0"
   },

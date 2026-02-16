@@ -85,6 +85,9 @@ export interface SimulationParams {
   profitThresholdToJoin: number;       // Min expected profit to attract new providers
   maxProviderGrowthRate: number;       // Max % provider growth per week
   maxProviderChurnRate: number;        // Max % provider churn per week
+  preorderBacklogFraction?: number;    // Fraction of initial providers that are pre-ordered backlog (0-2)
+  preorderReleaseWeeks?: number;       // Weeks over which backlog is released into pending queue
+  sunkCostChurnDamping?: number;       // Churn probability damping under losses (0-0.95)
 
   // Price Sensitivity Coefficients
   kBuyPressure: number;                // Buy pressure → price coefficient
@@ -365,4 +368,3 @@ export interface ParamDocumentation {
   impact: string;
   category: 'time' | 'tokenomics' | 'demand' | 'macro' | 'provider' | 'price' | 'service' | 'simulation';
 }
-

@@ -167,6 +167,38 @@ describe('V3 Simulation Engine (Math Verification)', () => {
         });
     });
 
+    describe('3b. Structural Dynamics: Preorder Backlog + Sunk Cost', () => {
+        it('should keep provider count expanding during bearish drawdown when backlog is present', () => {
+            const params = {
+                ...MOCK_PARAMS,
+                T: 26,
+                seed: 404,
+                macro: 'bearish',
+                demandType: 'consistent',
+                initialProviders: 500,
+                baseDemand: 900,
+                providerCostPerWeek: 22,
+                churnThreshold: 6,
+                profitThresholdToJoin: 60,
+                maxProviderGrowthRate: 0.01,
+                maxProviderChurnRate: 0.05,
+                maxMintWeekly: 5000,
+                burnPct: 0.05,
+                investorUnlockWeek: -1,
+                investorSellPct: 0,
+                preorderBacklogFraction: 1.50,
+                preorderReleaseWeeks: 24,
+                sunkCostChurnDamping: 0.80,
+            } as unknown as SimulationParams;
+
+            const run = simulateOne(params, params.seed);
+            const initial = run[0].providers;
+            const final = run[run.length - 1].providers;
+
+            expect(final).toBeGreaterThan(initial * 1.05);
+        });
+    });
+
 
     describe('4. Defense Validation: Invariants & Registry Checks', () => {
         // [Sanity Gate 1] Retention Constraint
