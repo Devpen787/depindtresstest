@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 type Mode = 'quick' | 'full';
+type DoneScope = 'optimizer' | 'dashboard';
 type CriterionStatus = 'PASS' | 'FAIL' | 'PENDING';
 
 interface CliOptions {
   profile: string;
   mode: Mode;
+  doneScope: DoneScope;
   outputDir: string;
   reportPath?: string;
   summaryPath: string;
@@ -57,6 +59,7 @@ interface CriterionResult {
   name: string;
   status: CriterionStatus;
   details: string;
+  required: boolean;
 }
 
 interface DoneMarkerEvaluation {
@@ -71,6 +74,7 @@ function parseArgs(argv: string[]): CliOptions {
   const options: Omit<CliOptions, 'summaryPath'> & { summaryPath?: string } = {
     profile: process.env.OPTIMIZER_PROFILE || 'ono_v3_calibrated',
     mode: (process.env.OPTIMIZER_MODE as Mode) || 'quick',
+    doneScope: (process.env.OPTIMIZER_DONE_SCOPE as DoneScope) || 'optimizer',
     outputDir: process.env.OPTIMIZER_OUTPUT_DIR || path.join(process.cwd(), 'output/skill_reports'),
     acceptanceSummaryPath: process.env.DASHBOARD_ACCEPTANCE_SUMMARY_PATH,
     requiredConsecutiveGreens: Number(process.env.OPTIMIZER_DONE_REQUIRED_CONSECUTIVE_GREENS || 5),
@@ -90,6 +94,15 @@ function parseArgs(argv: string[]): CliOptions {
         throw new Error(`Invalid --mode value: ${value}`);
       }
       options.mode = value;
+      i += 1;
+      continue;
+    }
+    if (arg === '--done-scope') {
+      const value = argv[i + 1] as DoneScope;
+      if (value !== 'optimizer' && value !== 'dashboard') {
+        throw new Error(`Invalid --done-scope value: ${value}`);
+      }
+      options.doneScope = value;
       i += 1;
       continue;
     }
@@ -132,7 +145,7 @@ function parseArgs(argv: string[]): CliOptions {
     ...options,
     summaryPath:
       options.summaryPath ||
-      path.join(options.outputDir, `${options.profile}_${options.mode}_done_marker.md`),
+      path.join(options.outputDir, `${options.profile}_${options.mode}_${options.doneScope}_done_marker.md`),
   };
 }
 
@@ -334,14 +347,17 @@ function evaluateDoneMarker(
   report: OptimizerReport,
   failures: string[],
   acceptanceSummary: AcceptanceCoverageSummary | undefined,
-  requiredConsecutiveGreens: number
+  requiredConsecutiveGreens: number,
+  doneScope: DoneScope
 ): DoneMarkerEvaluation {
   const criteria: CriterionResult[] = [];
+  const requireDashboardAcceptance = doneScope === 'dashboard';
 
   criteria.push({
     name: 'Optimizer hard gate checks',
     status: failures.length === 0 ? 'PASS' : 'FAIL',
     details: failures.length === 0 ? 'All optimizer gate checks passed.' : failures.join('; '),
+    required: true,
   });
 
   const actionableFlags = report.flags.filter((flag) => !INFORMATIONAL_FLAG_PATTERN.test(flag));
@@ -352,6 +368,7 @@ function evaluateDoneMarker(
       actionableFlags.length === 0
         ? 'Report flags are empty or informational-only.'
         : actionableFlags.join('; '),
+    required: true,
   });
 
   if (!acceptanceSummary) {
@@ -359,7 +376,10 @@ function evaluateDoneMarker(
       name: 'Stakeholder acceptance coverage (all sections >=80 practical)',
       status: 'PENDING',
       details:
-        'No acceptance summary TSV found. Expected output/spreadsheet/dashboard_acceptance_coverage_summary_YYYY-MM-DD.tsv',
+        requireDashboardAcceptance
+          ? 'No acceptance summary TSV found. Expected output/spreadsheet/dashboard_acceptance_coverage_summary_YYYY-MM-DD.tsv'
+          : 'Dashboard-level signal only (not blocking in optimizer scope). Acceptance summary TSV not found.',
+      required: requireDashboardAcceptance,
     });
   } else {
     const allSectionsPass =
@@ -372,6 +392,7 @@ function evaluateDoneMarker(
       details: allSectionsPass
         ? `All sections pass. Overall practical coverage=${acceptanceSummary.practicalCoveragePct.toFixed(1)}%.`
         : `Passing sections=${acceptanceSummary.passingSections}/${acceptanceSummary.totalSections}, overall practical coverage=${acceptanceSummary.practicalCoveragePct.toFixed(1)}%, failing=${acceptanceSummary.failingSections.join(', ')}`,
+      required: requireDashboardAcceptance,
     });
   }
 
@@ -384,12 +405,14 @@ function evaluateDoneMarker(
       status: 'PENDING',
       details:
         'Set OPTIMIZER_GATE_CONSECUTIVE_GREEN_RUNS to evaluate this criterion automatically.',
+      required: true,
     });
   } else {
     criteria.push({
       name: `Consecutive green optimizer-gate runs (>=${requiredConsecutiveGreens})`,
       status: observedConsecutiveGreens >= requiredConsecutiveGreens ? 'PASS' : 'FAIL',
       details: `Observed=${observedConsecutiveGreens}, required=${requiredConsecutiveGreens}.`,
+      required: true,
     });
   }
 
@@ -399,18 +422,21 @@ function evaluateDoneMarker(
       name: 'Open P0/P1 regressions == 0',
       status: 'PENDING',
       details: 'Set OPTIMIZER_GATE_OPEN_P0P1 to evaluate this criterion automatically.',
+      required: true,
     });
   } else {
     criteria.push({
       name: 'Open P0/P1 regressions == 0',
       status: openP0P1 === 0 ? 'PASS' : 'FAIL',
       details: `Open high-severity regressions=${openP0P1}.`,
+      required: true,
     });
   }
 
-  const hasFailures = criteria.some((criterion) => criterion.status === 'FAIL');
-  const hasPending = criteria.some((criterion) => criterion.status === 'PENDING');
-  const allPass = criteria.every((criterion) => criterion.status === 'PASS');
+  const requiredCriteria = criteria.filter((criterion) => criterion.required);
+  const hasFailures = requiredCriteria.some((criterion) => criterion.status === 'FAIL');
+  const hasPending = requiredCriteria.some((criterion) => criterion.status === 'PENDING');
+  const allPass = requiredCriteria.every((criterion) => criterion.status === 'PASS');
 
   return {
     criteria,
@@ -422,7 +448,8 @@ function renderDoneMarkerSummary(
   report: OptimizerReport,
   reportPath: string,
   acceptanceSummary: AcceptanceCoverageSummary | undefined,
-  evaluation: DoneMarkerEvaluation
+  evaluation: DoneMarkerEvaluation,
+  doneScope: DoneScope
 ): string {
   const escapeCell = (value: string): string => value.replace(/\|/g, '\\|');
   const lines = [
@@ -431,15 +458,16 @@ function renderDoneMarkerSummary(
     `- Generated: ${new Date().toISOString()}`,
     `- Profile: ${report.profile.id} (${report.profile.name})`,
     `- Mode: ${report.mode}`,
+    `- Done scope: ${doneScope}`,
     `- Optimizer report: \`${reportPath}\``,
     acceptanceSummary
       ? `- Acceptance summary: \`${acceptanceSummary.filePath}\``
       : '- Acceptance summary: not found',
     '',
-    '| Criterion | Status | Details |',
-    '| --- | --- | --- |',
+    '| Criterion | Required | Status | Details |',
+    '| --- | --- | --- | --- |',
     ...evaluation.criteria.map((criterion) => {
-      return `| ${escapeCell(criterion.name)} | ${criterion.status} | ${escapeCell(criterion.details)} |`;
+      return `| ${escapeCell(criterion.name)} | ${criterion.required ? 'Yes' : 'No'} | ${criterion.status} | ${escapeCell(criterion.details)} |`;
     }),
     '',
     `## Final Status: ${evaluation.finalStatus}`,
@@ -481,13 +509,15 @@ function main(): void {
     report,
     failures,
     acceptanceSummary,
-    options.requiredConsecutiveGreens
+    options.requiredConsecutiveGreens,
+    options.doneScope
   );
   const markdownSummary = renderDoneMarkerSummary(
     report,
     reportPath,
     acceptanceSummary,
-    evaluation
+    evaluation,
+    options.doneScope
   );
 
   writeDoneMarkerSummary(options.summaryPath, markdownSummary);
@@ -495,6 +525,7 @@ function main(): void {
   console.log(`Checked report: ${reportPath}`);
   console.log(`Profile: ${report.profile.id} (${report.profile.name}), mode=${report.mode}`);
   console.log(`Reported flags: ${report.flags.length}`);
+  console.log(`Done-marker scope: ${options.doneScope}`);
   console.log(`Done-marker summary: ${path.resolve(options.summaryPath)}`);
   console.log(`Done-marker status: ${evaluation.finalStatus}`);
 
