@@ -1,30 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  Scale, BookOpen, Activity, RefreshCw, Layers, Settings2, Download, Search, GitCompare, LayoutGrid, Play, Zap
+  Scale, BookOpen, Activity, RefreshCw, Settings2, Download, Search, GitCompare, LayoutGrid, Play, Zap, SlidersHorizontal
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai"; // Keep for future use?
 
 // Components
-import { ThesisDashboard } from './src/components/ThesisDashboard';
-import { TokenomicsStudy } from './src/components/CaseStudy/TokenomicsStudy';
-import { ExplorerTab } from './src/components/explorer/ExplorerTab';
-import { Settings } from './src/components/Settings';
 import { MethodologyDrawer } from './src/components/MethodologyDrawer';
 import { MethodologySheet } from './src/components/MethodologySheet';
-import { AuditDashboard } from './src/components/Diagnostic/AuditDashboard'; // New Import
 import { HeaderDropdown, DropdownItem, DropdownToggle, DropdownDivider } from './src/components/ui/HeaderDropdown';
-
-// Benchmark View
-import { BenchmarkView } from './src/components/Benchmark/BenchmarkView';
-
-// Simulator Components
-import { SandboxView } from './src/components/Simulator/SandboxView';
-import { ComparisonView } from './src/components/Simulator/ComparisonView';
 import { SimulatorSidebar } from './src/components/Simulator/SimulatorSidebar';
-
-// V2 Dashboard
-import { DecisionTreeDashboard } from './src/components/DecisionTree/DecisionTreeDashboard';
 
 // Hooks & Utils
 import { useSimulationRunner } from './src/hooks/useSimulationRunner';
@@ -34,20 +19,52 @@ import { SolanaVerifier, type NetworkStatus } from './src/model/solana';
 import { useProtocolMetrics } from './src/hooks/useProtocolMetrics'; // Import Hook
 import { PROTOCOL_PROFILES } from './src/data/protocols';
 import { PEER_GROUPS } from './src/data/peerGroups';
+import { SCENARIOS } from './src/data/scenarios';
+import { recordPerf } from './src/utils/perf';
+import { DecisionBriefPayload, DecisionBriefSurface } from './src/types/decisionBrief';
+import { buildDecisionBrief, downloadDecisionBrief, downloadDecisionBriefMarkdown } from './src/utils/decisionBrief';
+import { getMetricEvidence, withExtractionTimestamp } from './src/data/metricEvidence';
+import {
+  OWNER_KPI_BAND_CLASSIFIERS,
+  OWNER_KPI_THRESHOLD_COPY,
+  calculateOwnerPaybackMonths,
+  calculateOwnerRetentionPct,
+  calculateOwnerSensitivityFromSpread,
+  calculateOwnerSolvencyRatio,
+  calculateOwnerTailRiskScore,
+  calculateOwnerUtilitySnapshot,
+  mergeGuardrailBands
+} from './src/audit/kpiOwnerMath';
+import DecisionBriefCard from './src/components/ui/DecisionBriefCard';
+
+const ThesisDashboard = lazy(() => import('./src/components/ThesisDashboard').then((m) => ({ default: m.ThesisDashboard })));
+const TokenomicsStudy = lazy(() => import('./src/components/CaseStudy/TokenomicsStudy').then((m) => ({ default: m.TokenomicsStudy })));
+const ExplorerTab = lazy(() => import('./src/components/explorer/ExplorerTab').then((m) => ({ default: m.ExplorerTab })));
+const Settings = lazy(() => import('./src/components/Settings').then((m) => ({ default: m.Settings })));
+const AuditDashboard = lazy(() => import('./src/components/Diagnostic/AuditDashboard').then((m) => ({ default: m.AuditDashboard })));
+const BenchmarkView = lazy(() => import('./src/components/Benchmark/BenchmarkView').then((m) => ({ default: m.BenchmarkView })));
+const SandboxView = lazy(() => import('./src/components/Simulator/SandboxView').then((m) => ({ default: m.SandboxView })));
+const ComparisonView = lazy(() => import('./src/components/Simulator/ComparisonView').then((m) => ({ default: m.ComparisonView })));
+const DecisionTreeDashboard = lazy(() => import('./src/components/DecisionTree/DecisionTreeDashboard').then((m) => ({ default: m.DecisionTreeDashboard })));
+
+type AppTab = 'simulator' | 'thesis' | 'case_study' | 'benchmark' | 'diagnostic' | 'decision_tree';
+type PrimaryTab = Exclude<AppTab, 'simulator'>;
 
 
 const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<AppTab>('benchmark');
   const profiles = PROTOCOL_PROFILES;
   const { metrics: onChainMetrics } = useProtocolMetrics(
     profiles.map(p => p.metadata.id)
   );
 
   // Use Custom Hook for Simulation Logic
-  const sim = useSimulationRunner(onChainMetrics);
+  const sim = useSimulationRunner(onChainMetrics, {
+    enablePeerWizardCalibration: activeTab === 'decision_tree'
+  });
 
   // --- UI STATE ---
-  const [activeTab, setActiveTab] = useState<'simulator' | 'thesis' | 'case_study' | 'benchmark' | 'diagnostic'>('simulator');
-  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>('baseline');
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     stress: false, competitive: false, scenarios: true, tokenomics: true, advanced: true, providers: true, simulation: true,
   });
@@ -56,10 +73,32 @@ const App: React.FC = () => {
   const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
   const [showSpecModal, setShowSpecModal] = useState(false);
   const [showAuditPanel, setShowAuditPanel] = useState(false);
-  const [showExportPanel, setShowExportPanel] = useState(false);
   const [showKnowledgeLayer, setShowKnowledgeLayer] = useState(false);
-  const [showDePINBrowser, setShowDePINBrowser] = useState(false);
-  const [dashboardMode, setDashboardMode] = useState<'legacy' | 'v2'>('legacy');
+  const [hasVisitedDiagnostic, setHasVisitedDiagnostic] = useState(false);
+  const [hasVisitedThesis, setHasVisitedThesis] = useState(false);
+  const priorPrimaryTabBeforeDecisionTree = useRef<AppTab>('benchmark');
+
+  const primaryTabs: PrimaryTab[] = [
+    'benchmark',
+    'diagnostic',
+    'thesis',
+    'decision_tree',
+    'case_study'
+  ];
+
+  const primaryTabLabel: Record<AppTab, string> = {
+    benchmark: 'Benchmark',
+    diagnostic: 'Root Causes',
+    thesis: 'Strategy',
+    case_study: 'Evidence',
+    decision_tree: 'Decide',
+    simulator: 'Advanced'
+  };
+  const secondaryTabLabel = {
+    explorer: 'Browse',
+    comparison: 'Compare',
+    sandbox: 'Stress Lab'
+  } as const;
 
   // Live Data State (Hoisted to App level for sharing)
   const [liveData, setLiveData] = useState<Record<string, TokenMarketData | null>>({});
@@ -74,8 +113,25 @@ const App: React.FC = () => {
   const { useNewModel, setUseNewModel } = sim;
   const priorViewMode = useRef(sim.viewMode);
   const priorSelected = useRef(sim.selectedProtocolIds);
+  const lastBenchmarkRunKey = useRef<string | null>(null);
+  const tabSwitchStartedAt = useRef<number | null>(null);
+  const diagnosticRunTimer = useRef<number | null>(null);
 
   // --- ACTIONS ---
+
+  const setActiveTabTracked = (tab: AppTab) => {
+    if (tab === 'decision_tree' && activeTab !== 'decision_tree') {
+      priorPrimaryTabBeforeDecisionTree.current = activeTab;
+    }
+    if (tab === 'diagnostic') {
+      setHasVisitedDiagnostic(true);
+    }
+    if (tab === 'thesis') {
+      setHasVisitedThesis(true);
+    }
+    tabSwitchStartedAt.current = performance.now();
+    setActiveTab(tab);
+  };
 
   const scrollToControl = (sectionKey: string) => {
     const parentMap: Record<string, string> = { 'providers': 'advanced', 'simulation': 'advanced' };
@@ -93,6 +149,12 @@ const App: React.FC = () => {
       }
     }, 200);
   };
+
+  const renderPanelFallback = (label: string) => (
+    <div className="flex-1 flex items-center justify-center bg-slate-950 text-slate-500 text-sm font-semibold uppercase tracking-wider">
+      Loading {label}...
+    </div>
+  );
 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -136,19 +198,32 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 'benchmark') {
-      priorViewMode.current = sim.viewMode;
-      priorSelected.current = sim.selectedProtocolIds;
+      if (sim.viewMode !== 'benchmark') {
+        priorViewMode.current = sim.viewMode;
+        priorSelected.current = sim.selectedProtocolIds;
+      }
 
       const benchmarkGroup = PEER_GROUPS[0];
       sim.setViewMode('benchmark');
       if (benchmarkGroup) {
         sim.setSelectedProtocolIds(benchmarkGroup.members);
       }
-      sim.runSimulation();
+      const benchmarkMembers = benchmarkGroup?.members ?? [];
+      const hasBenchmarkResults = benchmarkMembers.length > 0
+        && benchmarkMembers.every((id) => (sim.multiAggregated[id] || []).length > 0);
+      const benchmarkRunKey = JSON.stringify({
+        params: sim.params,
+        useNewModel: sim.useNewModel,
+        benchmarkMembers
+      });
+      if (!hasBenchmarkResults || lastBenchmarkRunKey.current !== benchmarkRunKey) {
+        lastBenchmarkRunKey.current = benchmarkRunKey;
+        sim.runSimulation();
+      }
       return;
     }
 
-    if (sim.viewMode === 'benchmark') {
+    if (activeTab === 'simulator' && sim.viewMode === 'benchmark') {
       sim.setViewMode(priorViewMode.current || 'sandbox');
       if (priorSelected.current?.length) {
         sim.setSelectedProtocolIds(priorSelected.current);
@@ -156,19 +231,334 @@ const App: React.FC = () => {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const startedAt = tabSwitchStartedAt.current;
+    if (startedAt === null) return;
+    tabSwitchStartedAt.current = null;
+    requestAnimationFrame(() => {
+      recordPerf('tab-switch', performance.now() - startedAt, {
+        activeTab,
+        viewMode: sim.viewMode
+      });
+    });
+  }, [activeTab, sim.viewMode]);
+
+  useEffect(() => {
+    return () => {
+      if (diagnosticRunTimer.current !== null) {
+        window.clearTimeout(diagnosticRunTimer.current);
+      }
+    };
+  }, []);
+
   const incentiveRegime = React.useMemo(() => calculateRegime(sim.aggregated, sim.activeProfile), [sim.aggregated, sim.activeProfile]);
 
+  const handlePrimaryTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, tab: AppTab) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setActiveTabTracked(tab);
+      return;
+    }
 
+    const currentIndex = primaryTabs.indexOf(tab);
+    if (currentIndex < 0) return;
 
-  // V2 RENDER BRANCH
-  if (dashboardMode === 'v2') {
-    return (
-      <DecisionTreeDashboard
-        sim={sim}
-        onBackToLegacy={() => setDashboardMode('legacy')}
-      />
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % primaryTabs.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + primaryTabs.length) % primaryTabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = primaryTabs.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextTab = primaryTabs[nextIndex];
+      setActiveTabTracked(nextTab);
+      window.requestAnimationFrame(() => {
+        document.getElementById(`tab-${nextTab}`)?.focus();
+      });
+    }
+  };
+
+  const simulatorViews: Array<'explorer' | 'comparison' | 'sandbox'> = ['explorer', 'comparison', 'sandbox'];
+  const handleAdvancedTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    viewMode: 'explorer' | 'comparison' | 'sandbox'
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      sim.setViewMode(viewMode);
+      return;
+    }
+
+    const currentIndex = simulatorViews.indexOf(viewMode);
+    if (currentIndex < 0) return;
+
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % simulatorViews.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + simulatorViews.length) % simulatorViews.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = simulatorViews.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextView = simulatorViews[nextIndex];
+      sim.setViewMode(nextView);
+      window.requestAnimationFrame(() => {
+        document.getElementById(`tab-sim-view-${nextView}`)?.focus();
+      });
+    }
+  };
+
+  const applyGlobalScenario = useCallback((
+    scenarioParams?: Partial<Record<string, unknown>>,
+    scenarioId?: string | null
+  ) => {
+    const startedAt = performance.now();
+    const resolvedScenarioId = scenarioId ?? (scenarioParams ? 'custom' : activeScenarioId ?? 'baseline');
+    setActiveScenarioId(resolvedScenarioId);
+
+    if (scenarioParams) {
+      sim.setParams((prev) => ({ ...prev, ...(scenarioParams as any) }));
+      requestAnimationFrame(() => {
+        recordPerf('scenario-update', performance.now() - startedAt, {
+          scenarioId: resolvedScenarioId ?? 'custom',
+          source: 'scenario-manager',
+          activeTab
+        });
+      });
+      return;
+    }
+
+    const selectedScenario = SCENARIOS.find((scenario) => scenario.id === resolvedScenarioId);
+    if (!selectedScenario) {
+      return;
+    }
+
+    sim.setParams((prev) => ({ ...prev, ...(selectedScenario.params as any) }));
+    requestAnimationFrame(() => {
+      recordPerf('scenario-update', performance.now() - startedAt, {
+        scenarioId: resolvedScenarioId,
+        source: 'global-select',
+        activeTab
+      });
+    });
+  }, [activeScenarioId, activeTab, sim.setParams]);
+
+  const briefInputs = React.useMemo(() => {
+    const scenarioLabel = activeScenarioId
+      ? SCENARIOS.find((scenario) => scenario.id === activeScenarioId)?.name
+        ?? activeScenarioId.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+      : 'Default Scenario';
+
+    const latestPoint = sim.aggregated.length > 0 ? sim.aggregated[sim.aggregated.length - 1] : null;
+    const latestSolvency = calculateOwnerSolvencyRatio(latestPoint);
+    const retentionPct = calculateOwnerRetentionPct(sim.derivedMetrics?.retentionRate, latestPoint);
+    const utilitySnapshot = calculateOwnerUtilitySnapshot(latestPoint);
+    const tailRiskScore = calculateOwnerTailRiskScore(sim.aggregated as any);
+    const sensitivityMaxAbsDelta = calculateOwnerSensitivityFromSpread(latestPoint as any);
+    const sensitivityBand = OWNER_KPI_BAND_CLASSIFIERS.sensitivity(sensitivityMaxAbsDelta);
+    const activeProvidersForPayback = Math.max(
+      1,
+      latestPoint?.providers?.mean ?? sim.params.initialProviders
     );
-  }
+    const annualizedRevenue = ((sim.derivedMetrics?.totalProviderRevenue ?? 0) / Math.max(1, sim.params.T)) * 52;
+    const estimatedPaybackMonths = calculateOwnerPaybackMonths({
+      hardwareCost: sim.params.hardwareCost,
+      annualizedRevenue,
+      activeNodes: activeProvidersForPayback
+    });
+    const paybackBand = OWNER_KPI_BAND_CLASSIFIERS.payback(estimatedPaybackMonths);
+    const solvencyBand = OWNER_KPI_BAND_CLASSIFIERS.solvency(latestSolvency);
+    const retentionBand = OWNER_KPI_BAND_CLASSIFIERS.retention(retentionPct);
+    const utilityBand = OWNER_KPI_BAND_CLASSIFIERS.utility(utilitySnapshot.utilityHealthScore);
+    const tailRiskBand = OWNER_KPI_BAND_CLASSIFIERS.tailRisk(tailRiskScore);
+    const benchmarkBand = mergeGuardrailBands([paybackBand, retentionBand]);
+    const diagnosticsBand = mergeGuardrailBands([solvencyBand, sensitivityBand, tailRiskBand]);
+    const strategyBand = mergeGuardrailBands([paybackBand, solvencyBand, retentionBand, utilityBand, tailRiskBand, sensitivityBand]);
+
+    return {
+      scenarioLabel,
+      latestSolvency,
+      retentionPct,
+      estimatedPaybackMonths,
+      benchmarkBand,
+      diagnosticsBand,
+      strategyBand
+    };
+  }, [
+    activeScenarioId,
+    sim.aggregated,
+    sim.derivedMetrics?.retentionRate,
+    sim.derivedMetrics?.totalProviderRevenue,
+    sim.params.initialProviders,
+    sim.params.T,
+    sim.params.hardwareCost
+  ]);
+
+  const buildBriefForSurface = React.useCallback((
+    surface: DecisionBriefSurface,
+    summary: string,
+    guardrailBand: 'healthy' | 'watchlist' | 'intervention',
+    evidenceMetricIds: string[]
+  ): DecisionBriefPayload => buildDecisionBrief({
+    context: {
+      surface,
+      protocolName: sim.activeProfile.metadata.name,
+      protocolId: sim.activeProfile.metadata.id,
+      scenarioName: briefInputs.scenarioLabel,
+      scenarioId: activeScenarioId,
+      modelVersion: useNewModel ? 'Agent-Based v2' : 'Legacy v1'
+    },
+    verdict: guardrailBand === 'healthy' ? 'go' : guardrailBand === 'watchlist' ? 'hold' : 'no_go',
+    guardrailBand,
+    summary,
+    drivers: [
+      {
+        label: 'Solvency floor',
+        value: `${Math.max(0, briefInputs.latestSolvency * 100).toFixed(1)}%`,
+        threshold: OWNER_KPI_THRESHOLD_COPY.solvency,
+        metricId: 'solvency_ratio'
+      },
+      {
+        label: 'Expected payback',
+        value: `${briefInputs.estimatedPaybackMonths.toFixed(1)} months`,
+        threshold: OWNER_KPI_THRESHOLD_COPY.payback,
+        metricId: 'payback_period'
+      },
+      {
+        label: 'Retention pressure',
+        value: `${briefInputs.retentionPct.toFixed(1)}%`,
+        threshold: OWNER_KPI_THRESHOLD_COPY.retention,
+        metricId: 'weekly_retention_rate'
+      }
+    ],
+    actions: [
+      {
+        action: 'Confirm scenario assumptions before sharing externally.',
+        ownerRole: 'Analyst',
+        trigger: 'Any model rerun or scenario change',
+        expectedEffect: 'Keeps exports reproducible and comparable.'
+      },
+      {
+        action: 'Document one concrete next step with owner and timeline.',
+        ownerRole: 'Protocol team',
+        trigger: 'Decision brief generated',
+        expectedEffect: 'Turns dashboard output into an actionable review artifact.'
+      }
+    ],
+    evidence: evidenceMetricIds.map((metricId) => withExtractionTimestamp(getMetricEvidence(metricId))),
+    asOfUtc: lastLiveDataFetch,
+    reproducibility: {
+      runId: sim.simulationRunId,
+      runTimestampUtc: new Date().toISOString(),
+      paramsSnapshot: { ...sim.params, selectedProtocolIds: sim.selectedProtocolIds, viewMode: sim.viewMode }
+    }
+  }), [
+    sim.activeProfile.metadata.name,
+    sim.activeProfile.metadata.id,
+    briefInputs.scenarioLabel,
+    briefInputs.latestSolvency,
+    briefInputs.estimatedPaybackMonths,
+    briefInputs.retentionPct,
+    activeScenarioId,
+    useNewModel,
+    lastLiveDataFetch,
+    sim.simulationRunId,
+    sim.params,
+    sim.selectedProtocolIds,
+    sim.viewMode
+  ]);
+
+  const briefsBySurface: Record<DecisionBriefSurface, DecisionBriefPayload> = React.useMemo(() => ({
+    benchmark: buildBriefForSurface(
+      'benchmark',
+      'Benchmark compares Onocoy against selected peers under one shared scenario to expose relative strengths and gaps.',
+      briefInputs.benchmarkBand,
+      ['benchmark_payback', 'benchmark_efficiency', 'benchmark_sustain', 'benchmark_retention']
+    ),
+    diagnostics: buildBriefForSurface(
+      'diagnostics',
+      'Root-cause diagnostics highlight which structural parameters are currently pushing solvency and retention toward failure.',
+      briefInputs.diagnosticsBand,
+      ['diagnostic_underwater_count', 'diagnostic_cost_vs_revenue', 'diagnostic_join_flow', 'solvency_ratio']
+    ),
+    strategy: buildBriefForSurface(
+      'strategy',
+      'Strategy translates stress outcomes into a clear action plan with explicit tradeoffs before any external decision call.',
+      briefInputs.strategyBand,
+      ['payback_period', 'weekly_retention_rate', 'solvency_ratio', 'network_utilization', 'diagnostic_join_flow', 'vampire_churn']
+    )
+  }), [
+    buildBriefForSurface,
+    briefInputs.benchmarkBand,
+    briefInputs.diagnosticsBand,
+    briefInputs.strategyBand
+  ]);
+
+  const activeBriefSurface: DecisionBriefSurface | null = activeTab === 'benchmark'
+    ? 'benchmark'
+    : activeTab === 'diagnostic'
+      ? 'diagnostics'
+      : activeTab === 'thesis'
+        ? 'strategy'
+        : null;
+
+  const activeBrief = React.useMemo(
+    () => (activeBriefSurface ? briefsBySurface[activeBriefSurface] : null),
+    [activeBriefSurface, briefsBySurface]
+  );
+
+  const handleDiagnosticProtocolChange = useCallback((id: string) => {
+    const profile = PROTOCOL_PROFILES.find((p) => p.metadata.id === id);
+    if (profile) {
+      sim.loadProfile(profile);
+    }
+  }, [sim.loadProfile]);
+
+  const handleDiagnosticParamChange = useCallback((updates: Partial<Record<string, unknown>>) => {
+    sim.setParams((prev) => ({ ...prev, ...updates as any }));
+    if (!sim.autoRun) {
+      return;
+    }
+    if (diagnosticRunTimer.current !== null) {
+      window.clearTimeout(diagnosticRunTimer.current);
+    }
+    diagnosticRunTimer.current = window.setTimeout(() => {
+      sim.runSimulation();
+    }, 250);
+  }, [sim.setParams, sim.autoRun, sim.runSimulation]);
+
+  const handleDiagnosticRunSensitivity = useCallback(() => sim.runSensitivityAnalysis(), [sim.runSensitivityAnalysis]);
+  const handleThesisScenarioSelect = useCallback((scenarioId: string) => {
+    applyGlobalScenario(undefined, scenarioId);
+  }, [applyGlobalScenario]);
+
+  const exportDisabled = !activeBrief;
+  const handleExport = () => {
+    if (!activeBriefSurface || !activeBrief) return;
+    const dateKey = new Date().toISOString().slice(0, 10);
+    downloadDecisionBrief(activeBrief, `decision-brief-${activeBriefSurface}-${dateKey}.json`, { showToast: false });
+    downloadDecisionBriefMarkdown(activeBrief, `decision-brief-${activeBriefSurface}-${dateKey}.md`);
+  };
+
+  const exitDecisionTree = () => {
+    const target = priorPrimaryTabBeforeDecisionTree.current;
+    if (target === 'decision_tree' || target === 'simulator') {
+      setActiveTabTracked('benchmark');
+      return;
+    }
+    setActiveTabTracked(target);
+  };
 
   return (
     <div
@@ -177,6 +567,12 @@ const App: React.FC = () => {
     >
       {/* HEADER */}
       <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-xl shrink-0 z-[100]">
+        <div
+          data-cy="global-context-state"
+          data-protocol-id={sim.activeProfile.metadata.id}
+          data-scenario-id={activeScenarioId ?? 'baseline'}
+          className="hidden"
+        />
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-2xl shadow-indigo-600/40 border border-indigo-400/20">
@@ -184,104 +580,158 @@ const App: React.FC = () => {
             </div>
             <div>
               <h1 data-cy="app-title" className="text-md font-extrabold tracking-tight">DePIN Stress Test</h1>
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">CAS Thesis Architecture</p>
+              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">CAS Decision Architecture</p>
             </div>
           </div>
 
-          <div className="flex p-1 bg-slate-900 rounded-xl border border-slate-800">
-            {['simulator', 'benchmark', 'thesis', 'diagnostic', 'case_study'].map((tab) => (
+          <div role="tablist" aria-label="Primary dashboard sections" className="flex p-1 bg-slate-900 rounded-xl border border-slate-800">
+            {primaryTabs.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab as any)}
+                onClick={() => setActiveTabTracked(tab)}
+                onKeyDown={(event) => handlePrimaryTabKeyDown(event, tab)}
                 data-cy={`tab-${tab}`}
+                id={`tab-${tab}`}
+                role="tab"
+                tabIndex={activeTab === tab ? 0 : -1}
+                aria-selected={activeTab === tab}
+                aria-controls={`panel-${tab}`}
                 aria-pressed={activeTab === tab}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab
-                  ? tab === 'simulator' ? 'bg-indigo-600 text-white shadow-lg' :
-                    tab === 'benchmark' ? 'bg-indigo-600 text-white shadow-lg' :
+                  ? tab === 'benchmark' ? 'bg-indigo-600 text-white shadow-lg' :
+                    tab === 'decision_tree' ? 'bg-indigo-600 text-white shadow-lg' :
                       tab === 'thesis' ? 'bg-emerald-600 text-white shadow-lg' :
                         tab === 'diagnostic' ? 'bg-rose-600 text-white shadow-lg' : 'bg-orange-500 text-white shadow-lg'
                   : 'text-slate-500 hover:text-slate-300'
                   }`}
               >
-                {tab === 'case_study' ? 'Case Study' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {primaryTabLabel[tab]}
               </button>
             ))}
           </div>
 
-          <nav className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
-            <button
-              onClick={() => { setActiveTab('simulator'); sim.setViewMode('explorer'); }}
-              data-cy="sim-view-explorer"
-              aria-pressed={activeTab === 'simulator' && sim.viewMode === 'explorer'}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'explorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <Search size={14} /> Explorer
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('simulator');
-                sim.setViewMode('comparison');
-              }}
-              data-cy="sim-view-comparison"
-              aria-pressed={activeTab === 'simulator' && sim.viewMode === 'comparison'}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'comparison' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <GitCompare size={14} /> Comparison
-            </button>
-            <button
-              onClick={() => { setActiveTab('simulator'); sim.setViewMode('sandbox'); }}
-              data-cy="sim-view-sandbox"
-              aria-pressed={activeTab === 'simulator' && sim.viewMode === 'sandbox'}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'sandbox' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <LayoutGrid size={14} /> Sandbox
-            </button>
-          </nav>
+          {activeTab === 'simulator' && (
+            <nav role="tablist" aria-label="Advanced workspace views" className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => { setActiveTabTracked('simulator'); sim.setViewMode('explorer'); }}
+                onKeyDown={(event) => handleAdvancedTabKeyDown(event, 'explorer')}
+                data-cy="sim-view-explorer"
+                id="tab-sim-view-explorer"
+                role="tab"
+                tabIndex={activeTab === 'simulator' && sim.viewMode === 'explorer' ? 0 : -1}
+                aria-selected={activeTab === 'simulator' && sim.viewMode === 'explorer'}
+                aria-controls="panel-sim-view-explorer"
+                aria-pressed={activeTab === 'simulator' && sim.viewMode === 'explorer'}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'explorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                <Search size={14} /> {secondaryTabLabel.explorer}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTabTracked('simulator');
+                  sim.setViewMode('comparison');
+                }}
+                onKeyDown={(event) => handleAdvancedTabKeyDown(event, 'comparison')}
+                data-cy="sim-view-comparison"
+                id="tab-sim-view-comparison"
+                role="tab"
+                tabIndex={activeTab === 'simulator' && sim.viewMode === 'comparison' ? 0 : -1}
+                aria-selected={activeTab === 'simulator' && sim.viewMode === 'comparison'}
+                aria-controls="panel-sim-view-comparison"
+                aria-pressed={activeTab === 'simulator' && sim.viewMode === 'comparison'}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'comparison' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                <GitCompare size={14} /> {secondaryTabLabel.comparison}
+              </button>
+              <button
+                onClick={() => { setActiveTabTracked('simulator'); sim.setViewMode('sandbox'); }}
+                onKeyDown={(event) => handleAdvancedTabKeyDown(event, 'sandbox')}
+                data-cy="sim-view-sandbox"
+                id="tab-sim-view-sandbox"
+                role="tab"
+                tabIndex={activeTab === 'simulator' && sim.viewMode === 'sandbox' ? 0 : -1}
+                aria-selected={activeTab === 'simulator' && sim.viewMode === 'sandbox'}
+                aria-controls="panel-sim-view-sandbox"
+                aria-pressed={activeTab === 'simulator' && sim.viewMode === 'sandbox'}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'sandbox' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                <LayoutGrid size={14} /> {secondaryTabLabel.sandbox}
+              </button>
+            </nav>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
-          <HeaderDropdown label="Learn" icon={<BookOpen size={14} />} isActive={isMethodologyOpen || showSpecModal || showAuditPanel}>
+          <HeaderDropdown dataCy="header-learn" label="Learn" icon={<BookOpen size={14} />} isActive={isMethodologyOpen || showSpecModal || showAuditPanel}>
             <DropdownItem icon={<BookOpen size={14} />} onClick={() => setIsMethodologyOpen(true)} description="Simulation methodology & assumptions">Methodology</DropdownItem>
             <DropdownItem icon={<Zap size={14} />} onClick={() => setIsMethodologyOpen(true)} description="Mathematical formulas & equations">Math Specification</DropdownItem>
             <DropdownItem icon={<Scale size={14} />} onClick={() => setShowAuditPanel(true)} description="Wiki documentation & tutorials">System Wiki</DropdownItem>
           </HeaderDropdown>
 
-          <HeaderDropdown label="Data" icon={<Activity size={14} />} isActive={Object.keys(liveData).length > 0 || showDePINBrowser}>
+          <HeaderDropdown dataCy="header-data" label="Data" icon={<Activity size={14} />} isActive={Object.keys(liveData).length > 0}>
             <DropdownItem icon={liveDataLoading ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} />} onClick={fetchLiveData} disabled={liveDataLoading} description={lastLiveDataFetch ? `Last: ${lastLiveDataFetch.toLocaleTimeString()}` : 'Pull from CoinGecko'}>
               {liveDataLoading ? 'Fetching...' : Object.keys(liveData).length > 0 ? 'Refresh Live Data ✓' : 'Fetch Live Data'}
             </DropdownItem>
             <DropdownToggle icon={<RefreshCw size={14} />} checked={autoRefreshEnabled} onChange={() => setAutoRefreshEnabled(!autoRefreshEnabled)} description="Auto-refresh every 5 minutes">Auto Refresh</DropdownToggle>
-            <DropdownItem icon={<Layers size={14} />} onClick={() => setShowDePINBrowser(true)} description="Browse all DePIN token prices">DePIN Browser</DropdownItem>
             <DropdownDivider />
             <DropdownToggle icon={<Zap size={14} />} checked={useNewModel} onChange={() => setUseNewModel(!useNewModel)} description={useNewModel ? 'V2: With sell pressure model' : 'V1: Legacy model'}>Use V2 Model</DropdownToggle>
           </HeaderDropdown>
 
-          <button
-            onClick={() => { setActiveTab('simulator'); sim.setViewMode('settings'); }}
-            data-cy="open-settings"
-            className={`p-2.5 rounded-xl border transition-all ${sim.viewMode === 'settings' && activeTab === 'simulator' ? 'bg-indigo-600 text-white border-indigo-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-white'}`}
-            title="Settings"
-          >
-            <Settings2 size={16} />
-          </button>
+          <HeaderDropdown dataCy="header-actions" label="Actions" icon={<SlidersHorizontal size={14} />} isActive={activeTab === 'simulator' || activeTab === 'case_study'}>
+            {activeTab === 'case_study' && (
+              <DropdownItem
+                dataCy="open-advanced-workspace"
+                icon={<LayoutGrid size={14} />}
+                onClick={() => { setActiveTabTracked('simulator'); sim.setViewMode('sandbox'); }}
+                description="Open sandbox controls and stress scenarios"
+              >
+                Open Stress Lab
+              </DropdownItem>
+            )}
+            {activeTab === 'simulator' && (
+              <>
+                <DropdownItem
+                  dataCy="sim-view-return-appendix"
+                  icon={<BookOpen size={14} />}
+                  onClick={() => setActiveTabTracked('case_study')}
+                  description="Return to case-study narrative"
+                >
+                  Back to Evidence
+                </DropdownItem>
+                <DropdownItem
+                  dataCy="open-settings"
+                  icon={<Settings2 size={14} />}
+                  onClick={() => { setActiveTabTracked('simulator'); sim.setViewMode('settings'); }}
+                  description="Open advanced simulation settings"
+                >
+                  Open Settings
+                </DropdownItem>
+                {sim.viewMode === 'sandbox' && (
+                  <DropdownToggle
+                    dataCy="toggle-auto-apply"
+                    icon={<Zap size={14} />}
+                    checked={sim.autoRun}
+                    onChange={() => sim.setAutoRun(!sim.autoRun)}
+                    description="Automatically rerun on control changes"
+                  >
+                    Auto Apply
+                  </DropdownToggle>
+                )}
+              </>
+            )}
+            <DropdownDivider />
+            <DropdownItem
+              dataCy="toggle-export"
+              icon={<Download size={14} />}
+              onClick={handleExport}
+              disabled={exportDisabled}
+              description={exportDisabled ? 'Available on Benchmark, Root Causes, and Strategy' : 'Download decision brief (.json + .md)'}
+            >
+              Export Brief
+            </DropdownItem>
+          </HeaderDropdown>
 
-          <button
-            onClick={() => setShowExportPanel(!showExportPanel)}
-            data-cy="toggle-export"
-            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-[10px] font-bold ${showExportPanel ? 'bg-emerald-600 text-white border-emerald-400' : 'text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-emerald-400 hover:border-emerald-500/50'}`}
-          >
-            <Download size={14} /> Export
-          </button>
-
-          <button
-            onClick={() => setDashboardMode('v2')}
-            data-cy="open-decision-tree"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-bold transition-all"
-          >
-            <LayoutGrid size={14} /> Decision Tree
-          </button>
-
-          {activeTab === 'simulator' && (
+          {activeTab === 'simulator' && sim.viewMode === 'sandbox' && (
             <button
               onClick={sim.runSimulation}
               data-cy="run-matrix"
@@ -297,66 +747,72 @@ const App: React.FC = () => {
 
       {/* MAIN CONTENT AREA */}
       {activeTab === 'benchmark' ? (
-        <div className="flex-1 overflow-y-auto bg-slate-950 p-6 custom-scrollbar">
-          <BenchmarkView
-            params={sim.params}
-            setParams={sim.setParams}
-            multiAggregated={sim.multiAggregated}
-            profiles={PROTOCOL_PROFILES}
-            liveData={liveData}
-            onChainData={onChainMetrics}
-            engineLabel={useNewModel ? 'Agent-Based v2' : 'Legacy v1.2'}
-            lastLiveDataFetch={lastLiveDataFetch}
-            loading={sim.loading}
-            activeScenarioId={activeScenarioId}
-          />
+        <div id="panel-benchmark" role="tabpanel" aria-labelledby="tab-benchmark" className="flex-1 overflow-y-auto bg-slate-950 p-6 custom-scrollbar">
+          <div className="mb-6 space-y-3">
+            <DecisionBriefCard brief={briefsBySurface.benchmark} dataCy="benchmark-decision-brief" />
+            <p className="text-xs text-slate-400">
+              Next step: open <strong className="text-slate-200">Root Causes</strong> to confirm which parameter is driving the gap before sharing externally.
+            </p>
+          </div>
+          <Suspense fallback={renderPanelFallback('benchmark')}>
+            <BenchmarkView
+              params={sim.params}
+              setParams={sim.setParams}
+              multiAggregated={sim.multiAggregated}
+              profiles={PROTOCOL_PROFILES}
+              liveData={liveData}
+              onChainData={onChainMetrics}
+              engineLabel={useNewModel ? 'Agent-Based v2' : 'Legacy v1.2'}
+              lastLiveDataFetch={lastLiveDataFetch}
+              loading={sim.loading}
+              activeScenarioId={activeScenarioId}
+              onScenarioLoad={(scenarioParams, scenarioId) => applyGlobalScenario(scenarioParams, scenarioId)}
+            />
+          </Suspense>
         </div>
       ) : activeTab === 'case_study' ? (
-        <TokenomicsStudy />
-      ) : activeTab === 'thesis' ? (
-        <ThesisDashboard
-          activeProfile={sim.activeProfile}
-          protocols={PROTOCOL_PROFILES}
-          onSelectProtocol={sim.loadProfile}
-        />
-      ) : activeTab === 'diagnostic' ? (
-        <div className="flex-1 overflow-y-auto bg-slate-950 custom-scrollbar">
-          <AuditDashboard
-            simulationData={sim.aggregated}
-            loading={sim.loading}
-            profileName={sim.activeProfile.metadata.name}
-            onProtocolChange={(id) => {
-              const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id);
-              if (profile) sim.loadProfile(profile);
-            }}
-            onRunSensitivity={sim.runSensitivityAnalysis}
-            onParamChange={(updates) => {
-              sim.setParams((prev) => ({ ...prev, ...updates }));
-              // Trigger run after state update
-              setTimeout(() => sim.runSimulation(), 100);
-            }}
-          />
+        <div id="panel-case_study" role="tabpanel" aria-labelledby="tab-case_study" className="flex-1 overflow-y-auto bg-slate-950 custom-scrollbar">
+          <Suspense fallback={renderPanelFallback('evidence')}>
+            <TokenomicsStudy />
+          </Suspense>
         </div>
-      ) : (
-        <div className="flex flex-1 overflow-hidden">
-          {sim.viewMode === 'settings' ? (
-            <Settings onBack={() => sim.setViewMode('sandbox')} onReset={sim.resetToDefaults} />
-          ) : sim.viewMode === 'explorer' ? (
-            <ExplorerTab
-              profiles={PROTOCOL_PROFILES}
-              networkStatus={networkStatus}
-              onAnalyze={(id) => {
-                const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id || p.metadata.coingeckoId === id);
-                if (profile) { sim.loadProfile(profile); sim.setViewMode('sandbox'); }
-              }}
-              onCompare={(id) => {
-                const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id || p.metadata.coingeckoId === id);
-                if (profile) {
-                  sim.toggleProtocolSelection(profile.metadata.id);
-                  sim.setViewMode('comparison');
-                }
-              }}
+      ) : activeTab === 'thesis' ? null : activeTab === 'diagnostic' ? null : activeTab === 'decision_tree' ? (
+        <div id="panel-decision_tree" role="tabpanel" aria-labelledby="tab-decision_tree" className="flex-1 overflow-hidden bg-slate-950">
+          <Suspense fallback={renderPanelFallback('decision flow')}>
+            <DecisionTreeDashboard
+              sim={sim}
+              onBackToLegacy={exitDecisionTree}
             />
+          </Suspense>
+        </div>
+      ) : activeTab === 'simulator' ? (
+        <div className="flex flex-1 overflow-hidden bg-slate-950">
+          {sim.viewMode === 'settings' ? (
+            <div className="flex-1 overflow-y-auto custom-scrollbar" id="panel-sim-view-settings" role="tabpanel" aria-labelledby="open-settings">
+              <Suspense fallback={renderPanelFallback('settings')}>
+                <Settings onBack={() => sim.setViewMode('sandbox')} onReset={sim.resetToDefaults} />
+              </Suspense>
+            </div>
+          ) : sim.viewMode === 'explorer' ? (
+            <div className="flex-1 overflow-y-auto custom-scrollbar" id="panel-sim-view-explorer" role="tabpanel" aria-labelledby="tab-sim-view-explorer">
+              <Suspense fallback={renderPanelFallback('browser')}>
+                <ExplorerTab
+                  profiles={PROTOCOL_PROFILES}
+                  networkStatus={networkStatus}
+                  onAnalyze={(id) => {
+                    const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id || p.metadata.coingeckoId === id);
+                    if (profile) { sim.loadProfile(profile); sim.setViewMode('sandbox'); }
+                  }}
+                  onCompare={(id) => {
+                    const profile = PROTOCOL_PROFILES.find(p => p.metadata.id === id || p.metadata.coingeckoId === id);
+                    if (profile) {
+                      sim.toggleProtocolSelection(profile.metadata.id);
+                      sim.setViewMode('comparison');
+                    }
+                  }}
+                />
+              </Suspense>
+            </div>
           ) : (
             <>
               {/* SHARED SIDEBAR */}
@@ -372,50 +828,118 @@ const App: React.FC = () => {
                 collapsedSections={collapsedSections}
                 toggleSection={toggleSection}
                 activeScenarioId={activeScenarioId}
-                setActiveScenarioId={setActiveScenarioId}
+                setActiveScenarioId={(scenarioId) => applyGlobalScenario(undefined, scenarioId)}
                 setFocusChart={sim.setFocusChart}
                 setShowKnowledgeLayer={setShowKnowledgeLayer}
                 findBreakEven={sim.findBreakEven}
                 runOptimization={sim.runOptimization}
               />
 
-              <main className="flex-1 overflow-y-auto bg-slate-950 p-6 custom-scrollbar relative">
+              <main className="flex-1 overflow-y-auto p-6 custom-scrollbar relative" id={sim.viewMode === 'sandbox' ? 'panel-sim-view-sandbox' : 'panel-sim-view-comparison'} role="tabpanel" aria-labelledby={sim.viewMode === 'sandbox' ? 'tab-sim-view-sandbox' : 'tab-sim-view-comparison'}>
                 {sim.viewMode === 'sandbox' ? (
-                  <SandboxView
-                    activeProfile={sim.activeProfile}
-                    params={sim.params}
-                    setParams={sim.setParams}
-                    aggregated={sim.aggregated}
-                    onocoyHookSnapshot={sim.onocoyHookSnapshot}
-                    playbackWeek={sim.playbackWeek}
-                    incentiveRegime={incentiveRegime}
-                    scrollToControl={scrollToControl}
-                    focusChart={sim.focusChart}
-                    setFocusChart={sim.setFocusChart}
-                  />
+                  <Suspense fallback={renderPanelFallback('experiment')}>
+                    <SandboxView
+                      activeProfile={sim.activeProfile}
+                      params={sim.params}
+                      setParams={sim.setParams}
+                      aggregated={sim.aggregated}
+                      onocoyHookSnapshot={sim.onocoyHookSnapshot}
+                      playbackWeek={sim.playbackWeek}
+                      incentiveRegime={incentiveRegime}
+                      scrollToControl={scrollToControl}
+                      focusChart={sim.focusChart}
+                      setFocusChart={sim.setFocusChart}
+                      activeScenarioId={activeScenarioId}
+                      onScenarioLoad={(scenarioParams, scenarioId) => applyGlobalScenario(scenarioParams, scenarioId)}
+                    />
+                  </Suspense>
                 ) : (
-                  <ComparisonView
-                    selectedProtocolIds={sim.selectedProtocolIds}
-                    setSelectedProtocolIds={(ids) => {
-                      // Manually update hook state if needed, or expose setter.
-                      // Hook exposes `selectedProtocolIds` and `toggleProtocolSelection`.
-                      // We need a bulk setter or iterate.
-                      // Hook does NOT expose bulk setter. I should add `setSelectedProtocolIds` to hook return.
-                      // For now, I'll access it via `sim.setSelectedProtocolIds` if I add it.
-                      // Checking hook... it sends `selectedProtocolIds`. `setSelectedProtocolIds` is NOT returned.
-                      // I will PATCH the HOOK to return `setSelectedProtocolIds`.
-                    }}
-                    profiles={PROTOCOL_PROFILES}
-                    multiAggregated={sim.multiAggregated}
-                    liveData={liveData}
-                    liveDataLoading={liveDataLoading}
-                    fetchLiveData={fetchLiveData}
-                    params={sim.params}
-                  />
+                  <Suspense fallback={renderPanelFallback('comparison')}>
+                    <ComparisonView
+                      selectedProtocolIds={sim.selectedProtocolIds}
+                      setSelectedProtocolIds={(ids) => {
+                        // Manually update hook state if needed, or expose setter.
+                        // Hook exposes `selectedProtocolIds` and `toggleProtocolSelection`.
+                        // We need a bulk setter or iterate.
+                        // Hook does NOT expose bulk setter. I should add `setSelectedProtocolIds` to hook return.
+                        // For now, I'll access it via `sim.setSelectedProtocolIds` if I add it.
+                        // Checking hook... it sends `selectedProtocolIds`. `setSelectedProtocolIds` is NOT returned.
+                        // I will PATCH the HOOK to return `setSelectedProtocolIds`.
+                      }}
+                      profiles={PROTOCOL_PROFILES}
+                      multiAggregated={sim.multiAggregated}
+                      liveData={liveData}
+                      liveDataLoading={liveDataLoading}
+                      fetchLiveData={fetchLiveData}
+                      params={sim.params}
+                    />
+                  </Suspense>
                 )}
               </main>
             </>
           )}
+        </div>
+      ) : (
+        <div className="flex-1 bg-slate-950" />
+      )}
+
+      {(activeTab === 'thesis' || hasVisitedThesis) && (
+        <div
+          id="panel-thesis"
+          role="tabpanel"
+          aria-labelledby="tab-thesis"
+          aria-hidden={activeTab !== 'thesis'}
+          className={activeTab === 'thesis'
+            ? 'flex-1 overflow-y-auto bg-slate-950 custom-scrollbar p-6'
+            : 'hidden'}
+        >
+          <div className="mb-6 space-y-3">
+            <DecisionBriefCard brief={briefsBySurface.strategy} dataCy="strategy-decision-brief" />
+            <p className="text-xs text-slate-400">
+              Next step: convert this strategy into one owner-assigned action and export the brief for review.
+            </p>
+          </div>
+          <Suspense fallback={renderPanelFallback('strategy')}>
+            <ThesisDashboard
+              activeProfile={sim.activeProfile}
+              protocols={PROTOCOL_PROFILES}
+              onSelectProtocol={sim.loadProfile}
+              activeScenarioId={activeScenarioId}
+              onScenarioSelect={handleThesisScenarioSelect}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {(activeTab === 'diagnostic' || hasVisitedDiagnostic) && (
+        <div
+          id="panel-diagnostic"
+          role="tabpanel"
+          aria-labelledby="tab-diagnostic"
+          aria-hidden={activeTab !== 'diagnostic'}
+          className={activeTab === 'diagnostic'
+            ? 'flex-1 overflow-y-auto bg-slate-950 custom-scrollbar p-6'
+            : 'hidden'}
+        >
+          <div className="mb-6 space-y-3">
+            <DecisionBriefCard brief={briefsBySurface.diagnostics} dataCy="diagnostic-decision-brief" />
+            <p className="text-xs text-slate-400">
+              Use Suggested Mode for first pass, then confirm the highest-impact failure mode.
+            </p>
+            <p className="text-xs text-slate-400">
+              Next step: validate one intervention in Stress Lab and re-export the brief.
+            </p>
+          </div>
+          <Suspense fallback={renderPanelFallback('root causes')}>
+            <AuditDashboard
+              simulationData={sim.aggregated}
+              loading={sim.loading}
+              profileName={sim.activeProfile.metadata.name}
+              onProtocolChange={handleDiagnosticProtocolChange}
+              onRunSensitivity={handleDiagnosticRunSensitivity}
+              onParamChange={handleDiagnosticParamChange}
+            />
+          </Suspense>
         </div>
       )}
 
