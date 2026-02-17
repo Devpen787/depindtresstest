@@ -11,6 +11,7 @@
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "cy:run:live": "cypress run --config-file cypress.live.config.ts",
+    "test:e2e:perf-tabs": "start-server-and-test dev:e2e http://127.0.0.1:4173 \"cypress run --config-file cypress.config.ts --config specPattern='cypress/e2e/analysis/**/*.cy.ts'\"",
     "test:e2e": "start-server-and-test dev:e2e http://127.0.0.1:4173 cy:run",
     "test:e2e:live": "start-server-and-test dev:e2e http://127.0.0.1:4173 cy:run:live",
     "test:e2e:all": "npm run test:e2e && npm run test:e2e:live",
