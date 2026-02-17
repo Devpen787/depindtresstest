@@ -5,9 +5,12 @@ import {
     SOURCE_GRADE_LABEL
 } from '../../data/metricEvidence';
 
+import { Shield, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
+
 interface MetricEvidenceBadgeProps {
     evidence?: MetricEvidence;
     compact?: boolean;
+    variant?: 'pill' | 'icon'; // [NEW] variant
 }
 
 const gradeClass: Record<MetricEvidence['sourceGrade'], string> = {
@@ -22,7 +25,7 @@ const reproClass: Record<MetricEvidence['reproducibilityStatus'], string> = {
     not_runnable: 'bg-rose-500/10 text-rose-300 border-rose-500/20',
 };
 
-export const MetricEvidenceBadge: React.FC<MetricEvidenceBadgeProps> = ({ evidence, compact = false }) => {
+export const MetricEvidenceBadge: React.FC<MetricEvidenceBadgeProps> = ({ evidence, compact = false, variant = 'pill' }) => {
     if (!evidence) return null;
 
     const tooltip = [
@@ -37,11 +40,34 @@ export const MetricEvidenceBadge: React.FC<MetricEvidenceBadgeProps> = ({ eviden
         .filter(Boolean)
         .join('\n');
 
+    // [NEW] Icon Variant Logic
+    if (variant === 'icon') {
+        let Icon = Shield;
+        let colorClass = 'text-slate-500 hover:text-slate-300';
+
+        if (evidence.sourceGrade === 'primary') {
+            Icon = ShieldCheck;
+            colorClass = 'text-emerald-500/50 hover:text-emerald-400';
+        } else if (evidence.sourceGrade === 'interpolated') {
+            Icon = ShieldAlert;
+            colorClass = 'text-rose-500/50 hover:text-rose-400';
+        } else {
+            Icon = ShieldQuestion;
+            colorClass = 'text-amber-500/50 hover:text-amber-400';
+        }
+
+        return (
+            <div className={`cursor-help transition-colors ${colorClass}`} title={tooltip}>
+                <Icon size={14} />
+            </div>
+        );
+    }
+
     const baseTextClass = compact ? 'text-[8px]' : 'text-[9px]';
     const basePadClass = compact ? 'px-1.5 py-0.5' : 'px-2 py-0.5';
 
     return (
-        <div className="inline-flex items-center gap-1" title={tooltip}>
+        <div className="inline-flex items-center gap-1 cursor-help" title={tooltip}>
             <span className={`${basePadClass} ${baseTextClass} border rounded font-semibold uppercase tracking-wide ${gradeClass[evidence.sourceGrade]}`}>
                 {SOURCE_GRADE_LABEL[evidence.sourceGrade]}
             </span>

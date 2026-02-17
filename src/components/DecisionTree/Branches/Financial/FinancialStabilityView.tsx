@@ -69,12 +69,13 @@ export const FinancialStabilityView: React.FC<FinancialStabilityViewProps> = ({ 
 
             <ChartContextHeader
                 title="How To Read Financial Stability"
-                what="This branch evaluates whether utility revenue can sustainably fund incentives without relying on persistent subsidy."
-                why="Metrics combine burn/mint dynamics with treasury trajectory. If burn lags mint or runway drains, solvency weakens."
+                what="This branch checks if network revenue can pay for incentives without long-term subsidy."
+                why="If mint keeps beating burn or treasury drains too fast, the system becomes fragile."
                 reference={useBurnMetric
                     ? GUARDRAIL_COPY.financialBurnReference
                     : GUARDRAIL_COPY.financialRunwayReference}
-                nextQuestion="Should we prioritize emission cuts, demand acceleration, or treasury policy changes first?"
+                nextQuestion="What should be changed first: emissions, demand growth, or treasury policy?"
+                actionTrigger="If solvency stays below floor or runway keeps shrinking, pause external recommendation and run one mitigation test."
             />
 
             {/* SECTION 2: SOLVENCY SCORECARD (REUSED) */}

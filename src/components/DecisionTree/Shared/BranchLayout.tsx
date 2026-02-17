@@ -16,7 +16,7 @@ export const BranchLayout: React.FC<BranchLayoutProps> = ({
     title, icon, activeProfileName, scenarioName, onBack, onOpenSandbox, children, breadcrumbs
 }) => {
     return (
-        <div className="h-screen flex flex-col bg-slate-950">
+        <div className="h-full flex flex-col bg-slate-950">
 
             {/* HUD HEADER */}
             <header className="h-16 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-6 shrink-0 backdrop-blur-md z-10 sticky top-0">

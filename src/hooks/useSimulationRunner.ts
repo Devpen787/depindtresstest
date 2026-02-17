@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
     PROTOCOL_PROFILES,
     ProtocolProfileV1
@@ -7,7 +7,6 @@ import { PEER_GROUPS } from '../data/peerGroups';
 import { OnChainMetrics } from '../services/dune';
 import {
     SimulationParams as NewSimulationParams,
-    AggregateResult as NewAggregateResult,
     runSimulation as runNewSimulation,
     calculateDerivedMetrics,
     SimResult,
@@ -17,16 +16,34 @@ import {
 import { SimulationParams } from '../model/SimulationAdapter';
 import { Optimizer } from '../model/optimizer';
 import { getProtocolModule } from '../protocols/registry';
+import { recordPerf } from '../utils/perf';
 
 // Sub-hooks
 import { useSimState } from './simulation/useSimState';
 import { useSimEngine } from './simulation/useSimEngine';
 import { useOnocoyAdapter, OnocoyProtocolHookSnapshot } from './simulation/useOnocoyAdapter';
+import type {
+    SimulationWorkerJob,
+    SimulationWorkerPeerJob,
+    SimulationWorkerRequest,
+    SimulationWorkerResponse,
+    SimulationWorkerRunResult,
+    SimulationWorkerPeerResult
+} from '../workers/simulationWorkerTypes';
 
 type ProtocolTelemetryById = Record<string, (OnChainMetrics & { sourceType?: string }) | null>;
 export type { OnocoyProtocolHookSnapshot };
 
-export const useSimulationRunner = (protocolTelemetryById: ProtocolTelemetryById = {}) => {
+interface UseSimulationRunnerOptions {
+    enablePeerWizardCalibration?: boolean;
+}
+
+export const useSimulationRunner = (
+    protocolTelemetryById: ProtocolTelemetryById = {},
+    options: UseSimulationRunnerOptions = {}
+) => {
+    const { enablePeerWizardCalibration = false } = options;
+    const yieldToMainThread = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
     // 1. STATE
     const state = useSimState();
     const {
@@ -52,15 +69,146 @@ export const useSimulationRunner = (protocolTelemetryById: ProtocolTelemetryById
     // 2. LOGIC ADAPTERS
     const engine = useSimEngine();
     const onocoyAdapter = useOnocoyAdapter();
+    const workerRef = useRef<Worker | null>(null);
+    const runSequenceRef = useRef(0);
+    const peerSequenceRef = useRef(0);
+
+    useEffect(() => {
+        if (typeof Worker === 'undefined') return;
+        const worker = new Worker(new URL('../workers/simulationWorker.ts', import.meta.url), { type: 'module' });
+        workerRef.current = worker;
+        return () => {
+            worker.terminate();
+            workerRef.current = null;
+        };
+    }, []);
+
+    const requestWorker = <T extends SimulationWorkerResponse>(
+        request: SimulationWorkerRequest,
+        expectedType: T['type']
+    ): Promise<T> => {
+        return new Promise((resolve, reject) => {
+            const worker = workerRef.current;
+            if (!worker) {
+                reject(new Error('Simulation worker unavailable'));
+                return;
+            }
+
+            const onMessage = (event: MessageEvent<SimulationWorkerResponse>) => {
+                const payload = event.data;
+                if (payload.type !== expectedType || payload.runId !== request.runId) {
+                    return;
+                }
+
+                worker.removeEventListener('message', onMessage as EventListener);
+                worker.removeEventListener('error', onError);
+
+                if ('error' in payload && payload.error) {
+                    reject(new Error(payload.error));
+                    return;
+                }
+
+                resolve(payload as T);
+            };
+
+            const onError = (event: ErrorEvent) => {
+                worker.removeEventListener('message', onMessage as EventListener);
+                worker.removeEventListener('error', onError);
+                reject(event.error || new Error(event.message));
+            };
+
+            worker.addEventListener('message', onMessage as EventListener);
+            worker.addEventListener('error', onError);
+            worker.postMessage(request);
+        });
+    };
+
+    const runSimulationOnMainThread = async (
+        jobs: SimulationWorkerJob[],
+        activeProfileId: string
+    ): Promise<{ allResults: Record<string, AggregateResult[]>; derivedMetrics: ReturnType<typeof calculateDerivedMetrics> | null }> => {
+        const allResults: Record<string, AggregateResult[]> = {};
+        let derivedMetrics: ReturnType<typeof calculateDerivedMetrics> | null = null;
+
+        for (const job of jobs) {
+            const protocolModule = getProtocolModule<NewSimulationParams, AggregateResult>(job.protocolId);
+            let aggregate: AggregateResult[];
+
+            if (job.useNewModel) {
+                const newResults = runNewSimulation(job.params);
+                aggregate = engine.mapNewResultsToAggregate(newResults);
+                aggregate = protocolModule.postProcessAggregates
+                    ? protocolModule.postProcessAggregates(aggregate)
+                    : aggregate;
+                if (job.protocolId === activeProfileId) {
+                    derivedMetrics = calculateDerivedMetrics(newResults, job.params);
+                }
+            } else {
+                const allSims: SimResult[][] = [];
+                for (let i = 0; i < job.params.nSims; i++) {
+                    allSims.push(simulateOne(job.params as unknown as SimulationParams, job.params.seed + i));
+                    if ((i + 1) % 6 === 0) {
+                        await yieldToMainThread();
+                    }
+                }
+
+                aggregate = [];
+                const keys: (keyof SimResult)[] = ['price', 'supply', 'demand', 'demand_served', 'providers', 'capacity', 'servicePrice', 'minted', 'burned', 'utilization', 'profit', 'scarcity', 'incentive', 'solvencyScore', 'netDailyLoss', 'dailyMintUsd', 'dailyBurnUsd', 'treasuryBalance', 'vampireChurn', 'mercenaryCount', 'proCount', 'underwaterCount', 'costPerCapacity', 'revenuePerCapacity', 'entryBarrierActive'];
+
+                for (let tStep = 0; tStep < job.params.T; tStep++) {
+                    const step: any = { t: tStep };
+                    keys.forEach(key => {
+                        const values = allSims.map(sim => sim[tStep]?.[key] as number).filter(v => v !== undefined).sort((a, b) => a - b);
+                        if (values.length === 0) return;
+                        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                        const p10 = values[Math.floor(values.length * 0.1)] || 0;
+                        const p90 = values[Math.floor(values.length * 0.9)] || 0;
+                        step[key] = { mean, p10, p90 };
+                    });
+                    aggregate.push(step as AggregateResult);
+                    if ((tStep + 1) % 10 === 0) {
+                        await yieldToMainThread();
+                    }
+                }
+
+                aggregate = protocolModule.postProcessAggregates
+                    ? protocolModule.postProcessAggregates(aggregate)
+                    : aggregate;
+            }
+
+            allResults[job.protocolId] = aggregate;
+            await yieldToMainThread();
+        }
+
+        return { allResults, derivedMetrics };
+    };
+
+    const runPeerCalibrationOnMainThread = async (jobs: SimulationWorkerPeerJob[]): Promise<Record<string, AggregateResult[]>> => {
+        const peerResults: Record<string, AggregateResult[]> = {};
+
+        for (const job of jobs) {
+            const protocolModule = getProtocolModule<NewSimulationParams, AggregateResult>(job.protocolId);
+            const peerSeries = runNewSimulation(job.params);
+            const mappedPeerSeries = engine.mapNewResultsToAggregate(peerSeries);
+            peerResults[job.protocolId] = protocolModule.postProcessAggregates
+                ? protocolModule.postProcessAggregates(mappedPeerSeries)
+                : mappedPeerSeries;
+            await yieldToMainThread();
+        }
+
+        return peerResults;
+    };
 
     // 3. CORE SIMULATION RUNNER
     const runSimulation = () => {
         setLoading(true);
         setPlaybackWeek(0);
 
-        setTimeout(() => {
-            const allResults: Record<string, AggregateResult[]> = {};
+        setTimeout(async () => {
+            const startedAt = performance.now();
             const protocolSnapshots: Record<string, OnocoyProtocolHookSnapshot> = {};
+            const runId = runSequenceRef.current + 1;
+            runSequenceRef.current = runId;
 
             const benchmarkIds = Array.from(new Set(PEER_GROUPS.flatMap(group => group.members)));
 
@@ -69,74 +217,86 @@ export const useSimulationRunner = (protocolTelemetryById: ProtocolTelemetryById
                 : viewMode === 'benchmark'
                     ? PROTOCOL_PROFILES.filter(p => benchmarkIds.includes(p.metadata.id))
                     : [activeProfile];
-
-            protocolsToSimulate.forEach(profile => {
+            const moduleParamsById: Record<string, NewSimulationParams> = {};
+            const jobs: SimulationWorkerJob[] = protocolsToSimulate.map((profile) => {
                 const isSandbox = viewMode === 'sandbox';
                 const localParams = engine.buildLocalParams(profile, isSandbox, params);
                 const protocolModule = getProtocolModule<NewSimulationParams, AggregateResult>(profile.metadata.id);
                 const moduleParams = protocolModule.normalizeParams
                     ? protocolModule.normalizeParams(localParams)
                     : localParams;
+                moduleParamsById[profile.metadata.id] = moduleParams;
+                return {
+                    protocolId: profile.metadata.id,
+                    params: moduleParams,
+                    useNewModel
+                };
+            });
 
-                let aggregate: AggregateResult[];
+            try {
+                let allResults: Record<string, AggregateResult[]> = {};
+                let derivedMetrics: ReturnType<typeof calculateDerivedMetrics> | null = null;
 
-                if (useNewModel) {
-                    const newResults = runNewSimulation(moduleParams);
-                    aggregate = engine.mapNewResultsToAggregate(newResults);
-                    aggregate = protocolModule.postProcessAggregates
-                        ? protocolModule.postProcessAggregates(aggregate)
-                        : aggregate;
-
-                    if (profile.metadata.id === activeProfile.metadata.id) {
-                        const metrics = calculateDerivedMetrics(newResults, moduleParams);
-                        setDerivedMetrics(metrics);
-                    }
+                if (workerRef.current) {
+                    const response = await requestWorker<SimulationWorkerRunResult>({
+                        type: 'runSimulation',
+                        runId,
+                        jobs,
+                        activeProfileId: activeProfile.metadata.id
+                    }, 'runSimulationResult');
+                    allResults = response.allResults;
+                    derivedMetrics = response.derivedMetrics;
                 } else {
-                    const allSims: SimResult[][] = [];
-                    for (let i = 0; i < params.nSims; i++) {
-                        allSims.push(simulateOne(moduleParams as unknown as SimulationParams, params.seed + i));
-                    }
-
-                    // Legacy Aggregation Logic (Inline for now, could be extracted further)
-                    aggregate = [];
-                    const keys: (keyof SimResult)[] = ['price', 'supply', 'demand', 'demand_served', 'providers', 'capacity', 'servicePrice', 'minted', 'burned', 'utilization', 'profit', 'scarcity', 'incentive', 'solvencyScore', 'netDailyLoss', 'dailyMintUsd', 'dailyBurnUsd', 'treasuryBalance', 'vampireChurn', 'mercenaryCount', 'proCount', 'underwaterCount', 'costPerCapacity', 'revenuePerCapacity', 'entryBarrierActive'];
-
-                    for (let tStep = 0; tStep < params.T; tStep++) {
-                        const step: any = { t: tStep };
-                        keys.forEach(key => {
-                            const values = allSims.map(sim => sim[tStep]?.[key] as number).filter(v => v !== undefined).sort((a, b) => a - b);
-                            if (values.length === 0) return;
-                            const mean = values.reduce((a, b) => a + b, 0) / values.length;
-                            const p10 = values[Math.floor(values.length * 0.1)] || 0;
-                            const p90 = values[Math.floor(values.length * 0.9)] || 0;
-                            step[key] = { mean, p10, p90 };
-                        });
-                        aggregate.push(step as AggregateResult);
-                    }
-                    aggregate = protocolModule.postProcessAggregates
-                        ? protocolModule.postProcessAggregates(aggregate)
-                        : aggregate;
+                    const fallback = await runSimulationOnMainThread(jobs, activeProfile.metadata.id);
+                    allResults = fallback.allResults;
+                    derivedMetrics = fallback.derivedMetrics;
                 }
 
-                if (protocolModule.id === 'onocoy') {
+                if (runId !== runSequenceRef.current) {
+                    return;
+                }
+
+                if (derivedMetrics) {
+                    setDerivedMetrics(derivedMetrics);
+                }
+
+                protocolsToSimulate.forEach((profile) => {
+                    const aggregate = allResults[profile.metadata.id];
+                    if (!aggregate) return;
+                    const protocolModule = getProtocolModule<NewSimulationParams, AggregateResult>(profile.metadata.id);
+                    if (protocolModule.id !== 'onocoy') return;
                     protocolSnapshots[profile.metadata.id] = onocoyAdapter.buildOnocoyHookSnapshot(
                         profile.metadata.id,
                         aggregate,
-                        moduleParams,
+                        moduleParamsById[profile.metadata.id],
                         protocolTelemetryById[profile.metadata.id]
                     );
+                });
+
+                setMultiAggregated(allResults);
+                setOnocoyHookSnapshots(protocolSnapshots);
+                if (allResults[activeProfile.metadata.id]) {
+                    setAggregated(allResults[activeProfile.metadata.id]);
                 }
-
-                allResults[profile.metadata.id] = aggregate;
-            });
-
-            setMultiAggregated(allResults);
-            setOnocoyHookSnapshots(protocolSnapshots);
-            if (allResults[activeProfile.metadata.id]) {
-                setAggregated(allResults[activeProfile.metadata.id]);
+            } catch (error) {
+                if (runId !== runSequenceRef.current) {
+                    return;
+                }
+                console.error('Simulation run failed', error);
+            } finally {
+                if (runId !== runSequenceRef.current) {
+                    return;
+                }
+                setLoading(false);
+                setPlaybackWeek(params.T);
+                recordPerf('simulation-run', performance.now() - startedAt, {
+                    viewMode,
+                    protocols: protocolsToSimulate.length,
+                    nSims: params.nSims,
+                    model: useNewModel ? 'v2' : 'legacy',
+                    worker: Boolean(workerRef.current)
+                });
             }
-            setLoading(false);
-            setPlaybackWeek(params.T);
         }, 100);
     };
 
@@ -201,24 +361,31 @@ export const useSimulationRunner = (protocolTelemetryById: ProtocolTelemetryById
             }, 600);
             return () => clearTimeout(timer);
         }
-    }, [params, autoRun, viewMode, JSON.stringify(protocolTelemetryById)]);
+    }, [params, autoRun, JSON.stringify(protocolTelemetryById)]);
 
     useEffect(() => { runSimulation(); }, []);
 
     // Peer Wizard Effect
     useEffect(() => {
+        // Reuse benchmark cohort results whenever available.
         if (viewMode === 'benchmark' && Object.keys(multiAggregated).length > 1) {
             setPeerWizardAggregated(multiAggregated);
             return;
         }
 
-        let cancelled = false;
-        const timer = setTimeout(() => {
-            try {
-                const peerResults: Record<string, AggregateResult[]> = {};
-                const peerNSims = Math.max(8, Math.min(12, params.nSims));
+        // Avoid expensive peer recalibration unless Decision Tree v2 is open.
+        if (!enablePeerWizardCalibration) {
+            return;
+        }
 
-                PROTOCOL_PROFILES.forEach(profile => {
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            const runId = peerSequenceRef.current + 1;
+            peerSequenceRef.current = runId;
+            const startedAt = performance.now();
+            try {
+                const peerNSims = Math.max(8, Math.min(12, params.nSims));
+                const peerJobs: SimulationWorkerPeerJob[] = PROTOCOL_PROFILES.map((profile) => {
                     const peerParams = engine.buildLocalParams(profile, false, params, {
                         nSims: peerNSims,
                         seed: params.seed
@@ -227,17 +394,30 @@ export const useSimulationRunner = (protocolTelemetryById: ProtocolTelemetryById
                     const normalizedPeerParams = protocolModule.normalizeParams
                         ? protocolModule.normalizeParams(peerParams)
                         : peerParams;
-
-                    const peerSeries = runNewSimulation(normalizedPeerParams);
-                    const mappedPeerSeries = engine.mapNewResultsToAggregate(peerSeries);
-                    peerResults[profile.metadata.id] = protocolModule.postProcessAggregates
-                        ? protocolModule.postProcessAggregates(mappedPeerSeries)
-                        : mappedPeerSeries;
+                    return {
+                        protocolId: profile.metadata.id,
+                        params: normalizedPeerParams
+                    };
                 });
 
-                if (!cancelled) {
-                    setPeerWizardAggregated(peerResults);
+                const peerResults = workerRef.current
+                    ? (await requestWorker<SimulationWorkerPeerResult>({
+                        type: 'runPeerCalibration',
+                        runId,
+                        jobs: peerJobs
+                    }, 'runPeerCalibrationResult')).peerResults
+                    : await runPeerCalibrationOnMainThread(peerJobs);
+
+                if (cancelled || runId !== peerSequenceRef.current) {
+                    return;
                 }
+
+                setPeerWizardAggregated(peerResults);
+                recordPerf('peer-wizard-calibration', performance.now() - startedAt, {
+                    peers: Object.keys(peerResults).length,
+                    nSims: peerNSims,
+                    worker: Boolean(workerRef.current)
+                });
             } catch (error) {
                 console.error('Peer wizard calibration failed', error);
                 if (!cancelled) {
@@ -251,6 +431,7 @@ export const useSimulationRunner = (protocolTelemetryById: ProtocolTelemetryById
             clearTimeout(timer);
         };
     }, [
+        enablePeerWizardCalibration,
         viewMode,
         multiAggregated,
         params.T,
@@ -296,6 +477,7 @@ export const useSimulationRunner = (protocolTelemetryById: ProtocolTelemetryById
         onocoyHookSnapshot: onocoyHookSnapshots[activeProfile.metadata.id],
         focusChart, setFocusChart,
         useNewModel: state.useNewModel, setUseNewModel: state.setUseNewModel,
+        simulationRunId: runSequenceRef.current,
 
         // Actions
         runSimulation,

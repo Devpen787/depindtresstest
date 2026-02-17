@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { History } from 'lucide-react';
 import { HELIUM_2022_DATA } from '../data/historical/helium_2022';
 import {
@@ -37,16 +37,22 @@ import { SCENARIOS, SimulationScenario } from '../data/scenarios';
 
 import { ChartContextHeader } from './ui/ChartContextHeader';
 import MetricEvidenceBadge from './ui/MetricEvidenceBadge';
-import MetricEvidenceLegend from './ui/MetricEvidenceLegend';
+// import MetricEvidenceLegend from './ui/MetricEvidenceLegend';
 import { getMetricEvidence } from '../data/metricEvidence';
 import {
     GUARDRAIL_BAND_LABELS,
     GUARDRAIL_COPY,
-    PAYBACK_GUARDRAILS,
-    RETENTION_GUARDRAILS
+    PAYBACK_GUARDRAILS
 } from '../constants/guardrails';
 import { VolumetricFlowChart } from './charts/VolumetricFlowChart';
 import { AggregateResult } from '../model/types';
+import {
+    OWNER_KPI_BAND_CLASSIFIERS,
+    OWNER_KPI_THRESHOLD_VALUES,
+    calculateOwnerPaybackMonths,
+    calculateOwnerRetentionPct,
+    mergeGuardrailBands
+} from '../audit/kpiOwnerMath';
 
 // Register ChartJS components
 ChartJS.register(
@@ -65,6 +71,8 @@ interface ThesisDashboardProps {
     activeProfile?: ProtocolProfileV1;
     protocols?: ProtocolProfileV1[];
     onSelectProtocol?: (profile: ProtocolProfileV1) => void;
+    activeScenarioId?: string | null;
+    onScenarioSelect?: (scenarioId: string | null) => void;
 }
 
 const formatCompact = (value: number) => {
@@ -75,7 +83,9 @@ const formatCompact = (value: number) => {
 export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
     activeProfile,
     protocols,
-    onSelectProtocol
+    onSelectProtocol,
+    activeScenarioId,
+    onScenarioSelect
 }) => {
     // --- STATE ---
     // Risk Engine Inputs
@@ -91,11 +101,11 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // Scenario State
-    const [selectedScenarioId, setSelectedScenarioId] = useState<string>('baseline');
     const [showHistoricalOverlay, setShowHistoricalOverlay] = useState(false); // [NEW] Helium Overlay Toggle
+    const [showAdvancedStrategyAnalysis, setShowAdvancedStrategyAnalysis] = useState(false);
+    const selectedScenarioId = activeScenarioId || 'baseline';
 
-    const handleScenarioChange = (scenarioId: string) => {
-        setSelectedScenarioId(scenarioId);
+    const applyScenarioPreset = useCallback((scenarioId: string) => {
         const scenario = SCENARIOS.find(s => s.id === scenarioId);
         if (!scenario) return;
 
@@ -115,6 +125,18 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
             setMarketStress(-20);
             setCompetitorYield(0);
         }
+    }, []);
+
+    useEffect(() => {
+        applyScenarioPreset(selectedScenarioId);
+    }, [applyScenarioPreset, selectedScenarioId]);
+
+    const handleScenarioChange = (scenarioId: string) => {
+        if (onScenarioSelect) {
+            onScenarioSelect(scenarioId);
+            return;
+        }
+        applyScenarioPreset(scenarioId);
     };
 
     // --- LOGIC ENGINE (MERGED) ---
@@ -230,10 +252,15 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
         let monthlyEmissions = 1000000;
         if (emissionType === 'demand' && marketStress < 0) monthlyEmissions *= 0.6;
         let finalMonthlyRevenue = (monthlyEmissions / finalNodes) * finalPrice;
-        let finalPayback = finalMonthlyRevenue > 0 ? capex / finalMonthlyRevenue : 999;
+        const annualizedRevenue = finalMonthlyRevenue * 12 * Math.max(1, finalNodes);
+        const finalPayback = calculateOwnerPaybackMonths({
+            hardwareCost: capex,
+            annualizedRevenue,
+            activeNodes: Math.max(1, finalNodes)
+        });
 
         // KPI Calcs
-        const retentionRate = Math.round((finalNodes / INITIAL_NODES) * 100);
+        const retentionRate = Math.round(calculateOwnerRetentionPct(finalNodes / Math.max(1, INITIAL_NODES)));
 
         let solvencyText = "Stable";
         if (revenueStrategy === 'reserve') {
@@ -498,15 +525,19 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
     };
 
     const thesisStatus = useMemo(() => {
-        const solvencyHealthy = revenueStrategy === 'reserve'
-            ? simulationData.finalReserve > 0
-            : simulationData.finalPayback <= PAYBACK_GUARDRAILS.healthyMaxMonths;
-        const retentionHealthy = simulationData.retentionRate >= RETENTION_GUARDRAILS.thesisMinPct;
-        const paybackHealthy = simulationData.finalPayback <= PAYBACK_GUARDRAILS.watchlistMaxMonths;
-        const healthyCount = [solvencyHealthy, retentionHealthy, paybackHealthy].filter(Boolean).length;
+        const paybackBand = OWNER_KPI_BAND_CLASSIFIERS.payback(simulationData.finalPayback);
+        const retentionBand = OWNER_KPI_BAND_CLASSIFIERS.retention(simulationData.retentionRate);
+        const reserveBand = revenueStrategy === 'reserve' && simulationData.finalReserve > 0
+            ? 'healthy'
+            : 'watchlist';
+        const overallBand = mergeGuardrailBands([paybackBand, retentionBand, reserveBand]);
 
-        if (healthyCount <= 1) return { tone: 'critical' as const, label: GUARDRAIL_BAND_LABELS.intervention, detail: 'Multiple resilience guardrails are off-target' };
-        if (healthyCount === 2) return { tone: 'caution' as const, label: GUARDRAIL_BAND_LABELS.watchlist, detail: 'One resilience guardrail needs action' };
+        if (overallBand === 'intervention') {
+            return { tone: 'critical' as const, label: GUARDRAIL_BAND_LABELS.intervention, detail: 'Multiple resilience guardrails are off-target' };
+        }
+        if (overallBand === 'watchlist') {
+            return { tone: 'caution' as const, label: GUARDRAIL_BAND_LABELS.watchlist, detail: 'One resilience guardrail needs action' };
+        }
         return { tone: 'healthy' as const, label: GUARDRAIL_BAND_LABELS.healthy, detail: 'Resilience guardrails are inside target ranges' };
     }, [revenueStrategy, simulationData.finalReserve, simulationData.finalPayback, simulationData.retentionRate]);
 
@@ -533,6 +564,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                         return (
                             <button
                                 key={p.metadata.id}
+                                data-cy={`thesis-protocol-${p.metadata.id}`}
                                 onClick={() => onSelectProtocol && onSelectProtocol(p)}
                                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group ${isActive
                                     ? 'bg-indigo-500/10 text-white shadow-lg shadow-indigo-500/5 border border-indigo-500/20'
@@ -563,15 +595,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
 
                 {/* Sidebar Footer */}
                 <div className="p-4 border-t border-slate-800 space-y-4">
-                    <div className={`flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        {!sidebarCollapsed && (
-                            <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-slate-400">Status</span>
-                                <span className="text-xs font-bold text-emerald-400">Simulation Active</span>
-                            </div>
-                        )}
-                    </div>
+                    {/* Sidebar Status Removed per Simplification Plan */}
 
                     <div className={`grid ${sidebarCollapsed ? 'grid-cols-1 gap-4' : 'grid-cols-3 gap-2'}`}>
                         <a
@@ -613,32 +637,29 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                                DePIN Risk Engine <span className="text-slate-500 font-normal">| {activeProfile ? activeProfile.metadata.name : 'Onocoy'} Thesis</span>
+                                Strategy <span className="text-slate-500 font-normal">| {activeProfile ? activeProfile.metadata.name : 'Onocoy'}</span>
                             </h1>
-                            <p className="text-xs text-slate-400">Stress-Testing Tokenomics against "Vampire Attacks" & Market Crashes</p>
+                            <p className="text-xs text-slate-400">Test strategy levers under stress to choose the next safest move.</p>
                             <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-[10px] text-slate-300">
                                 <Info size={12} className="text-cyan-400" />
-                                Simplified 12-month thesis model (illustrative, not a market forecast)
+                                Simplified 12-month strategy model (illustrative, not a market forecast)
                             </div>
                         </div>
-                        <div className="hidden md:flex gap-4 text-xs font-mono text-slate-500">
-                            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> System Online</span>
-                            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> Model v3.0</span>
-                        </div>
+                        {/* Header Status Removed per Simplification Plan */}
                     </div>
 
                     <div className="w-full h-px bg-slate-800" />
 
 
 
-                    <MetricEvidenceLegend />
+                    {/* Legend Removed per Simplification Plan */}
 
                     {/* KPI Summary Cards */}
                     <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-500/50">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Network Solvency</div>
-                                <MetricEvidenceBadge evidence={getMetricEvidence('thesis_network_solvency')} compact />
+                                <MetricEvidenceBadge evidence={getMetricEvidence('thesis_network_solvency')} variant="icon" />
                             </div>
                             <div className="text-2xl font-bold text-white">{simulationData.solvencyText}</div>
                             <div className={`text-xs mt-1 ${revenueStrategy === 'reserve' ? 'text-emerald-400' : 'text-slate-500'}`}>
@@ -648,9 +669,9 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                         <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-500/50">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Miner Retention</div>
-                                <MetricEvidenceBadge evidence={getMetricEvidence('thesis_miner_retention')} compact />
+                                <MetricEvidenceBadge evidence={getMetricEvidence('thesis_miner_retention')} variant="icon" />
                             </div>
-                            <div className={`text-2xl font-bold ${simulationData.retentionRate < RETENTION_GUARDRAILS.thesisMinPct ? 'text-red-500' : 'text-white'}`}>
+                            <div className={`text-2xl font-bold ${OWNER_KPI_BAND_CLASSIFIERS.retention(simulationData.retentionRate) === 'intervention' ? 'text-red-500' : OWNER_KPI_BAND_CLASSIFIERS.retention(simulationData.retentionRate) === 'watchlist' ? 'text-amber-400' : 'text-white'}`}>
                                 {simulationData.retentionRate}%
                             </div>
                             <div className="text-xs text-slate-400 mt-1">Hardware Active</div>
@@ -783,11 +804,12 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                         {/* Visualization Column */}
                         <div className="lg:col-span-8 space-y-6">
                             <ChartContextHeader
-                                title="How To Read Thesis Charts"
-                                what="These charts show how price, nodes, composition, and runway evolve under one selected stress scenario."
-                                why="Outputs are generated from the simplified monthly loop with scenario shock inputs, emission mode, revenue strategy, and CapEx assumptions."
+                                title="How To Read Strategy Charts"
+                                what="These charts show what happens to price, node health, and runway under one chosen stress scenario."
+                                why="Each line updates when you change scenario severity, competitor pressure, emission mode, revenue strategy, or hardware cost."
                                 reference={GUARDRAIL_COPY.thesisChartReference}
-                                nextQuestion="Which lever changes the slope most: stress severity, competitor yield, emission mode, or revenue strategy?"
+                                nextQuestion="Which single lever changes the outcome the most?"
+                                actionTrigger={`If breakeven goes above ${PAYBACK_GUARDRAILS.healthyMaxMonths} months or retention falls below ${OWNER_KPI_THRESHOLD_VALUES.retentionWatchlistMinPct}%, switch from growth recommendation to intervention plan.`}
                             />
 
                             {/* Chart 1: Stability */}
@@ -795,7 +817,7 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-lg font-bold text-white">Network Stability (Aggregate)</h3>
-                                        <MetricEvidenceBadge evidence={getMetricEvidence('historical_overlay_reference')} compact />
+                                        <MetricEvidenceBadge evidence={getMetricEvidence('historical_overlay_reference')} variant="icon" />
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <button
@@ -823,80 +845,113 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
                                 </div>
                             </div>
 
-                            {/* Chart 2: Network Composition (RESTORED) */}
-                            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-                                <div className="flex justify-between items-start mb-4">
+                            <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
                                     <div>
-                                        <h3 className="text-lg font-bold text-white">Grid Composition (Urban vs Rural)</h3>
-                                        <p className="text-xs text-slate-400">Visualizing where potential capitulation starts (Speculators vs Utility).</p>
+                                        <h3 className="text-sm font-bold text-white">Advanced Strategy Analysis</h3>
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            Open secondary strategy charts and diagnostics after reviewing the core stability view.
+                                        </p>
                                     </div>
-                                    <div className="flex items-center gap-4 text-xs">
-                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded-sm"></span> Rural (Utility)</div>
-                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-rose-500 rounded-sm"></span> Urban (Speculators)</div>
-                                    </div>
-                                </div>
-                                <div className="h-[200px]">
-                                    <Line data={compositionData} options={commonOptions} />
-                                </div>
-                            </div>
-
-                            {/* Chart 3: Volumetric Flow (D3) */}
-                            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white">Volumetric Flow (Mint vs Burn)</h3>
-                                        <p className="text-xs text-slate-400">Visualizing the "Subsidy Gap" (Thesis 6.2.1)</p>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-xs">
-                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-400 rounded-sm"></span> Incentives (Mint)</div>
-                                        <div className="flex items-center gap-1"><span className="w-3 h-3 bg-red-400 rounded-sm"></span> Revenue (Burn)</div>
-                                    </div>
-                                </div>
-                                <div className="h-[250px] w-full">
-                                    <VolumetricFlowChart data={simulationData.volumetricData} width={600} height={250} />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAdvancedStrategyAnalysis((prev) => !prev)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${showAdvancedStrategyAnalysis
+                                            ? 'bg-indigo-600 text-white border-indigo-500'
+                                            : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-indigo-500/60 hover:text-white'
+                                            }`}
+                                    >
+                                        {showAdvancedStrategyAnalysis ? 'Hide Advanced Strategy Analysis' : 'Open Advanced Strategy Analysis'}
+                                    </button>
                                 </div>
                             </div>
 
-                            {/* Bottom Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Chart 3: Treasury */}
-                                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex flex-col">
-                                    <h3 className="text-sm font-bold text-white mb-4">Protocol Health (Reserves)</h3>
-                                    <div className="flex-1 min-h-[200px]">
-                                        <Bar data={treasuryData} options={commonOptions} />
+                            {showAdvancedStrategyAnalysis && (
+                                <>
+                                    {/* Chart 2: Network Composition (RESTORED) */}
+                                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-white">Grid Composition (Urban vs Rural)</h3>
+                                                <p className="text-xs text-slate-400">Visualizing where potential capitulation starts (Speculators vs Utility).</p>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-xs">
+                                                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded-sm"></span> Rural (Utility)</div>
+                                                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-rose-500 rounded-sm"></span> Urban (Speculators)</div>
+                                            </div>
+                                        </div>
+                                        <div className="h-[200px]">
+                                            <Line data={compositionData} options={commonOptions} />
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Chart 4: ROI */}
-                                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex flex-col justify-center">
-                                    <h3 className="text-sm font-bold text-white mb-4">Miner ROI Status</h3>
-                                    <div className="flex flex-col space-y-4">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-400">Hardware Cost</span>
-                                            <span className="text-white">${capex}</span>
+                                    {/* Chart 3: Volumetric Flow (D3) */}
+                                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-white">Volumetric Flow (Mint vs Burn)</h3>
+                                                <p className="text-xs text-slate-400">Visualizing the subsidy gap (model reference 6.2.1)</p>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-xs">
+                                                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-400 rounded-sm"></span> Incentives (Mint)</div>
+                                                <div className="flex items-center gap-1"><span className="w-3 h-3 bg-red-400 rounded-sm"></span> Revenue (Burn)</div>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-400">Avg Monthly Reward</span>
-                                            <span className="text-indigo-400 font-mono">${simulationData.finalMonthlyRevenue.toFixed(2)}</span>
-                                        </div>
-                                        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full transition-all duration-500 ${simulationData.finalPayback > PAYBACK_GUARDRAILS.healthyMaxMonths ? 'bg-red-500' : 'bg-indigo-500'}`}
-                                                style={{ width: `${Math.min(100, (simulationData.finalPayback / PAYBACK_GUARDRAILS.watchlistMaxMonths) * 100)}%` }}
-                                            />
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs text-slate-500">
-                                            <span>Instant</span>
-                                            <span className={simulationData.finalPayback > PAYBACK_GUARDRAILS.healthyMaxMonths ? 'text-red-400 font-bold' : 'text-slate-300'}>
-                                                {simulationData.finalPayback > PAYBACK_GUARDRAILS.extendedHorizonMonths
-                                                    ? `>${(PAYBACK_GUARDRAILS.extendedHorizonMonths / 12).toFixed(0)} Years`
-                                                    : simulationData.finalPayback.toFixed(1) + ' Mo'} Breakeven
-                                            </span>
-                                            <span>{PAYBACK_GUARDRAILS.watchlistMaxMonths} Mo</span>
+                                        <div className="h-[250px] w-full">
+                                            <VolumetricFlowChart data={simulationData.volumetricData} width={600} height={250} />
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+
+                                    {/* Bottom Row */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Chart 3: Treasury */}
+                                        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex flex-col">
+                                            <h3 className="text-sm font-bold text-white mb-4">Protocol Health (Reserves)</h3>
+                                            <div className="flex-1 min-h-[200px]">
+                                                <Bar data={treasuryData} options={commonOptions} />
+                                            </div>
+                                        </div>
+
+                                        {/* Chart 4: ROI */}
+                                        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex flex-col justify-center">
+                                            <h3 className="text-sm font-bold text-white mb-4">Miner ROI Status</h3>
+                                            <div className="flex flex-col space-y-4">
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-slate-400">Hardware Cost</span>
+                                                    <span className="text-white">${capex}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-slate-400">Avg Monthly Reward</span>
+                                                    <span className="text-indigo-400 font-mono">${simulationData.finalMonthlyRevenue.toFixed(2)}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all duration-500 ${OWNER_KPI_BAND_CLASSIFIERS.payback(simulationData.finalPayback) === 'intervention'
+                                                            ? 'bg-red-500'
+                                                            : OWNER_KPI_BAND_CLASSIFIERS.payback(simulationData.finalPayback) === 'watchlist'
+                                                                ? 'bg-amber-500'
+                                                                : 'bg-indigo-500'}`}
+                                                        style={{ width: `${Math.min(100, (simulationData.finalPayback / PAYBACK_GUARDRAILS.watchlistMaxMonths) * 100)}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs text-slate-500">
+                                                    <span>Instant</span>
+                                                    <span className={OWNER_KPI_BAND_CLASSIFIERS.payback(simulationData.finalPayback) === 'intervention'
+                                                        ? 'text-red-400 font-bold'
+                                                        : OWNER_KPI_BAND_CLASSIFIERS.payback(simulationData.finalPayback) === 'watchlist'
+                                                            ? 'text-amber-300 font-semibold'
+                                                            : 'text-slate-300'}>
+                                                        {simulationData.finalPayback > PAYBACK_GUARDRAILS.extendedHorizonMonths
+                                                            ? `>${(PAYBACK_GUARDRAILS.extendedHorizonMonths / 12).toFixed(0)} Years`
+                                                            : simulationData.finalPayback.toFixed(1) + ' Mo'} Breakeven
+                                                    </span>
+                                                    <span>{PAYBACK_GUARDRAILS.watchlistMaxMonths} Mo</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
                         </div>
                     </div>

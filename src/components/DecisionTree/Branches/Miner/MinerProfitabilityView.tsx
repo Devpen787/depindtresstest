@@ -108,10 +108,11 @@ export const MinerProfitabilityView: React.FC<MinerProfitabilityViewProps> = ({ 
 
             <ChartContextHeader
                 title="How To Read Miner Profitability"
-                what="Shows whether providers can recover hardware cost and remain economically anchored during stress."
-                why="Payback responds to token price, emissions, and provider count. Churn rises when payback stretches or profit turns negative."
+                what="This branch shows if providers can earn back hardware cost fast enough to stay in the network."
+                why="Payback is driven by token price, emissions, and active provider count. Longer payback usually leads to higher churn."
                 reference={GUARDRAIL_COPY.minerReference}
-                nextQuestion="Which lever improves ROI fastest without increasing long-term solvency risk?"
+                nextQuestion="Which lever improves ROI fastest without breaking solvency?"
+                actionTrigger={`If payback stays above ${PAYBACK_GUARDRAILS.watchlistMaxMonths} months, treat incentives as stressed and move to intervention design.`}
             />
 
             {/* Charts Row */}

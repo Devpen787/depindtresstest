@@ -9,7 +9,7 @@ import { ProtocolProfileV1 } from '../../data/protocols';
 
 import { SolanaService, OnChainData } from '../../services/solana';
 import { NetworkStatus } from '../../model/solana';
-import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
+// import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 
 interface ExplorerTabProps {
     onAnalyze: (protocolId: string) => void;
@@ -190,16 +190,10 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({ onAnalyze, onCompare, 
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-0 mb-6">
                     <div>
                         <div className="flex flex-wrap items-center gap-3">
-                            <h1 className="text-xl md:text-2xl font-bold text-slate-100">DePIN Explorer</h1>
-                            {networkStatus && (
-                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono ${networkStatus.isLive ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${networkStatus.isLive ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                                    <span>MAINNET: {networkStatus.slot.toLocaleString()}</span>
-                                    {networkStatus.tps && <span className="opacity-50 hidden sm:inline">| {networkStatus.tps.toFixed(0)} TPS</span>}
-                                </div>
-                            )}
+                            <h1 className="text-xl md:text-2xl font-bold text-slate-100">Protocol Browser</h1>
+                            {/* Mainnet Ticker Removed per Simplification Plan */}
                         </div>
-                        <p className="text-slate-400 mt-1 text-sm md:text-base">Discover, rank, and analyze decentralized physical infrastructure networks</p>
+                        <p className="text-slate-400 mt-1 text-sm md:text-base">Browse and compare decentralized infrastructure protocols in one place.</p>
                     </div>
                     <div className="flex gap-2 w-full md:w-auto">
                         <div className="relative flex-1 md:flex-none">
@@ -241,9 +235,7 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({ onAnalyze, onCompare, 
                     ))}
                 </div>
 
-                <div className="mt-4">
-                    <MetricEvidenceLegend />
-                </div>
+                {/* Legend Removed per Simplification Plan */}
             </div>
 
             {/* Content */}
@@ -272,7 +264,7 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({ onAnalyze, onCompare, 
                     <span>Showing {processedProtocols.length} protocols</span>
                     <span className="text-slate-700 hidden md:inline">|</span>
                     <span title="Market Data from CoinGecko, Supply from Solana RPC">
-                        Data Source: <span className="text-slate-400 font-semibold">CoinGecko API</span> + <span className="text-slate-400 font-semibold">Solana RPC (Live)</span>
+                        Data Source: <span className="text-slate-400 font-semibold">Live Data</span>
                     </span>
                 </span>
                 <span>

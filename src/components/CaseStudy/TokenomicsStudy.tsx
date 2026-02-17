@@ -407,11 +407,11 @@ export const TokenomicsStudy: React.FC = () => {
                         <div className="mb-8">
                             <h3 className={`text-2xl font-black ${theme.text} uppercase tracking-tight mb-4`}>Coupling vs. Speculation</h3>
                             <p className="text-slate-600 leading-relaxed">
-                                Stress-test simulations reveal the danger of fixed emission schedules.
+                                This chart compares two token models under the same stress.
                                 <br /><br />
-                                <strong className="text-indigo-600">Coupled Models (Blue)</strong> maintain value by restricting supply during low demand.
+                                <strong className="text-indigo-600">Coupled model (blue)</strong>: emissions adapt to demand and usually hold value better.
                                 <br /><br />
-                                <strong className="text-orange-500">Speculative Models (Orange)</strong> suffer from inflation-driven value erosion when demand fails to meet the fixed emission rate.
+                                <strong className="text-orange-500">Speculative model (orange)</strong>: fixed emissions can push extra sell pressure when demand is weak.
                             </p>
                         </div>
                         <div className={`${theme.bgLight} p-6 rounded-2xl border ${theme.border} text-center`}>
@@ -424,10 +424,11 @@ export const TokenomicsStudy: React.FC = () => {
                     <div className={`lg:col-span-8 bg-white p-8 rounded-3xl shadow-lg border-t-4 ${theme.strongBorder}`}>
                         <ChartContextHeader
                             title="How To Read Coupling vs Speculation"
-                            what="Compares a demand-coupled path versus a speculative path over the same stress horizon."
-                            why="When emissions respond to verified demand, downside is dampened. Fixed/speculative emissions amplify boom-bust cycles."
-                            reference="Widening spread between coupled and speculative lines signals structural design advantage."
-                            nextQuestion="What mechanism keeps the coupled path resilient when demand shocks hit?"
+                            what="This compares two designs over the same stress window: demand-coupled vs speculative emissions."
+                            why="Demand-coupled emissions usually reduce downside. Fixed speculative emissions usually make boom-bust swings worse."
+                            reference="When the gap between lines grows over time, the coupled design is handling stress better."
+                            nextQuestion="Which mechanism is creating the stability gap?"
+                            actionTrigger="If the speculative path keeps falling while the coupled path holds, avoid fixed-emission policy recommendations."
                             className="mb-6"
                             variant="light"
                         />
@@ -466,8 +467,8 @@ export const TokenomicsStudy: React.FC = () => {
                         <div className="text-center mb-12">
                             <h3 className="text-3xl font-black mb-4">The Solvency Matrix ({activeStudy.meta.ticker})</h3>
                             <p className="text-slate-300 text-lg">
-                                The "Solvency Score" is ratio of Network Revenue (Burn) to Token Emissions.
-                                <br />The heatmap illustrates the <strong className="text-amber-400">Safe Zone</strong>. Networks with high emissions and low real-world usage face rapid insolvency.
+                                Solvency score = network burn divided by token emissions.
+                                <br />This heatmap shows the <strong className="text-amber-400">safe zone</strong>: higher usage plus controlled emissions.
                             </p>
                         </div>
 
@@ -523,7 +524,7 @@ export const TokenomicsStudy: React.FC = () => {
                     <div className="bg-white p-8 rounded-3xl shadow-lg border-t-4 border-orange-500 flex flex-col">
                         <h4 className="text-lg font-bold text-slate-800 mb-2">Ensuring Contributor ROI</h4>
                         <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-                            Infrastructure providers (nodes) are the backbone of DePIN. The <strong>Danger Zone</strong> is &gt;{PAYBACK_GUARDRAILS.watchlistMaxMonths} months, triggering capitulation.
+                            Node operators need predictable payback. The <strong>danger zone</strong> starts above {PAYBACK_GUARDRAILS.watchlistMaxMonths} months.
                         </p>
 
                         <div className="flex-1 min-h-[300px]">
@@ -558,7 +559,7 @@ export const TokenomicsStudy: React.FC = () => {
                     <div className={`${theme.bgLight} p-8 rounded-3xl border ${theme.border} flex flex-col`}>
                         <h4 className={`text-lg font-bold ${theme.text} mb-2`}>Resilience Radar</h4>
                         <p className={`${theme.accent} opacity-70 text-sm mb-8 leading-relaxed`}>
-                            How the {activeStudy.meta.title} model scores against generic inflationary models under various attack vectors.
+                            Comparison of {activeStudy.meta.title} against a generic inflation-heavy model across common stress vectors.
                         </p>
 
                         <div className="flex-1 min-h-[300px]">
@@ -599,7 +600,7 @@ export const TokenomicsStudy: React.FC = () => {
                         {activeStudy.narrative.conclusionText}
                     </p>
                     <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">
-                        Generated based on {activeStudy.meta.title} tokenomic case study data. Visualizations rendered using Recharts & Fabric.
+                        Based on {activeStudy.meta.title} case-study data. Charts are illustrative and used for interpretation support.
                     </p>
                 </footer>
 

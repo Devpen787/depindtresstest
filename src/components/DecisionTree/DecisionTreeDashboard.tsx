@@ -171,14 +171,14 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                     return (
                         <div
                             data-cy="decision-tree-loading"
-                            className="flex h-screen items-center justify-center bg-slate-950 text-slate-400 font-mono animate-pulse"
+                            className="flex h-full items-center justify-center bg-slate-950 text-slate-400 font-mono animate-pulse"
                         >
                             Initializing Decision Engine...
                         </div>
                     );
                 }
                 return (
-                    <div data-cy="decision-tree-root" className="flex flex-col h-screen bg-slate-950">
+                    <div data-cy="decision-tree-root" className="flex flex-col h-full bg-slate-950">
                         {/* Main Wizard Layer - Header with Profile Switcher */}
                         <header className="h-16 flex items-center justify-between px-8 border-b border-slate-900 bg-slate-950/50 backdrop-blur-md sticky top-0 z-10">
                             <div className="flex items-center gap-4">
@@ -205,6 +205,12 @@ export const DecisionTreeDashboard: React.FC<DecisionTreeDashboardProps> = ({ si
                             <button
                                 data-cy="decision-tree-exit"
                                 onClick={onBackToLegacy}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        onBackToLegacy();
+                                    }
+                                }}
                                 className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
                             >
                                 Exit to Sandbox

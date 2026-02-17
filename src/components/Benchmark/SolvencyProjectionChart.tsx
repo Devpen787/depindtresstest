@@ -177,10 +177,11 @@ export const SolvencyProjectionChart: React.FC<SolvencyProjectionChartProps> = (
 
             <ChartContextHeader
                 title="How To Read This"
-                what="Tracks projected solvency trajectory for Onocoy versus selected peers through the scenario horizon."
-                why="Index is derived from a trailing smoothed solvency ratio. Falling slope means burn/revenue is lagging emissions pressure."
+                what="This line chart shows whether Onocoy and peers are getting more stable or less stable over time."
+                why="The line goes down when incentives become harder to sustain. It goes up when burn/revenue support the incentive load."
                 reference={GUARDRAIL_COPY.benchmarkSolvencyReference}
-                nextQuestion="If Onocoy trends below the healthy line, which policy lever should move first: emissions, demand, or retention?"
+                nextQuestion="If Onocoy is trending down, what should move first: emissions, demand growth, or retention?"
+                actionTrigger="If Onocoy sits below the healthy line for multiple periods, treat the recommendation as hold until Root Causes confirms a fix."
                 className="mb-4"
             />
 

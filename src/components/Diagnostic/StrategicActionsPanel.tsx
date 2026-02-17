@@ -1,6 +1,8 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle, ArrowRight, Shield } from 'lucide-react';
 import { DiagnosticInput, DiagnosticState } from './types';
+import { SOLVENCY_GUARDRAILS } from '../../constants/guardrails';
+import { OWNER_KPI_THRESHOLD_VALUES } from '../../audit/kpiOwnerMath';
 
 interface Props {
     inputs: DiagnosticInput;
@@ -8,17 +10,18 @@ interface Props {
 }
 
 export const StrategicActionsPanel: React.FC<Props> = ({ inputs, state }) => {
+    const severeSubsidyRatio = SOLVENCY_GUARDRAILS.criticalRatio * 0.5;
     // Generate Recommendations
     const recommendations: { level: 'Critical' | 'Warning' | 'Good', text: string, action: string }[] = [];
 
     // 1. Subsidy Trap Checks
-    if (state.r_be < 0.5) {
+    if (state.r_be < severeSubsidyRatio) {
         recommendations.push({
             level: 'Critical',
             text: `R_BE is ${state.r_be.toFixed(2)} (Insolvent Zones). Protocol is bleeding value.`,
             action: "IMMEDIATE: Switch to Dynamic Emission Schedule to peg burn to demand."
         });
-    } else if (state.r_be < 1.0) {
+    } else if (state.r_be < SOLVENCY_GUARDRAILS.criticalRatio) {
         recommendations.push({
             level: 'Warning',
             text: `Deficit spending detected (R_BE: ${state.r_be.toFixed(2)}).`,
@@ -28,9 +31,10 @@ export const StrategicActionsPanel: React.FC<Props> = ({ inputs, state }) => {
 
     // 2. Churn / miner Profile Checks
     if (inputs.minerProfile === 'Mercenary' && inputs.priceShock !== 'None') {
+        const riskLabel = state.nrr < OWNER_KPI_THRESHOLD_VALUES.retentionWatchlistMinPct ? 'extreme' : 'elevated';
         recommendations.push({
             level: 'Critical',
-            text: `Mercenary capital flight risk is extreme. NRR drops to ${state.nrr}% under stress.`,
+            text: `Mercenary capital flight risk is ${riskLabel}. NRR drops to ${state.nrr}% under stress.`,
             action: "Mechanism Design: Implement 'Proof of Engagement' or longer staking locks to filter mercenaries."
         });
     }

@@ -19,7 +19,7 @@ import { StrategicEdgeRadar } from './StrategicEdgeRadar';
 import { PEER_GROUPS, BENCHMARK_PEERS } from '../../data/peerGroups';
 
 import { InsightCard } from '../Story/InsightCard';
-import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
+// import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 import { getMetricEvidence, withExtractionTimestamp } from '../../data/metricEvidence';
 import {
     GUARDRAIL_BAND_LABELS,
@@ -52,6 +52,7 @@ interface BenchmarkViewProps {
     lastLiveDataFetch?: Date | null;
     loading?: boolean;
     activeScenarioId?: string | null;  // From Scenario Library
+    onScenarioLoad?: (params: Partial<SimulationParams>, scenarioId?: string) => void;
 }
 
 interface ProtocolBenchmarkMetrics {
@@ -90,7 +91,8 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
     onChainData,
     engineLabel,
     loading = false,
-    activeScenarioId = null
+    activeScenarioId = null,
+    onScenarioLoad
 }) => {
     // 1. View Model (Stateless derivation)
     const viewModel = useBenchmarkViewModel(params, multiAggregated, profiles, liveData, onChainData, engineLabel);
@@ -110,6 +112,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
     const [activeGroupId, setActiveGroupId] = useState<string>(PEER_GROUPS[0].id);
     const [selectedPeers, setSelectedPeers] = useState<PeerId[]>(['geodnet_v1']);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'research'>('dashboard');
+    const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState(false);
 
     // Handle group change: switch group and reset selected peers to defaults
     const handleGroupChange = useCallback((groupId: string) => {
@@ -226,8 +229,14 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
         retention: onocoyData.retention - peerMedian.retention
     }), [onocoyData, peerMedian]);
 
+    const shouldRenderAdvanced = activeTab === 'research' || showAdvancedAnalysis;
+
     // 7. Solvency projection chart from simulation output (index = solvency ratio * 100).
     const solvencyProjectionData = useMemo<SolvencyProjectionPoint[]>(() => {
+        if (!shouldRenderAdvanced) {
+            return [];
+        }
+
         const protocolIds = [BENCHMARK_PEERS.primary, ...selectedPeers];
         const primarySeries = multiAggregated[BENCHMARK_PEERS.primary] || [];
 
@@ -273,10 +282,14 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
 
             return point;
         });
-    }, [multiAggregated, selectedPeers]);
+    }, [multiAggregated, selectedPeers, shouldRenderAdvanced]);
 
     // 8. Strategic radar from derived metrics and simulation output.
     const strategicEdgeData = useMemo<StrategicRadarPoint[]>(() => {
+        if (!shouldRenderAdvanced) {
+            return [];
+        }
+
         const protocolIds = [BENCHMARK_PEERS.primary, ...selectedPeers];
 
         const scoresByProtocol: Record<string, Record<string, number>> = {};
@@ -319,18 +332,10 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
 
             return point;
         });
-    }, [multiAggregated, peerMetrics, selectedPeers]);
+    }, [multiAggregated, peerMetrics, selectedPeers, shouldRenderAdvanced]);
 
-    // 9. Scenario identification - prefer activeScenarioId prop, fallback to params inference
-    const scenarioId = useMemo(() => {
-        if (activeScenarioId) return activeScenarioId; // Use actual scenario ID from library
-        // Fallback inference for when no scenario is selected
-        if (params.macro === 'bearish') return 'vampire_attack';
-        if (params.demandType === 'growth') return 'growth_shock';
-        if (params.investorSellPct > 0.3) return 'death_spiral';
-        if (params.maxMintWeekly > 8_000_000) return 'infinite_subsidy';
-        return 'baseline';
-    }, [activeScenarioId, params]);
+    // 9. Scenario identification from canonical app-shell state
+    const scenarioId = useMemo(() => activeScenarioId || 'baseline', [activeScenarioId]);
 
     const scenarioName = useMemo(() => {
         const names: Record<string, string> = {
@@ -387,12 +392,12 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
             {/* Header */}
             <BenchmarkHeader
                 params={params}
-                setParams={setParams}
                 activeProtocolId={activeProfile.metadata.id}
                 activeProtocolName={activeProfile.metadata.name}
                 lastUpdated={lastUpdated}
                 engineLabel={engineLabel}
                 activeScenarioId={scenarioId}
+                onScenarioLoad={onScenarioLoad}
             />
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
@@ -403,14 +408,13 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                         onClick={() => setActiveTab('dashboard')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-white'}`}
                     >
-                        Dashboard
+                        Snapshot
                     </button>
                     <button
                         onClick={() => setActiveTab('research')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'research' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-slate-400 hover:text-white'}`}
                     >
-                        Research
-                        <span className="bg-purple-500/20 text-purple-200 text-[10px] px-1.5 py-0.5 rounded border border-purple-500/30">PYTHON</span>
+                        Deep Dive
                     </button>
                 </div>
 
@@ -422,7 +426,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
                     />
                 ) : (
                     <>
-                        <MetricEvidenceLegend />
+                        {/* Legend Removed per Simplification Plan */}
 
                         {/* Peer Selector */}
                         <PeerToggle
@@ -472,67 +476,88 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
 
 
 
-                                {/* Charts Row */}
-                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                {/* Primary owner chart */}
+                                <div className="grid grid-cols-1 gap-6">
                                     <HealthMetricsBarChart
                                         selectedPeers={selectedPeers}
                                         onocoyData={onocoyData}
                                         peerData={peerMetrics}
                                     />
-                                    <SolvencyProjectionChart
-                                        data={solvencyProjectionData}
+                                </div>
+
+                                {/* Canonical comparison matrix */}
+                                <div>
+                                    <ComparativeMatrix
+                                        onocoyData={onocoyData}
+                                        peerData={peerMetrics}
                                         selectedPeers={selectedPeers}
+                                        onExport={() => {
+                                            // Export logic from existing BenchmarkExportButton
+                                        }}
                                     />
                                 </div>
 
-                                {/* Matrix & Edge Grid */}
-                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                                    {/* Matrix (Span 2) */}
-                                    <div className="xl:col-span-2">
-                                        <ComparativeMatrix
-                                            onocoyData={onocoyData}
-                                            peerData={peerMetrics}
-                                            selectedPeers={selectedPeers}
-                                            onExport={() => {
-                                                // Export logic from existing BenchmarkExportButton
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Radar (Span 1) */}
-                                    <StrategicEdgeRadar
-                                        selectedPeers={selectedPeers}
-                                        data={strategicEdgeData}
-                                    />
-                                </div>
-
-                                {/* Sensitivity & Export Row */}
-                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                                    <div className="xl:col-span-2">
-                                        <SensitivitySummary
-                                            results={sensitivityResults}
-                                            isLoading={isSensComputing}
-                                        />
-                                    </div>
-                                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-                                        <h3 className="font-bold text-slate-200 text-sm mb-3">Export Data</h3>
-                                        <p className="text-xs text-slate-400 mb-3">
-                                            Download the full benchmark dataset.
-                                        </p>
-                                        <BenchmarkExportButton
-                                            metrics={headToHeadMetrics}
-                                            activeProtocolName={activeProfile.metadata.name}
-                                        />
+                                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                            <h3 className="text-sm font-bold text-white">Advanced Analysis</h3>
+                                            <p className="text-xs text-slate-400 mt-1">
+                                                Open secondary charts for deep-dive validation and sensitivity review.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAdvancedAnalysis(prev => !prev)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${showAdvancedAnalysis
+                                                ? 'bg-indigo-600 text-white border-indigo-500'
+                                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-indigo-500/60 hover:text-white'
+                                                }`}
+                                        >
+                                            {showAdvancedAnalysis ? 'Hide Advanced Analysis' : 'Open Advanced Analysis'}
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* AI Insights */}
-                                <AIInsights
-                                    scenarioName={scenarioName}
-                                    onocoyAdvantage={aiInsights.onocoyAdvantage}
-                                    mainInsight={aiInsights.mainInsight}
-                                    recommendation={aiInsights.recommendation}
-                                />
+                                {showAdvancedAnalysis && (
+                                    <>
+                                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                            <SolvencyProjectionChart
+                                                data={solvencyProjectionData}
+                                                selectedPeers={selectedPeers}
+                                            />
+                                            <StrategicEdgeRadar
+                                                selectedPeers={selectedPeers}
+                                                data={strategicEdgeData}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                                            <div className="xl:col-span-2">
+                                                <SensitivitySummary
+                                                    results={sensitivityResults}
+                                                    isLoading={isSensComputing}
+                                                />
+                                            </div>
+                                            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                                                <h3 className="font-bold text-slate-200 text-sm mb-3">Export Data</h3>
+                                                <p className="text-xs text-slate-400 mb-3">
+                                                    Download the full benchmark dataset.
+                                                </p>
+                                                <BenchmarkExportButton
+                                                    metrics={headToHeadMetrics}
+                                                    activeProtocolName={activeProfile.metadata.name}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <AIInsights
+                                            scenarioName={scenarioName}
+                                            onocoyAdvantage={aiInsights.onocoyAdvantage}
+                                            mainInsight={aiInsights.mainInsight}
+                                            recommendation={aiInsights.recommendation}
+                                        />
+                                    </>
+                                )}
                             </>
                         )}
                     </>

@@ -22,7 +22,11 @@ import { calculateDiagnosticState } from '../../audit/diagnosticViewMath';
 import { DIAGNOSTIC_ARCHETYPE_TO_PROTOCOL_ID } from '../../data/diagnosticArchetypes';
 
 import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
-import { GUARDRAIL_BAND_LABELS } from '../../constants/guardrails';
+import {
+    GUARDRAIL_BAND_LABELS,
+    RESILIENCE_GUARDRAILS,
+    SOLVENCY_GUARDRAILS
+} from '../../constants/guardrails';
 
 
 interface Props {
@@ -34,7 +38,7 @@ interface Props {
     onParamChange?: (params: Partial<SimulationParams>) => void;
 }
 
-export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading = false, profileName = 'Unknown Protocol', onProtocolChange, onRunSensitivity, onParamChange }) => {
+const AuditDashboardComponent: React.FC<Props> = ({ simulationData = [], loading = false, profileName = 'Unknown Protocol', onProtocolChange, onRunSensitivity, onParamChange }) => {
     // --- STATE: Diagnostic Inputs ---
     const [inputs, setInputs] = useState<DiagnosticInput>({
         minerProfile: 'Professional', // Default: Onocoy style
@@ -45,6 +49,7 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
         insiderOverhang: 'Low',
         sybilResistance: 'Strong',
     });
+    const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState(false);
 
     // --- LOGIC: Resilience Scorecard Algorithm ---
     const diagnosticState = useMemo((): DiagnosticState => calculateDiagnosticState(inputs), [inputs]);
@@ -52,9 +57,9 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
 
 
 
-    const diagnosticTone = diagnosticState.verdict === 'Robust'
+    const diagnosticTone = diagnosticState.resilienceScore >= RESILIENCE_GUARDRAILS.healthyMinScore
         ? 'healthy'
-        : diagnosticState.verdict === 'Fragile'
+        : diagnosticState.resilienceScore >= RESILIENCE_GUARDRAILS.watchlistMinScore
             ? 'caution'
             : 'critical';
 
@@ -73,10 +78,11 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
     return (
         <div className="bg-slate-950 min-h-full text-slate-200 p-6 lg:p-10 font-sans space-y-12">
 
-            {/* 0. MASTER PROOF MATRIX (Thesis Defense) */}
-            <section className="mb-12">
-                <MasterProofMatrix data={simulationData || []} loading={loading || false} profileName={profileName} />
-            </section>
+            {showAdvancedAnalysis && (
+                <section className="mb-12">
+                    <MasterProofMatrix data={simulationData || []} loading={loading || false} profileName={profileName} />
+                </section>
+            )}
 
             {/* 0.5. SOLVENCY SCORECARD (New Framework) */}
             <section className="mb-12">
@@ -86,7 +92,7 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     </div>
                     <div>
                         <h2 className="text-2xl font-bold text-white">Solvency Scorecard</h2>
-                        <p className="text-slate-400 text-sm">Real-time simulation metrics for Coverage Insolvency, Capital Efficiency, and Network Hysteresis.</p>
+                        <p className="text-slate-400 text-sm">Live simulation summary of burn coverage, capital efficiency, and recovery after shocks.</p>
                     </div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
@@ -100,11 +106,11 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     <div>
                         <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
                             <ShieldAlert className="text-indigo-500" size={32} />
-                            Engineering Audit: Signals of Death
+                            Root-Cause Diagnostic
                         </h1>
                         <p className="text-slate-400 mt-2 max-w-2xl text-lg">
-                            Diagnostic instrument for structural insolvency. Illustrating stress responses under fixed assumptions.
-                            <span className="text-indigo-400 font-bold ml-2">Not a price predictor.</span>
+                            Use this view to understand why a protocol breaks under stress assumptions.
+                            <span className="text-indigo-400 font-bold ml-2">Model-based diagnostic, not a price forecast.</span>
                         </p>
                     </div>
 
@@ -154,28 +160,31 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     </div>
                 </div>
 
-                {/* Archetype DNA Panel (Defensibility Layer) */}
-                <ArchetypeLogicPanel
-                    inputs={inputs}
-                    archetypeId={inputs.selectedArchetype || 'onocoy'}
-                />
+                {showAdvancedAnalysis && (
+                    <>
+                        {/* Archetype DNA Panel (Defensibility Layer) */}
+                        <ArchetypeLogicPanel
+                            inputs={inputs}
+                            archetypeId={inputs.selectedArchetype || 'onocoy'}
+                        />
 
-                <MetricEvidenceLegend />
+                        <MetricEvidenceLegend />
 
-                {/* Peer Comparison Table */}
-                <PeerComparisonTable
-                    inputs={inputs}
-                    selectedPeerName={inputs.selectedArchetype || 'onocoy'}
-                />
+                        {/* Peer Comparison Table */}
+                        <PeerComparisonTable
+                            inputs={inputs}
+                            selectedPeerName={inputs.selectedArchetype || 'onocoy'}
+                        />
+                    </>
+                )}
 
                 {/* Epistemic Disclaimer Alert */}
                 <div className="flex items-start gap-3 bg-indigo-900/10 border border-indigo-500/20 p-4 rounded-xl">
                     <Info className="text-indigo-400 shrink-0 mt-0.5" size={20} />
                     <div className="space-y-1">
-                        <h4 className="text-sm font-bold text-indigo-300">Epistemic Disclaimer</h4>
+                        <h4 className="text-sm font-bold text-indigo-300">Model Scope</h4>
                         <p className="text-xs text-indigo-400/80 leading-relaxed">
-                            This dashboard simulates <strong>structural mechanics</strong> based on the "DePIN Resilience Diagnostic" framework.
-                            It does not use live market data for these specific charts. Verdicts are illustrative of the <em>model's</em> fragility, not necessarily the live project's current price action.
+                            These charts show simulated behavior from the resilience model. They are useful for comparing failure patterns, but they are not live market forecasts.
                         </p>
                     </div>
                 </div>
@@ -188,7 +197,7 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <Activity size={20} className="text-emerald-500" />
-                        Global Resilience Scorecard
+                        Overall Risk Snapshot
                     </h2>
                     <div className={`px-4 py-1.5 rounded-full text-sm font-black border uppercase tracking-wider ${diagnosticBadgeClass}`}>
                         Status: {diagnosticBandLabel} ({diagnosticState.resilienceScore}/100) • Model: {diagnosticState.verdict}
@@ -197,8 +206,28 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                 <SignalsOfDeathPanel state={diagnosticState} />
             </section>
 
-            {/* 1.5. [NEW] Sensitivity Analysis */}
-            {onRunSensitivity && (
+            <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-sm font-bold text-white">Advanced Root-Cause Analysis</h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Open deeper modules for sensitivity tests and additional failure-mode simulations.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowAdvancedAnalysis(prev => !prev)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${showAdvancedAnalysis
+                            ? 'bg-indigo-600 text-white border-indigo-500'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-indigo-500/60 hover:text-white'
+                            }`}
+                    >
+                        {showAdvancedAnalysis ? 'Hide Advanced Analysis' : 'Open Advanced Analysis'}
+                    </button>
+                </div>
+            </section>
+
+            {showAdvancedAnalysis && onRunSensitivity && (
                 <section>
                     <SensitivityTornadoChart onRunAnalysis={onRunSensitivity} />
                     <div className="mt-8">
@@ -222,7 +251,7 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     <div>
                         <h3 className="text-lg font-bold text-white mb-2">I. The Subsidy Trap</h3>
                         <p className="text-sm text-slate-400 leading-relaxed">
-                            Are we paying for utility or just presence? If R_BE &lt; 1.0, the protocol is printing money it hasn't earned.
+                            Are emissions covered by real demand? If R_BE is below {SOLVENCY_GUARDRAILS.criticalRatio.toFixed(1)}, emissions are outpacing burn.
                         </p>
                     </div>
 
@@ -268,10 +297,10 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     <div className="bg-slate-800/50 p-4 rounded-xl border-l-4 border-indigo-500">
                         <h4 className="text-xs font-bold text-indigo-400 uppercase mb-1">Impact Translator</h4>
                         <p className="text-sm text-slate-300">
-                            "{inputs.emissionSchedule === 'Fixed' ? 'Fixed' : 'Dynamic'} emissions with {inputs.demandLag} demand lag results in a BER of <strong>{diagnosticState.r_be.toFixed(2)}</strong>."
+                            {inputs.emissionSchedule} emissions with {inputs.demandLag.toLowerCase()} demand lag give an R_BE of <strong>{diagnosticState.r_be.toFixed(2)}</strong>.
                         </p>
                         <p className="text-xs text-slate-500 mt-2 italic">
-                            "For every $1.00 printed, we burn ${diagnosticState.r_be.toFixed(2)}."
+                            For every $1.00 emitted, the model burns ${diagnosticState.r_be.toFixed(2)}.
                         </p>
                     </div>
                 </div>
@@ -280,16 +309,18 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                 </div>
             </section>
 
-            {/* Spacer */}
-            <div className="h-px bg-slate-800 w-full" />
+            {showAdvancedAnalysis && (
+                <>
+                    {/* Spacer */}
+                    <div className="h-px bg-slate-800 w-full" />
 
-            {/* 4. Failure Mode II: Profitability Churn */}
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* 4. Failure Mode II: Profitability Churn */}
+                    <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                     <div>
                         <h3 className="text-lg font-bold text-white mb-2">II. Profitability-Induced Churn</h3>
                         <p className="text-sm text-slate-400 leading-relaxed">
-                            Who stays when the price crashes? Mercenaries exit immediately; Professionals are anchored by CapEx.
+                            Who stays when price drops? Mercenary operators usually leave faster, while professional operators often stay longer because of hardware sunk cost.
                         </p>
                     </div>
 
@@ -335,28 +366,28 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     <div className="bg-slate-800/50 p-4 rounded-xl border-l-4 border-indigo-500">
                         <h4 className="text-xs font-bold text-indigo-400 uppercase mb-1">Impact Translator</h4>
                         <p className="text-sm text-slate-300">
-                            "Under a {inputs.priceShock} shock, {100 - diagnosticState.nrr}% of {inputs.minerProfile} miners unplug."
+                            Under a {inputs.priceShock.toLowerCase()} shock, estimated retention for {inputs.minerProfile.toLowerCase()} operators falls to {diagnosticState.nrr}%.
                         </p>
                         <p className="text-xs text-slate-500 mt-2 italic">
-                            "CapEx Payback: {diagnosticState.cpv} Months."
+                            Estimated hardware payback: {diagnosticState.cpv} months.
                         </p>
                     </div>
                 </div>
                 <div className="lg:col-span-2">
                     <HexDegradationMap inputs={inputs} state={diagnosticState} />
                 </div>
-            </section>
+                    </section>
 
-            {/* Spacer */}
-            <div className="h-px bg-slate-800 w-full" />
+                    {/* Spacer */}
+                    <div className="h-px bg-slate-800 w-full" />
 
-            {/* 5. Failure Mode II: Density Trap */}
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* 5. Failure Mode II: Density Trap */}
+                    <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                     <div>
                         <h3 className="text-lg font-bold text-white mb-2">III. The Density Trap</h3>
                         <p className="text-sm text-slate-400 leading-relaxed">
-                            Uncoordinated growth dilutes rewards. 500 nodes in one city = broken math.
+                            When growth is uncoordinated, too many nodes chase the same demand and payback worsens.
                         </p>
                     </div>
 
@@ -402,28 +433,28 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     <div className="bg-slate-800/50 p-4 rounded-xl border-l-4 border-indigo-500">
                         <h4 className="text-xs font-bold text-indigo-400 uppercase mb-1">Impact Translator</h4>
                         <p className="text-sm text-slate-300">
-                            "{inputs.growthCoordination} growth leads to ROI dilution."
+                            {inputs.growthCoordination} growth increases reward dilution risk.
                         </p>
                         <p className="text-xs text-slate-500 mt-2 italic">
-                            "Insider Overhang: {inputs.insiderOverhang} ({inputs.insiderOverhang === 'High' ? '>50% locked' : '<30% locked'})."
+                            Insider overhang: {inputs.insiderOverhang} ({inputs.insiderOverhang === 'High' ? '>50% locked' : '<30% locked'}).
                         </p>
                     </div>
                 </div>
                 <div className="lg:col-span-2">
                     <DensityTrapChart inputs={inputs} state={diagnosticState} />
                 </div>
-            </section>
+                    </section>
 
-            {/* Spacer */}
-            <div className="h-px bg-slate-800 w-full" />
+                    {/* Spacer */}
+                    <div className="h-px bg-slate-800 w-full" />
 
-            {/* 6. Failure Mode IV: Sybil Attack (Adversarial) */}
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* 6. Failure Mode IV: Sybil Attack (Adversarial) */}
+                    <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                     <div>
                         <h3 className="text-lg font-bold text-white mb-2">IV. Adversarial Resilience</h3>
                         <p className="text-sm text-slate-400 leading-relaxed">
-                            If Proof-of-Physical-Work is weak, Sybils extract value.
+                            If anti-Sybil defenses are weak, fake participants can extract rewards from honest operators.
                         </p>
                     </div>
 
@@ -484,8 +515,8 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                         <h4 className="text-xs font-bold text-indigo-400 uppercase mb-1">Impact Translator</h4>
                         <p className="text-sm text-slate-300">
                             {inputs.sybilResistance === 'Weak'
-                                ? "Weak resistance allows Sybils to dilute rewards. Incentive Efficiency drops."
-                                : "Strong resistance (PoPW) prevents value leakage."}
+                                ? 'Weak resistance lets fake nodes dilute rewards and reduce incentive efficiency.'
+                                : 'Strong resistance blocks fake-node extraction and protects reward quality.'}
                         </p>
                     </div>
                 </div>
@@ -494,29 +525,31 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
                     <h4 className="text-lg font-bold text-white mb-2">Adversarial Simulator</h4>
                     <p className="text-sm text-slate-400 max-w-md">
                         {inputs.sybilResistance === 'Weak'
-                            ? "Active Attack! Check 'Strategic Proof' chart above to see Mercenary/Sybil impact."
-                            : "System Secure. No Sybil capacity detected."}
+                            ? 'Active attack mode: review the proof-quality panels to see reward dilution impact.'
+                            : 'No active Sybil pressure detected in the current setup.'}
                     </p>
                 </div>
-            </section>
+                    </section>
 
-            {/* Spacer */}
-            <div className="h-px bg-slate-800 w-full" />
+                    {/* Spacer */}
+                    <div className="h-px bg-slate-800 w-full" />
 
-            {/* 5. Human Archetype Analysis */}
-            <section className="space-y-4">
+                    {/* 5. Human Archetype Analysis */}
+                    <section className="space-y-4">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400"><circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" /></svg>
                     Human Response Analysis
                 </h2>
                 <p className="text-sm text-slate-400 max-w-2xl">
-                    Engineering failures trigger human responses. This panel identifies the behavioral archetype most likely to emerge under the current stress conditions.
+                    Technical failures trigger behavior changes. This panel shows which operator behavior is most likely under current stress conditions.
                 </p>
                 <HumanArchetypePanel inputs={inputs} state={diagnosticState} />
-            </section>
+                    </section>
 
-            {/* Spacer */}
-            <div className="h-px bg-slate-800 w-full" />
+                    {/* Spacer */}
+                    <div className="h-px bg-slate-800 w-full" />
+                </>
+            )}
 
             {/* 6. Strategic Actions Panel */}
             <section>
@@ -526,3 +559,6 @@ export const AuditDashboard: React.FC<Props> = ({ simulationData = [], loading =
         </div>
     );
 };
+
+export const AuditDashboard = React.memo(AuditDashboardComponent);
+AuditDashboard.displayName = 'AuditDashboard';

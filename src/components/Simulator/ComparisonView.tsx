@@ -9,7 +9,13 @@ import { calculateRegime } from '../../utils/regime';
 import { formatCompact } from '../../utils/format';
 import MetricEvidenceBadge from '../ui/MetricEvidenceBadge';
 import { getMetricEvidence } from '../../data/metricEvidence';
-import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
+import {
+    OWNER_KPI_BAND_CLASSIFIERS,
+    OWNER_KPI_THRESHOLD_VALUES,
+    calculateOwnerRetentionPct
+} from '../../audit/kpiOwnerMath';
+import { GUARDRAIL_BAND_LABELS, type GuardrailBand } from '../../constants/guardrails';
+// import MetricEvidenceLegend from '../ui/MetricEvidenceLegend';
 
 interface ComparisonViewProps {
     selectedProtocolIds: string[];
@@ -32,6 +38,17 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
     fetchLiveData,
     params
 }) => {
+    const bandTextClass: Record<GuardrailBand, string> = {
+        healthy: 'text-emerald-400',
+        watchlist: 'text-amber-400',
+        intervention: 'text-rose-400'
+    };
+
+    const classifyUtilizationBand = (utilizationPct: number): GuardrailBand => {
+        if (utilizationPct < OWNER_KPI_THRESHOLD_VALUES.utilizationWatchlistMinPct) return 'intervention';
+        if (utilizationPct < OWNER_KPI_THRESHOLD_VALUES.utilizationHealthyMinPct) return 'watchlist';
+        return 'healthy';
+    };
 
     const protocolMetrics = profiles
         .filter(p => selectedProtocolIds.includes(p.metadata.id))
@@ -111,6 +128,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             }, 0);
             const emissionValue = totalMinted * finalPrice;
             const sustainabilityRatio = emissionValue > 0 ? (totalRevenue / emissionValue) * 100 : 0;
+            const paybackMonths = paybackWeeks / 4.33;
+            const retentionPct = calculateOwnerRetentionPct(100 - churnRate);
+            const solvencyRatio = last?.solvencyScore?.mean || 0;
 
             return {
                 protocol: p,
@@ -133,6 +153,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                 deathSpiralRisk,
                 sustainabilityRatio,
                 finalSupply,
+                paybackMonths,
+                retentionPct,
+                solvencyRatio
             };
         });
 
@@ -146,6 +169,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
         format,
         goodDirection,
         getDelta,
+        formatDelta,
+        getBand,
         hint,
         metricEvidenceId
     }: {
@@ -156,14 +181,16 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
         format: (v: number) => string;
         goodDirection: 'up' | 'down' | 'neutral';
         getDelta?: (m: typeof protocolMetrics[0], baseline: typeof protocolMetrics[0]) => number | null;
+        formatDelta?: (delta: number) => string;
+        getBand?: (m: typeof protocolMetrics[0]) => GuardrailBand | null;
         hint?: string;
         metricEvidenceId?: string;
     }) => {
         // 1. Calculate Min/Max for Heatmap
         const allValues = protocolMetrics.map(getValue);
         const validValues = allValues.filter(v => isFinite(v) && !isNaN(v));
-        const min = Math.min(...validValues);
-        const max = Math.max(...validValues);
+        const min = validValues.length > 0 ? Math.min(...validValues) : 0;
+        const max = validValues.length > 0 ? Math.max(...validValues) : 0;
         const range = max - min;
 
         return (
@@ -172,7 +199,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                     <div className="flex items-center gap-2">
                         <span className={iconColor}>{icon}</span>
                         <span>{label}</span>
-                        <MetricEvidenceBadge evidence={metricEvidenceId ? getMetricEvidence(metricEvidenceId) : undefined} compact />
+                        <MetricEvidenceBadge evidence={metricEvidenceId ? getMetricEvidence(metricEvidenceId) : undefined} variant="icon" />
                         {hint && (
                             <span className="opacity-0 group-hover:opacity-100 text-[8px] text-slate-600 transition-opacity">
                                 {hint}
@@ -182,9 +209,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                 </td>
                 {protocolMetrics.map((m, idx) => {
                     const value = getValue(m);
-                    const delta = getDelta && idx > 0 ? getDelta(m, baseline) : null;
-                    const isGood = goodDirection === 'up' ? value > 0 :
-                        goodDirection === 'down' ? value < 0 : true;
+                    const delta = getDelta && idx > 0 && baseline ? getDelta(m, baseline) : null;
+                    const band = getBand ? getBand(m) : null;
+                    const hasDelta = delta !== null && Number.isFinite(delta);
 
                     // Heatmap Logic
                     let bgStyle = {};
@@ -199,14 +226,30 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                         };
                     }
 
+                    const valueClass = band
+                        ? bandTextClass[band]
+                        : goodDirection === 'neutral' || !hasDelta
+                            ? 'text-white'
+                            : goodDirection === 'up'
+                                ? (delta! >= 0 ? 'text-emerald-400' : 'text-rose-400')
+                                : (delta! <= 0 ? 'text-emerald-400' : 'text-rose-400');
+
+                    const deltaClass = !hasDelta
+                        ? 'text-slate-500'
+                        : goodDirection === 'up'
+                            ? (delta! >= 0 ? 'text-emerald-400' : 'text-rose-400')
+                            : goodDirection === 'down'
+                                ? (delta! <= 0 ? 'text-emerald-400' : 'text-rose-400')
+                                : 'text-slate-500';
+
                     return (
                         <td key={m.protocol.metadata.id} className="p-3 text-center transition-colors" style={bgStyle}>
-                            <div className={`text-sm font-mono font-bold ${goodDirection === 'neutral' ? 'text-white' : isGood ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <div className={`text-sm font-mono font-bold ${valueClass}`}>
                                 {format(value)}
                             </div>
-                            {delta !== null && (
-                                <div className={`text-[9px] mt-0.5 font-bold ${goodDirection === 'up' ? (delta >= 0 ? 'text-emerald-400' : 'text-rose-400') : goodDirection === 'down' ? (delta <= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-500'}`}>
-                                    {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+                            {hasDelta && (
+                                <div className={`text-[9px] mt-0.5 font-bold ${deltaClass}`}>
+                                    {formatDelta ? formatDelta(delta!) : `${delta! >= 0 ? '+' : ''}${delta!.toFixed(1)}%`}
                                 </div>
                             )}
                         </td>
@@ -274,7 +317,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                 </div>
             )}
 
-            <MetricEvidenceLegend />
+            {/* Legend Removed per Simplification Plan */}
 
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
                 <div className="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -284,8 +327,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 text-[9px]">
-                            <span className="text-emerald-400">● Good</span>
-                            <span className="text-rose-400">● Caution</span>
+                            <span className="text-emerald-400">● {GUARDRAIL_BAND_LABELS.healthy}</span>
+                            <span className="text-amber-400">● {GUARDRAIL_BAND_LABELS.watchlist}</span>
+                            <span className="text-rose-400">● {GUARDRAIL_BAND_LABELS.intervention}</span>
                         </div>
                         <div className="text-[9px] text-slate-500">
                             Baseline: <span className="text-indigo-400 font-bold">{baseline?.protocol.metadata.name}</span>
@@ -317,17 +361,73 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                             {/* SECTION: NETWORK GROWTH */}
                             <SectionHeader icon={<Users size={12} />} iconColor="text-emerald-400" title="Network Growth" hint="Physical/Digital Infrastructure" />
                             <MetricRow label="Active Nodes (End)" icon={<Users size={12} />} iconColor="text-slate-400" getValue={m => m.finalProviders} format={formatCompact} goodDirection="up" getDelta={(m, b) => ((m.finalProviders - b.finalProviders) / b.finalProviders) * 100} metricEvidenceId="comp_active_nodes_end" />
-                            <MetricRow label="Churn Rate" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.churnRate} format={v => `${v.toFixed(1)}%`} goodDirection="down" getDelta={(m, b) => m.churnRate - b.churnRate} metricEvidenceId="comp_churn_rate" />
-                            <MetricRow label="Utilization" icon={<Activity size={12} />} iconColor="text-slate-400" getValue={m => m.avgUtilisation} format={v => `${v.toFixed(1)}%`} goodDirection="up" getDelta={(m, b) => m.avgUtilisation - b.avgUtilisation} metricEvidenceId="comp_utilization" />
+                            <MetricRow
+                                label="Retention (Derived)"
+                                icon={<Activity size={12} />}
+                                iconColor="text-slate-400"
+                                getValue={m => m.retentionPct}
+                                format={v => `${v.toFixed(1)}%`}
+                                goodDirection="up"
+                                getDelta={(m, b) => m.retentionPct - b.retentionPct}
+                                getBand={m => OWNER_KPI_BAND_CLASSIFIERS.retention(m.retentionPct)}
+                                metricEvidenceId="comp_churn_rate"
+                                hint="Proxy metric = 100 - cumulative churn rate."
+                            />
+                            <MetricRow
+                                label="Utilization"
+                                icon={<Activity size={12} />}
+                                iconColor="text-slate-400"
+                                getValue={m => m.avgUtilisation}
+                                format={v => `${v.toFixed(1)}%`}
+                                goodDirection="up"
+                                getDelta={(m, b) => m.avgUtilisation - b.avgUtilisation}
+                                getBand={m => classifyUtilizationBand(m.avgUtilisation)}
+                                metricEvidenceId="comp_utilization"
+                            />
 
                             {/* SECTION: UNIT ECONOMICS */}
                             <SectionHeader icon={<Scale size={12} />} iconColor="text-amber-400" title="Miner Economics" hint="Profitability per Node" />
                             <MetricRow label="Monthly Earnings" icon={<DollarSign size={12} />} iconColor="text-slate-400" getValue={m => m.monthlyEarnings} format={v => `$${formatCompact(v)}`} goodDirection="up" getDelta={(m, b) => ((m.monthlyEarnings - b.monthlyEarnings) / b.monthlyEarnings) * 100} metricEvidenceId="comp_monthly_earnings" />
-                            <MetricRow label="Payback Period" icon={<Clock size={12} />} iconColor="text-slate-400" getValue={m => m.paybackWeeks / 4.33} format={v => isFinite(v) ? `${v.toFixed(1)} mo` : 'Never'} goodDirection="down" getDelta={(m, b) => (m.paybackWeeks - b.paybackWeeks) / 4.33} metricEvidenceId="comp_payback_period" />
+                            <MetricRow
+                                label="Payback Period"
+                                icon={<Clock size={12} />}
+                                iconColor="text-slate-400"
+                                getValue={m => m.paybackMonths}
+                                format={v => isFinite(v) ? `${v.toFixed(1)} mo` : 'Never'}
+                                goodDirection="down"
+                                getDelta={(m, b) => m.paybackMonths - b.paybackMonths}
+                                formatDelta={(delta) => `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} mo`}
+                                getBand={m => OWNER_KPI_BAND_CLASSIFIERS.payback(m.paybackMonths)}
+                                metricEvidenceId="comp_payback_period"
+                            />
 
                             {/* SECTION: SUSTAINABILITY */}
                             <SectionHeader icon={<Scale size={12} />} iconColor="text-blue-400" title="Sustainability" hint="Long-term viability" />
-                            <MetricRow label="Real Rev / Emissions" icon={<Scale size={12} />} iconColor="text-slate-400" getValue={m => m.sustainabilityRatio} format={v => `${v.toFixed(1)}%`} goodDirection="up" getDelta={(m, b) => m.sustainabilityRatio - b.sustainabilityRatio} hint="Protocol Revenue vs Token Incentives" metricEvidenceId="comp_real_rev_emissions" />
+                            <MetricRow
+                                label="Solvency Ratio"
+                                icon={<Scale size={12} />}
+                                iconColor="text-slate-400"
+                                getValue={m => m.solvencyRatio}
+                                format={v => `${v.toFixed(2)}x`}
+                                goodDirection="up"
+                                getDelta={(m, b) => m.solvencyRatio - b.solvencyRatio}
+                                formatDelta={(delta) => `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}x`}
+                                getBand={m => OWNER_KPI_BAND_CLASSIFIERS.solvency(m.solvencyRatio)}
+                                hint="Owner guardrail: below 1.0x implies incentive burn is outpacing viable economics."
+                                metricEvidenceId="solvency_ratio"
+                            />
+                            <MetricRow
+                                label="Real Rev / Emissions"
+                                icon={<Scale size={12} />}
+                                iconColor="text-slate-400"
+                                getValue={m => m.sustainabilityRatio}
+                                format={v => `${v.toFixed(1)}%`}
+                                goodDirection="up"
+                                getDelta={(m, b) => m.sustainabilityRatio - b.sustainabilityRatio}
+                                getBand={m => OWNER_KPI_BAND_CLASSIFIERS.solvency(m.sustainabilityRatio / 100)}
+                                hint="Protocol Revenue vs Token Incentives (100% = 1.0x break-even)."
+                                metricEvidenceId="comp_real_rev_emissions"
+                            />
                         </tbody>
                     </table>
                 </div>

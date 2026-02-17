@@ -111,10 +111,11 @@ export const RealUtilityView: React.FC<RealUtilityViewProps> = ({ data, onOpenSa
 
             <ChartContextHeader
                 title="How To Read Real Utility"
-                what="This branch checks whether the network is serving meaningful demand rather than carrying idle overbuilt capacity."
-                why="Utilization and demand coverage move with demand-served vs capacity; cohort mix shows whether sticky operators dominate."
+                what="This branch checks whether the network is actually used, not just built out."
+                why="Utilization compares demand served vs capacity. Cohort mix helps show if committed operators are carrying the network."
                 reference={GUARDRAIL_COPY.utilityReference}
-                nextQuestion="Should we steer growth toward demand capture or toward supply discipline first?"
+                nextQuestion="Should we focus first on demand capture or on reducing over-supply?"
+                actionTrigger={`If utilization stays below ${UTILIZATION_GUARDRAILS.watchlistMinPct}%, freeze expansion and prioritize demand-side fixes.`}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

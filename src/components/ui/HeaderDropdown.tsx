@@ -6,11 +6,14 @@ interface HeaderDropdownProps {
     icon: React.ReactNode;
     children: React.ReactNode;
     isActive?: boolean;
+    dataCy?: string;
+    className?: string;
 }
 
-export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({ label, icon, children, isActive = false }) => {
+export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({ label, icon, children, isActive = false, dataCy, className }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const menuId = `${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-menu`;
 
     // Close on click outside
     useEffect(() => {
@@ -24,9 +27,21 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({ label, icon, chi
     }, []);
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className={`relative ${className || ''}`} ref={dropdownRef}>
             <button
+                data-cy={dataCy}
                 onClick={() => setIsOpen(!isOpen)}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setIsOpen((open) => !open);
+                    } else if (event.key === 'Escape') {
+                        setIsOpen(false);
+                    }
+                }}
+                aria-haspopup="menu"
+                aria-expanded={isOpen}
+                aria-controls={menuId}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all ${isOpen || isActive
                     ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
                     : 'text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
@@ -38,7 +53,7 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({ label, icon, chi
             </button>
 
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
+                <div id={menuId} role="menu" className="absolute top-full right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
                     <div className="py-1">
                         {children}
                     </div>
@@ -55,11 +70,14 @@ interface DropdownItemProps {
     onClick: () => void;
     disabled?: boolean;
     description?: string;
+    dataCy?: string;
 }
 
-export const DropdownItem: React.FC<DropdownItemProps> = ({ icon, children, onClick, disabled = false, description }) => (
+export const DropdownItem: React.FC<DropdownItemProps> = ({ icon, children, onClick, disabled = false, description, dataCy }) => (
     <button
+        data-cy={dataCy}
         onClick={onClick}
+        role="menuitem"
         disabled={disabled}
         className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all ${disabled
             ? 'opacity-50 cursor-not-allowed'
@@ -81,11 +99,15 @@ interface DropdownToggleProps {
     checked: boolean;
     onChange: () => void;
     description?: string;
+    dataCy?: string;
 }
 
-export const DropdownToggle: React.FC<DropdownToggleProps> = ({ icon, children, checked, onChange, description }) => (
+export const DropdownToggle: React.FC<DropdownToggleProps> = ({ icon, children, checked, onChange, description, dataCy }) => (
     <button
+        data-cy={dataCy}
         onClick={onChange}
+        role="menuitemcheckbox"
+        aria-checked={checked}
         className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-800/50 transition-all"
     >
         {icon && <span className="text-slate-400 mt-0.5">{icon}</span>}

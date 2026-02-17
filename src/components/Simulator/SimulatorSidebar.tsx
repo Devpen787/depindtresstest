@@ -268,7 +268,6 @@ export const SimulatorSidebar: React.FC<SimulatorSidebarProps> = ({
                                     <button
                                         key={scenario.id}
                                         onClick={() => {
-                                            setParams(prev => ({ ...prev, ...scenario.params }));
                                             setActiveScenarioId(scenario.id);
                                             if (scenario.focusChart) setFocusChart(scenario.focusChart);
                                         }}

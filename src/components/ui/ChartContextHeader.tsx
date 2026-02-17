@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calculator, Compass, Flag, HelpCircle } from 'lucide-react';
+import { Calculator, Compass, Flag, HelpCircle, Zap } from 'lucide-react';
 
 type HeaderVariant = 'dark' | 'light';
 
@@ -9,6 +9,7 @@ interface ChartContextHeaderProps {
     why: string;
     reference: string;
     nextQuestion: string;
+    actionTrigger?: string;
     className?: string;
     variant?: HeaderVariant;
 }
@@ -19,6 +20,7 @@ export const ChartContextHeader: React.FC<ChartContextHeaderProps> = ({
     why,
     reference,
     nextQuestion,
+    actionTrigger,
     className = '',
     variant = 'dark'
 }) => {
@@ -34,6 +36,7 @@ export const ChartContextHeader: React.FC<ChartContextHeaderProps> = ({
     const whyClass = variant === 'light' ? 'text-indigo-700' : 'text-indigo-400';
     const referenceClass = variant === 'light' ? 'text-amber-700' : 'text-amber-400';
     const questionClass = variant === 'light' ? 'text-emerald-700' : 'text-emerald-400';
+    const actionClass = variant === 'light' ? 'text-violet-700' : 'text-violet-300';
 
     return (
         <div className={`rounded-xl border p-3 ${containerClass} ${className}`}>
@@ -67,6 +70,15 @@ export const ChartContextHeader: React.FC<ChartContextHeaderProps> = ({
                     </div>
                     <p className={`text-[11px] ${bodyClass}`}>{nextQuestion}</p>
                 </div>
+                {actionTrigger && (
+                    <div className={`rounded-lg border p-2 md:col-span-2 ${panelClass}`}>
+                        <div className={`mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide ${actionClass}`}>
+                            <Zap size={11} />
+                            Action Trigger
+                        </div>
+                        <p className={`text-[11px] ${bodyClass}`}>{actionTrigger}</p>
+                    </div>
+                )}
             </div>
         </div>
     );

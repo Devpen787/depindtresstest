@@ -94,8 +94,8 @@ export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics,
                         What is your <span className="text-indigo-500">Validation Goal</span>?
                     </h1>
                     <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                        Select a diagnostic path to audit the protocol's mechanics.
-                        All paths simulate stress conditions (market crashes, vampire attacks).
+                        Pick the question you want to answer first.
+                        Each path tests one failure lens under the current stress setup.
                     </p>
                     {hasPercentiles && (
                         <div className="flex items-center justify-center gap-2">
@@ -135,7 +135,7 @@ export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics,
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors">Financial Stability</h3>
                         <p className="text-sm text-slate-400 mb-8 pr-12">
-                            "Is the protocol solvent?" Audit the burn-to-emission ratio and treasury runway under stress.
+                            Can the network cover emissions with real demand, and for how long?
                         </p>
                         <div className="flex items-end justify-between">
                             <div>
@@ -166,7 +166,7 @@ export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics,
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">Miner Profitability</h3>
                         <p className="text-sm text-slate-400 mb-8 pr-12">
-                            "Is it worth mining?" Analyze ROI periods, capitulation triggers, and hardware retention.
+                            Can operators earn back hardware costs fast enough to stay online?
                         </p>
                         <div className="flex items-end justify-between">
                             <div>
@@ -197,7 +197,7 @@ export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics,
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">Real Utility</h3>
                         <p className="text-sm text-slate-400 mb-8 pr-12">
-                            "Is there real usage?" Measure effective capacity vs demand and network saturated density.
+                            Is real demand high enough to justify the current supply?
                         </p>
                         <div className="flex items-end justify-between">
                             <div>
@@ -228,7 +228,7 @@ export const WizardView: React.FC<WizardViewProps> = ({ onSelectBranch, metrics,
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-rose-400 transition-colors">Risk & Stability</h3>
                         <p className="text-sm text-slate-400 mb-8 pr-12">
-                            "What kills the network?" Stress test sensitivity to token price, adoption lag, and sell pressure.
+                            How fragile is the system under downside shocks and volatility?
                         </p>
                         <div className="flex items-end justify-between">
                             <div>

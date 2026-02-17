@@ -30,6 +30,15 @@ import { ScenarioComparisonPanel } from '../ui/ScenarioComparisonPanel';
 import { useSandboxViewModel } from '../../viewmodels/SandboxViewModel';
 import { seededRandom, initGlobalRng } from '../../utils/seededRandom';
 import type { OnocoyProtocolHookSnapshot } from '../../hooks/useSimulationRunner';
+import {
+    OWNER_KPI_BAND_CLASSIFIERS,
+    OWNER_KPI_THRESHOLD_VALUES,
+    calculateOwnerPaybackFromAggregatePoint,
+    calculateOwnerRetentionPct,
+    calculateOwnerSolvencyRatio,
+    calculateOwnerUtilitySnapshot
+} from '../../audit/kpiOwnerMath';
+import { PAYBACK_GUARDRAILS, SOLVENCY_GUARDRAILS } from '../../constants/guardrails';
 
 interface SandboxViewProps {
     activeProfile: ProtocolProfileV1;
@@ -42,6 +51,8 @@ interface SandboxViewProps {
     scrollToControl: (section: string) => void;
     focusChart: string | null;
     setFocusChart: (chart: string | null) => void;
+    activeScenarioId?: string | null;
+    onScenarioLoad?: (params: Partial<SimulationParams>, scenarioId?: string) => void;
 }
 
 export const SandboxView: React.FC<SandboxViewProps> = ({
@@ -54,13 +65,16 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
     incentiveRegime,
     scrollToControl,
     focusChart,
-    setFocusChart
+    setFocusChart,
+    activeScenarioId = null,
+    onScenarioLoad
 }) => {
     // const [focusChart, setFocusChart] = useState<string | null>(null);
     const [showMemoModal, setShowMemoModal] = useState(false);
     const [memoContent, setMemoContent] = useState('');
     const [showBenchmark, setShowBenchmark] = useState(false);
     const [showComparison, setShowComparison] = useState(false);
+    const [showMirrorCharts, setShowMirrorCharts] = useState(false);
 
     // Use ViewModel for all data transformations
     const {
@@ -79,13 +93,18 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
     };
 
     const calculatePaybackMonths = (point: any) => {
-        const providerCount = Math.max(1, point?.providers?.mean || 0);
-        const weeklyRevenue = ((point?.minted?.mean || 0) / providerCount) * (point?.price?.mean || 0);
-        const weeklyProfit = weeklyRevenue - params.providerCostPerWeek;
-
-        if (weeklyProfit <= 0) return 36;
-        return Math.min((params.hardwareCost / weeklyProfit) / 4.33, 36);
+        return calculateOwnerPaybackFromAggregatePoint(point, params.hardwareCost);
     };
+
+    const latestPoint = aggregated.length > 0 ? aggregated[aggregated.length - 1] : null;
+    const latestDisplayedPoint = displayedData.length > 0 ? displayedData[displayedData.length - 1] : null;
+    const latestSolvencyRatio = calculateOwnerSolvencyRatio(latestPoint as any);
+    const latestRetentionPct = calculateOwnerRetentionPct(latestDisplayedPoint?.retentionRate, latestPoint as any);
+    const latestUtilitySnapshot = calculateOwnerUtilitySnapshot(latestPoint as any);
+    const latestPaybackMonths = latestPoint ? calculatePaybackMonths(latestPoint) : PAYBACK_GUARDRAILS.extendedHorizonMonths;
+    const latestSolvencyBand = OWNER_KPI_BAND_CLASSIFIERS.solvency(latestSolvencyRatio);
+    const latestRetentionBand = OWNER_KPI_BAND_CLASSIFIERS.retention(latestRetentionPct);
+    const latestPaybackBand = OWNER_KPI_BAND_CLASSIFIERS.payback(latestPaybackMonths);
 
     const renderFocusChart = () => {
         if (!focusChart) return null;
@@ -106,10 +125,12 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <XAxis dataKey="t" fontSize={11} minTickGap={30} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
                             <YAxis fontSize={11} domain={[0, 5]} allowDataOverflow={true} label={{ value: 'Burn/Mint Ratio', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
                             <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
-                            <ReferenceArea y1={0} y2={1} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} />
-                            <ReferenceArea y1={1} y2={5} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={0} y2={SOLVENCY_GUARDRAILS.criticalRatio} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} />
+                            <ReferenceArea y1={SOLVENCY_GUARDRAILS.criticalRatio} y2={SOLVENCY_GUARDRAILS.healthyRatio} {...{ fill: "#f59e0b", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={SOLVENCY_GUARDRAILS.healthyRatio} y2={5} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
                             <Line type="monotone" dataKey={(d: any) => Math.min(d?.solvencyScore?.mean || 0, 5)} stroke="#fbbf24" strokeWidth={3} dot={false} name="Sustainability Ratio" />
-                            <ReferenceLine y={1} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'Deflationary (>1.0)', fill: '#10b981', fontSize: 10, position: 'insideTopLeft' }} />
+                            <ReferenceLine y={SOLVENCY_GUARDRAILS.criticalRatio} stroke="#fbbf24" strokeDasharray="5 5" label={{ value: `Floor (${SOLVENCY_GUARDRAILS.criticalRatio.toFixed(1)}x)`, fill: '#fbbf24', fontSize: 10, position: 'insideTopLeft' }} />
+                            <ReferenceLine y={SOLVENCY_GUARDRAILS.healthyRatio} stroke="#10b981" strokeDasharray="5 5" label={{ value: `Healthy (>${SOLVENCY_GUARDRAILS.healthyRatio.toFixed(1)}x)`, fill: '#10b981', fontSize: 10, position: 'insideTopRight' }} />
                             <Legend verticalAlign="top" height={36} iconType="circle" />
                         </ComposedChart>
                     );
@@ -164,14 +185,14 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         <LineChart data={displayedData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={11} minTickGap={30} label={{ value: 'Time (Weeks)', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 10 }} />
-                            <YAxis fontSize={11} domain={[0, 36]} allowDataOverflow={true} label={{ value: 'Months', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+                            <YAxis fontSize={11} domain={[0, PAYBACK_GUARDRAILS.extendedHorizonMonths]} allowDataOverflow={true} label={{ value: 'Months', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                                formatter={(val: number) => val >= 36 ? ['Never (Unprofitable)', 'Payback Period'] : [`${val.toFixed(1)} Months`, 'Payback Period']}
+                                formatter={(val: number) => val >= PAYBACK_GUARDRAILS.extendedHorizonMonths ? ['Never (Unprofitable)', 'Payback Period'] : [`${val.toFixed(1)} Months`, 'Payback Period']}
                                 labelFormatter={(label) => `Week ${label}`}
                             />
-                            <ReferenceArea y1={0} y2={12} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
-                            <ReferenceArea y1={24} y2={36} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={0} y2={PAYBACK_GUARDRAILS.healthyMaxMonths} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={PAYBACK_GUARDRAILS.watchlistMaxMonths} y2={PAYBACK_GUARDRAILS.extendedHorizonMonths} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
                             <Line
                                 type="monotone"
                                 dataKey={calculatePaybackMonths}
@@ -180,8 +201,8 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 dot={false}
                                 name="Payback Period"
                             />
-                            <ReferenceLine y={12} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Healthy (<12m)', fill: '#10b981', fontSize: 10, position: 'insideBottomRight' }} />
-                            <ReferenceLine y={24} stroke="#fbbf24" strokeDasharray="3 3" label={{ value: 'Risk (>24m)', fill: '#fbbf24', fontSize: 10, position: 'insideTopRight' }} />
+                            <ReferenceLine y={PAYBACK_GUARDRAILS.healthyMaxMonths} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: `Watchlist (>${PAYBACK_GUARDRAILS.healthyMaxMonths}m)`, fill: '#f59e0b', fontSize: 10, position: 'insideBottomRight' }} />
+                            <ReferenceLine y={PAYBACK_GUARDRAILS.watchlistMaxMonths} stroke="#ef4444" strokeDasharray="3 3" label={{ value: `Intervention (>${PAYBACK_GUARDRAILS.watchlistMaxMonths}m)`, fill: '#ef4444', fontSize: 10, position: 'insideTopRight' }} />
                             <Legend verticalAlign="top" height={36} iconType="circle" />
                         </LineChart>
                     );
@@ -260,8 +281,8 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <XAxis dataKey="t" fontSize={11} minTickGap={30} />
                             <YAxis domain={[0, 100]} fontSize={11} label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
                             <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} formatter={(val: number) => `${val.toFixed(1)}%`} />
-                            <ReferenceLine y={60} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Healthy', fill: '#10b981', fontSize: 10 }} />
-                            <ReferenceLine y={10} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Critical', fill: '#ef4444', fontSize: 10 }} />
+                            <ReferenceLine y={OWNER_KPI_THRESHOLD_VALUES.utilizationHealthyMinPct} stroke="#10b981" strokeDasharray="3 3" label={{ value: `Healthy (${OWNER_KPI_THRESHOLD_VALUES.utilizationHealthyMinPct}%+)`, fill: '#10b981', fontSize: 10 }} />
+                            <ReferenceLine y={OWNER_KPI_THRESHOLD_VALUES.utilizationWatchlistMinPct} stroke="#ef4444" strokeDasharray="3 3" label={{ value: `Critical (<${OWNER_KPI_THRESHOLD_VALUES.utilizationWatchlistMinPct}%)`, fill: '#ef4444', fontSize: 10 }} />
                             <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.15} name="Utilization" />
                             <Legend verticalAlign="top" height={36} iconType="circle" />
                         </AreaChart>
@@ -336,7 +357,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                     </div>
 
                     <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
-                        <button onClick={() => setFocusChart(null)} className="px-12 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold transition-all uppercase tracking-[0.2em] active:scale-95 shadow-xl shadow-indigo-600/20">Return to Sandbox</button>
+                        <button onClick={() => setFocusChart(null)} className="px-12 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold transition-all uppercase tracking-[0.2em] active:scale-95 shadow-xl shadow-indigo-600/20">Return to Experiment</button>
                     </div>
                 </div>
             </div>
@@ -388,7 +409,14 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             currentParams={params}
                             protocolId={activeProfile.metadata.id}
                             protocolName={activeProfile.metadata.name}
-                            onLoadScenario={(scenarioParams) => setParams(prev => ({ ...prev, ...scenarioParams }))}
+                            activeScenarioId={activeScenarioId}
+                            onLoadScenario={(scenarioParams, scenarioId) => {
+                                if (onScenarioLoad) {
+                                    onScenarioLoad(scenarioParams, scenarioId);
+                                    return;
+                                }
+                                setParams(prev => ({ ...prev, ...scenarioParams }));
+                            }}
                         />
                         {/* Stability Badge */}
                         <div
@@ -415,18 +443,22 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                 <div className="space-y-8 mb-12">
                     <div className="border-b border-slate-800 pb-4">
                         <h2 className="text-xl font-bold text-white mb-2">Deep Dive Analysis</h2>
-                        <p className="text-sm text-slate-400">Advanced diagnostics for {activeProfile.metadata.name}, including network health and thesis verification.</p>
+                        <p className="text-sm text-slate-400">Advanced diagnostics for {activeProfile.metadata.name}, including network health and strategy checks.</p>
                     </div>
 
                     {aggregated.length > 0 && (() => {
                         const lastPoint = aggregated[aggregated.length - 1];
+                        const lastSolvency = calculateOwnerSolvencyRatio(lastPoint as any);
+                        const lastUtility = calculateOwnerUtilitySnapshot(lastPoint as any);
                         const metrics = {
                             nodes: lastPoint.providers.mean,
                             utilization: lastPoint.utilization.mean,
                             revenue: lastPoint.revenue ? lastPoint.revenue.mean : (lastPoint.minted.mean * lastPoint.price.mean * 0.1),
                             incentive: lastPoint.solvencyScore.mean * 100
                         };
-                        const isStressed = metrics.utilization < 10 || metrics.incentive < 50;
+                        const isStressed = metrics.utilization < OWNER_KPI_THRESHOLD_VALUES.utilizationWatchlistMinPct
+                            || lastSolvency < SOLVENCY_GUARDRAILS.criticalRatio
+                            || lastUtility.utilityHealthScore < OWNER_KPI_THRESHOLD_VALUES.utilityWatchlistScore;
                         return (
                             <div className="mb-8">
                                 <FlywheelWidget metrics={metrics} stress={isStressed} />
@@ -555,20 +587,30 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                     }
                 >
                     <div className="space-y-6">
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                            <h4 className="text-xs font-bold uppercase tracking-wide text-violet-300">How To Interpret Tier 1</h4>
+                            <p className="text-xs text-slate-300 mt-2">
+                                Solvency above {SOLVENCY_GUARDRAILS.criticalRatio.toFixed(1)}x means value burned covers emissions. Retention near 100% means providers are staying.
+                            </p>
+                            <p className="text-xs text-slate-400 mt-2">
+                                Action trigger: if solvency stays below {SOLVENCY_GUARDRAILS.criticalRatio.toFixed(1)}x for several weeks or retention drops under {OWNER_KPI_THRESHOLD_VALUES.retentionWatchlistMinPct}%, pause expansion and run mitigation scenarios first.
+                            </p>
+                        </div>
+
                         {/* Status Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <InsightCard
                                 title={METRICS.solvency_ratio.label}
-                                value={aggregated[aggregated.length - 1]?.solvencyScore?.mean > 0 ? formatCompact(aggregated[aggregated.length - 1]?.solvencyScore?.mean) : '-'}
-                                trend={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'down' : 'up'}
-                                trendValue={(aggregated[aggregated.length - 1]?.solvencyScore?.mean || 0) < 1.0 ? 'Dilutive' : 'Deflationary'}
+                                value={latestPoint ? formatCompact(latestSolvencyRatio) : '-'}
+                                trend={latestSolvencyBand === 'intervention' ? 'down' : latestSolvencyBand === 'watchlist' ? 'neutral' : 'up'}
+                                trendValue={latestSolvencyBand === 'intervention' ? 'Dilutive' : latestSolvencyBand === 'watchlist' ? 'Watchlist' : 'Deflationary'}
                                 description={METRICS.solvency_ratio.description}
                             />
                             <InsightCard
                                 title={METRICS.weekly_retention_rate.label}
-                                value={aggregated[aggregated.length - 1]?.retentionRate ? `${(aggregated[aggregated.length - 1]?.retentionRate).toFixed(1)}%` : '100%'}
-                                trend="neutral"
-                                trendValue="Provider Loyalty"
+                                value={`${latestRetentionPct.toFixed(1)}%`}
+                                trend={latestRetentionBand === 'intervention' ? 'down' : latestRetentionBand === 'watchlist' ? 'neutral' : 'up'}
+                                trendValue={latestRetentionBand === 'intervention' ? 'Intervention' : latestRetentionBand === 'watchlist' ? 'Watchlist' : 'Healthy'}
                                 description={METRICS.weekly_retention_rate.description}
                             />
                             <InsightCard
@@ -597,7 +639,8 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                     <XAxis dataKey="t" fontSize={9} interval={4} />
                                     <YAxis fontSize={9} domain={[0, 5]} allowDataOverflow={true} />
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} />
-                                    <ReferenceLine y={1} stroke="#10b981" strokeDasharray="5 5" label={{ value: '1.0', fill: '#10b981', fontSize: 10 }} />
+                                    <ReferenceLine y={SOLVENCY_GUARDRAILS.criticalRatio} stroke="#fbbf24" strokeDasharray="5 5" label={{ value: SOLVENCY_GUARDRAILS.criticalRatio.toFixed(1), fill: '#fbbf24', fontSize: 10 }} />
+                                    <ReferenceLine y={SOLVENCY_GUARDRAILS.healthyRatio} stroke="#10b981" strokeDasharray="5 5" label={{ value: SOLVENCY_GUARDRAILS.healthyRatio.toFixed(1), fill: '#10b981', fontSize: 10 }} />
                                     {/* Error Band (95% CI) */}
                                     <Area type="monotone" dataKey="solvencyScore.ci95_upper" stroke="none" fill="#fbbf24" fillOpacity={0.1} />
                                     <Area type="monotone" dataKey="solvencyScore.ci95_lower" stroke="none" fill="#0f172a" fillOpacity={1} />
@@ -626,6 +669,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                     <XAxis dataKey="t" fontSize={9} interval={4} />
                                     <YAxis fontSize={9} domain={[80, 100]} />
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} formatter={(val: number) => `${val.toFixed(2)}%`} />
+                                    <ReferenceLine y={OWNER_KPI_THRESHOLD_VALUES.retentionWatchlistMinPct} stroke="#f59e0b" strokeDasharray="4 4" />
                                     <Area type="monotone" dataKey="retentionRate" stroke="#10b981" fill="#10b981" fillOpacity={0.2} strokeWidth={2} name="Retention" />
                                 </AreaChart>
                             </BaseChartBox>
@@ -680,13 +724,14 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <InsightCard
                                 title={METRICS.payback_period.label}
                                 value={(() => {
-                                    const last = aggregated[aggregated.length - 1];
-                                    if (!last) return '-';
-                                    const months = calculatePaybackMonths(last);
-                                    return months >= 36 ? '>36mo' : `${months.toFixed(1)}mo`;
+                                    const months = latestPaybackMonths;
+                                    if (!Number.isFinite(months)) return '-';
+                                    return months >= PAYBACK_GUARDRAILS.extendedHorizonMonths
+                                        ? `>${PAYBACK_GUARDRAILS.extendedHorizonMonths}mo`
+                                        : `${months.toFixed(1)}mo`;
                                 })()}
-                                trend="down"
-                                trendValue="ROI Time"
+                                trend={latestPaybackBand === 'intervention' ? 'down' : latestPaybackBand === 'watchlist' ? 'neutral' : 'up'}
+                                trendValue={latestPaybackBand === 'intervention' ? 'Intervention' : latestPaybackBand === 'watchlist' ? 'Watchlist' : 'Healthy'}
                                 description={METRICS.payback_period.description}
                             />
                             <InsightCard
@@ -719,9 +764,10 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                                 <LineChart data={displayedData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                                     <XAxis dataKey="t" fontSize={9} interval={4} />
-                                    <YAxis fontSize={9} domain={[0, 36]} allowDataOverflow={true} />
-                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} formatter={(val: number) => val >= 36 ? 'Never' : `${val.toFixed(1)} mo`} />
-                                    <ReferenceLine y={12} stroke="#10b981" strokeDasharray="3 3" />
+                                    <YAxis fontSize={9} domain={[0, PAYBACK_GUARDRAILS.extendedHorizonMonths]} allowDataOverflow={true} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} formatter={(val: number) => val >= PAYBACK_GUARDRAILS.extendedHorizonMonths ? 'Never' : `${val.toFixed(1)} mo`} />
+                                    <ReferenceLine y={PAYBACK_GUARDRAILS.healthyMaxMonths} stroke="#f59e0b" strokeDasharray="3 3" />
+                                    <ReferenceLine y={PAYBACK_GUARDRAILS.watchlistMaxMonths} stroke="#ef4444" strokeDasharray="3 3" />
                                     <Line type="monotone" dataKey={calculatePaybackMonths} stroke="#f43f5e" strokeWidth={2} dot={false} name="Payback" />
                                 </LineChart>
                             </BaseChartBox>
@@ -794,9 +840,31 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                     </div>
                 </SectionLayout>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                    {/* Small Charts */}
-                    <BaseChartBox
+                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-sm font-bold text-white">Advanced Mirror Charts</h3>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Open duplicate compact charts for analyst cross-checking. Default flow keeps one canonical chart per KPI family.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowMirrorCharts((prev) => !prev)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${showMirrorCharts
+                                ? 'bg-indigo-600 text-white border-indigo-500'
+                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-indigo-500/60 hover:text-white'
+                                }`}
+                        >
+                            {showMirrorCharts ? 'Hide Mirror Charts' : 'Open Mirror Charts'}
+                        </button>
+                    </div>
+                </div>
+
+                {showMirrorCharts && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                        {/* Small Charts */}
+                        <BaseChartBox
                         title={METRICS.payback_period.label}
                         icon={DollarSign}
                         color="rose"
@@ -810,10 +878,10 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         <LineChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
                             <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
-                            <YAxis fontSize={9} domain={[0, 36]} allowDataOverflow={true} label={{ value: 'Months', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                            <YAxis fontSize={9} domain={[0, PAYBACK_GUARDRAILS.extendedHorizonMonths]} allowDataOverflow={true} label={{ value: 'Months', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                             <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} formatter={(val: number) => isFinite(val) ? `${val.toFixed(1)} mo` : 'Never'} labelFormatter={(label) => `Week ${label}`} />
-                            <ReferenceArea y1={0} y2={12} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
-                            <ReferenceArea y1={24} y2={36} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={0} y2={PAYBACK_GUARDRAILS.healthyMaxMonths} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={PAYBACK_GUARDRAILS.watchlistMaxMonths} y2={PAYBACK_GUARDRAILS.extendedHorizonMonths} {...{ fill: "#f43f5e", fillOpacity: 0.05 } as any} />
                             <Line type="monotone" dataKey={calculatePaybackMonths} stroke="#f43f5e" strokeWidth={2} dot={false} name="Payback Period" />
                         </LineChart>
                     </BaseChartBox>
@@ -824,8 +892,8 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                             <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
                             <YAxis fontSize={9} domain={[0, 5]} allowDataOverflow={true} label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
                             <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', fontSize: '12px' }} />
-                            <ReferenceArea y1={0} y2={1} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} />
-                            <ReferenceArea y1={1} y2={5} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
+                            <ReferenceArea y1={0} y2={SOLVENCY_GUARDRAILS.criticalRatio} {...{ fill: "#f43f5e", fillOpacity: 0.1 } as any} />
+                            <ReferenceArea y1={SOLVENCY_GUARDRAILS.healthyRatio} y2={5} {...{ fill: "#10b981", fillOpacity: 0.05 } as any} />
                             <Line type="monotone" dataKey={(d: any) => Math.min(d?.solvencyScore?.mean || 0, 5)} stroke="#fbbf24" strokeWidth={2} dot={false} name="Solvency Ratio" />
                         </ComposedChart>
                     </BaseChartBox>
@@ -885,15 +953,18 @@ export const SandboxView: React.FC<SandboxViewProps> = ({
                         </ComposedChart>
                     </BaseChartBox>
 
-                    <BaseChartBox title={METRICS.network_utilization.label} icon={BarChart3} color="rose" onExpand={() => setFocusChart(METRICS.network_utilization.id)} isDriver={incentiveRegime.drivers.includes('Network Utilization (%)')} driverColor={incentiveRegime.color} source={METRICS.network_utilization.description} evidence={getMetricEvidence('network_utilization')}>
-                        <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
-                            <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
-                            <YAxis domain={[0, 100]} fontSize={9} label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
-                            <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
-                        </AreaChart>
-                    </BaseChartBox>
-                </div>
+                        <BaseChartBox title={METRICS.network_utilization.label} icon={BarChart3} color="rose" onExpand={() => setFocusChart(METRICS.network_utilization.id)} isDriver={incentiveRegime.drivers.includes('Network Utilization (%)')} driverColor={incentiveRegime.color} source={METRICS.network_utilization.description} evidence={getMetricEvidence('network_utilization')}>
+                            <AreaChart data={displayedData} margin={{ left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} strokeOpacity={0.1} />
+                                <XAxis dataKey="t" fontSize={9} interval={4} label={{ value: 'Weeks', position: 'insideBottomRight', offset: -5, fill: '#64748b', fontSize: 9 }} />
+                                <YAxis domain={[0, 100]} fontSize={9} label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 9 }} />
+                                <ReferenceLine y={OWNER_KPI_THRESHOLD_VALUES.utilizationHealthyMinPct} stroke="#10b981" strokeDasharray="3 3" />
+                                <ReferenceLine y={OWNER_KPI_THRESHOLD_VALUES.utilizationWatchlistMinPct} stroke="#ef4444" strokeDasharray="3 3" />
+                                <Area type="monotone" dataKey={(d: any) => d?.utilization?.mean} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
+                            </AreaChart>
+                        </BaseChartBox>
+                    </div>
+                )}
             </div>
         </div>
     );

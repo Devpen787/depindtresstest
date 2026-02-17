@@ -15,13 +15,15 @@ interface ScenarioManagerProps {
     currentParams: SimulationParams;
     protocolId: string;
     protocolName: string;
-    onLoadScenario: (params: Partial<SimulationParams>) => void;
+    activeScenarioId?: string | null;
+    onLoadScenario: (params: Partial<SimulationParams>, scenarioId?: string) => void;
 }
 
 export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
     currentParams,
     protocolId,
     protocolName,
+    activeScenarioId,
     onLoadScenario
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -86,6 +88,7 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
         <div className="relative">
             {/* Trigger Button */}
             <button
+                data-cy="scenario-library-trigger"
                 onClick={() => setIsOpen(!isOpen)}
                 className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/50 text-[10px] font-bold text-slate-400 hover:text-amber-400 transition-all flex items-center gap-1.5"
             >
@@ -127,9 +130,10 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
                         <div className="text-[9px] text-slate-500 font-bold uppercase px-2 mb-1">Built-in Presets</div>
                         {SCENARIOS.map(scenario => (
                             <button
+                                data-cy={`scenario-preset-${scenario.id}`}
                                 key={scenario.id}
-                                onClick={() => { onLoadScenario(scenario.params); setIsOpen(false); }}
-                                className="w-full px-2 py-2 hover:bg-slate-800 rounded-lg text-left transition-colors"
+                                onClick={() => { onLoadScenario(scenario.params, scenario.id); setIsOpen(false); }}
+                                className={`w-full px-2 py-2 rounded-lg text-left transition-colors ${activeScenarioId === scenario.id ? 'bg-indigo-500/20 border border-indigo-500/30' : 'hover:bg-slate-800 border border-transparent'}`}
                             >
                                 <div className="text-xs font-bold text-white">{scenario.name}</div>
                                 <div className="text-[10px] text-slate-500 line-clamp-1">{scenario.description}</div>
@@ -150,6 +154,7 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
                         ) : (
                             customScenarios.map(scenario => (
                                 <div
+                                    data-cy={`scenario-custom-${scenario.id}`}
                                     key={scenario.id}
                                     className="flex items-center justify-between px-2 py-2 hover:bg-slate-800 rounded-lg group"
                                 >

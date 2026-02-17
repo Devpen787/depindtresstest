@@ -94,10 +94,11 @@ export const RiskStabilityView: React.FC<RiskStabilityViewProps> = ({ data, onRu
 
             <ChartContextHeader
                 title="How To Read Tail Risk"
-                what="This branch summarizes downside severity: drawdown, volatility, insolvency exposure, and lower-tail floor behavior."
-                why="Tail risk score blends p10 floor degradation, downside spread, and drawdown. Sensitivity then shows which assumptions drive payback risk."
+                what="This branch summarizes worst-case risk: drawdown, volatility, insolvency exposure, and downside floor."
+                why="The tail risk score combines these downside signals into one risk view. Sensitivity shows which assumptions move risk most."
                 reference={GUARDRAIL_COPY.tailRiskReference}
-                nextQuestion="Which assumption change reduces tail risk most with the smallest tradeoff to growth?"
+                nextQuestion="Which assumption cuts tail risk the most with minimal growth tradeoff?"
+                actionTrigger="If tail risk is Watchlist or Intervention, publish as HOLD until one tested mitigation improves the risk score."
             />
 
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">

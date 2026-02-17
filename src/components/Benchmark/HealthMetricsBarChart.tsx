@@ -116,10 +116,11 @@ export const HealthMetricsBarChart: React.FC<HealthMetricsBarChartProps> = ({
 
             <ChartContextHeader
                 title="How To Read This"
-                what="Each bar is a normalized score so metrics with different units can be compared side-by-side."
-                why="Payback is inverted (lower months = higher score). Sustainability is scaled from ratio. Retention and efficiency are bounded to 0-100."
+                what="Each bar is a 0-100 score. Higher is better on every metric."
+                why="We convert different units into one score so comparison is quick: faster payback = higher score, stronger retention/efficiency/solvency = higher score."
                 reference={GUARDRAIL_COPY.benchmarkRelativeScoreReference}
-                nextQuestion="Which single metric gap explains the overall benchmark disadvantage?"
+                nextQuestion="Which single metric is pulling the total result down the most?"
+                actionTrigger="If Onocoy is 10+ points behind peers on two or more metrics, stop the recommendation and move to Root Causes."
                 className="mb-4"
             />
 

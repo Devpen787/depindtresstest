@@ -4,7 +4,7 @@ import { Bar, Line } from 'react-chartjs-2';
 import { DiagnosticState } from './types';
 import { calculateDiagnosticSignals } from '../../audit/diagnosticViewMath';
 import { ChartContextHeader } from '../ui/ChartContextHeader';
-import { GUARDRAIL_COPY } from '../../constants/guardrails';
+import { GUARDRAIL_COPY, SOLVENCY_GUARDRAILS } from '../../constants/guardrails';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -16,10 +16,6 @@ interface Props {
 const Gauge = ({ value, label, status, subText }: { value: number, label: string, status: string, subText: string }) => {
     // value 0-100
     const rotation = (value / 100) * 180; // 0 to 180 degrees
-
-    let color = '#ef4444'; // Red
-    if (value < 30) color = '#10b981'; // Green (Low is good for some, need to be careful with context)
-    if (value >= 30 && value < 70) color = '#eab308'; // Yellow
 
     // For "Retention" or "Capacity", High is Good. For "Overhead", Low is Good.
     // Let's assume input 'value' is normalized to "Badness" for color, or passed explicitly?
@@ -65,7 +61,7 @@ export const SignalsOfDeathPanel: React.FC<Props> = ({ state }) => {
         datasets: [{
             label: 'Value ($)',
             data: [1.0, state.r_be], // Normalized. Price = 1.0, Utility = r_be
-            backgroundColor: ['#64748b', state.r_be < 0.5 ? '#ef4444' : '#10b981'],
+            backgroundColor: ['#64748b', state.r_be < SOLVENCY_GUARDRAILS.criticalRatio ? '#ef4444' : '#10b981'],
         }]
     };
 
@@ -99,19 +95,20 @@ export const SignalsOfDeathPanel: React.FC<Props> = ({ state }) => {
         <div className="space-y-4">
             <ChartContextHeader
                 title="Signals Interpretation"
-                what="This panel condenses four early-warning indicators for fragility: degradation, validation overhead, equilibrium gap, and churn sensitivity."
-                why="Gauges are derived from diagnostic state values; churn elasticity line is a structural response archetype (illustrative pattern), not live market telemetry."
+                what="This panel gives four fast warning checks: capacity drop, validation overhead, utility gap, and churn risk."
+                why="The values are model-based stress indicators. They are meant to guide decisions, not to act as live market prices."
                 reference={GUARDRAIL_COPY.diagnosticSignalsReference}
-                nextQuestion="Which warning can we reverse fastest with policy change: emissions, growth coordination, or miner filtering?"
+                nextQuestion="Which warning can we improve fastest with one policy change?"
+                actionTrigger="If two or more signals are Warning/Critical at once, mark the protocol HOLD and test one mitigation before sharing."
             />
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* 1. Latent Capacity */}
                 <Gauge
                     value={signals.capacityDegradation}
-                    label="Latent Capacity Degradation"
+                    label="Capacity Drop"
                     status={signals.capacityStatus}
-                    subText="Capacity falling AFTER price drop."
+                    subText="How much capacity is lost after stress."
                 />
 
                 {/* 2. Validation Overhead */}
@@ -119,7 +116,7 @@ export const SignalsOfDeathPanel: React.FC<Props> = ({ state }) => {
                     value={signals.validationOverhead}
                     label="Validation Overhead"
                     status={signals.validationStatus}
-                    subText="Cost of fighting spoofers."
+                    subText="Operational burden to keep data quality high."
                 />
 
                 {/* 3. Equilibrium Gap */}
@@ -129,7 +126,7 @@ export const SignalsOfDeathPanel: React.FC<Props> = ({ state }) => {
                         <Bar data={gapData} options={chartOptions} />
                     </div>
                     <p className="text-[10px] text-slate-500 mt-2 text-center">
-                        {state.r_be < 1 ? 'Market Price > Utility Value' : 'Healthy Equilibrium'}
+                        {state.r_be < SOLVENCY_GUARDRAILS.criticalRatio ? 'Utility value is below market price (fragile)' : 'Utility and market price are aligned'}
                     </p>
                 </div>
 
@@ -140,7 +137,7 @@ export const SignalsOfDeathPanel: React.FC<Props> = ({ state }) => {
                         <Line data={churnData} options={chartOptions} />
                     </div>
                     <p className="text-[10px] text-slate-500 mt-2 text-center">
-                        Mercenary (Red) vs Pro (Green) Exits
+                        Red exits faster than green under stress
                     </p>
                 </div>
             </div>

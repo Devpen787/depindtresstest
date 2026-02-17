@@ -1,5 +1,7 @@
 import type { AggregateResult } from '../model/types';
 import type { DiagnosticInput, DiagnosticState, DiagnosticVerdict } from '../components/Diagnostic/types';
+import { RETENTION_GUARDRAILS, RESILIENCE_GUARDRAILS } from '../constants/guardrails';
+import { OWNER_KPI_THRESHOLD_VALUES } from './kpiOwnerMath';
 
 export type SignalStatus = 'Safe' | 'Warning' | 'Critical';
 
@@ -103,8 +105,8 @@ export function calculateDiagnosticState(inputs: DiagnosticInput): DiagnosticSta
   const finalScore = (s_ber * 0.4) + (s_nrr * 0.2) + (s_lur * 0.2) + (govScore * 0.2);
 
   let verdict: DiagnosticVerdict = 'Robust';
-  if (finalScore < 70) verdict = 'Fragile';
-  if (finalScore < 40) verdict = 'Zombie';
+  if (finalScore < RESILIENCE_GUARDRAILS.healthyMinScore) verdict = 'Fragile';
+  if (finalScore < RESILIENCE_GUARDRAILS.watchlistMinScore) verdict = 'Zombie';
   if (finalScore < 20) verdict = 'Insolvent';
 
   return {
@@ -120,14 +122,18 @@ export function calculateDiagnosticState(inputs: DiagnosticInput): DiagnosticSta
 
 export function calculateDiagnosticSignals(state: DiagnosticState): DiagnosticSignals {
   const capacityDegradation = 100 - state.nrr;
+  const capacityWarningFloor = OWNER_KPI_THRESHOLD_VALUES.retentionWatchlistMinPct;
+  const capacityCriticalFloor = RETENTION_GUARDRAILS.thesisMinPct;
   let capacityStatus: SignalStatus = 'Safe';
-  if (capacityDegradation > 10) capacityStatus = 'Warning';
-  if (capacityDegradation > 30) capacityStatus = 'Critical';
+  if (state.nrr < capacityWarningFloor) capacityStatus = 'Warning';
+  if (state.nrr < capacityCriticalFloor) capacityStatus = 'Critical';
 
   const validationOverhead = Math.max(0, 100 - state.govScore);
+  const validationWarningFloor = RESILIENCE_GUARDRAILS.healthyMinScore;
+  const validationCriticalFloor = RESILIENCE_GUARDRAILS.watchlistMinScore;
   let validationStatus: SignalStatus = 'Safe';
-  if (validationOverhead > 40) validationStatus = 'Warning';
-  if (validationOverhead > 70) validationStatus = 'Critical';
+  if (state.govScore < validationWarningFloor) validationStatus = 'Warning';
+  if (state.govScore < validationCriticalFloor) validationStatus = 'Critical';
 
   return {
     capacityDegradation,

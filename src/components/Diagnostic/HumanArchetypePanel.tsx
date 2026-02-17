@@ -1,6 +1,8 @@
 import React from 'react';
 import { DiagnosticState, DiagnosticInput } from './types';
-import { Scale, Gauge, Network, AlertTriangle, TrendingDown, Zap, ArrowRight } from 'lucide-react';
+import { Scale, Gauge, Network, AlertTriangle, Zap } from 'lucide-react';
+import { RESILIENCE_GUARDRAILS, SOLVENCY_GUARDRAILS } from '../../constants/guardrails';
+import { OWNER_KPI_THRESHOLD_VALUES } from '../../audit/kpiOwnerMath';
 
 interface Props {
     inputs: DiagnosticInput;
@@ -24,8 +26,15 @@ interface ArchetypeData {
 export const HumanArchetypePanel: React.FC<Props> = ({ inputs, state }) => {
 
     let archetype: ArchetypeData;
+    const solvencyCriticalFloor = SOLVENCY_GUARDRAILS.criticalRatio.toFixed(1);
+    const retentionWatchlistFloor = OWNER_KPI_THRESHOLD_VALUES.retentionWatchlistMinPct;
+    const resilienceCriticalFloor = RESILIENCE_GUARDRAILS.watchlistMinScore;
 
-    if (state.verdict === 'Robust') {
+    const isSolvencyCritical = state.r_be < SOLVENCY_GUARDRAILS.criticalRatio;
+    const isRetentionAtRisk = state.nrr < retentionWatchlistFloor;
+    const isResilienceAtRisk = state.resilienceScore < resilienceCriticalFloor;
+
+    if (!isSolvencyCritical && !isRetentionAtRisk && !isResilienceAtRisk) {
         archetype = {
             id: 'retargeting',
             title: "Human Archetype II",
@@ -35,11 +44,11 @@ export const HumanArchetypePanel: React.FC<Props> = ({ inputs, state }) => {
             behavior: "Fork in the Road: Choosing Quality over Quantity. Reward quality over quantity.",
             rationalization: "\"We must adapt to survive, even if it hurts short-term growth.\"",
             reality: "Slower growth initially, but higher efficiency and long-term survival.",
-            signal: "Rising validation overhead, but stable or rising real revenue. Quality metrics improve.",
+            signal: `R_BE >= ${solvencyCriticalFloor}, resilience score >= ${resilienceCriticalFloor}, and retention >= ${retentionWatchlistFloor}% under stress.`,
             verdict: "Adaptation over Panic",
             verdictDetail: "Do not confuse 'Incentive Strength' with 'Incentive Alignment'. This archetype prioritizes alignment."
         };
-    } else if (inputs.emissionSchedule === 'Fixed') {
+    } else if (inputs.emissionSchedule === 'Fixed' || isSolvencyCritical) {
         archetype = {
             id: 'inertia',
             title: "Human Archetype I",
@@ -49,7 +58,7 @@ export const HumanArchetypePanel: React.FC<Props> = ({ inputs, state }) => {
             behavior: "Refusing to cut emissions when demand is low. The 'Paralysis of Design'.",
             rationalization: "\"We need to keep miners happy for the future. Cutting rewards will kill growth.\"",
             reality: "Draining the treasury for a network that doesn't exist yet. Paying for presence, not utility.",
-            signal: "Declining Burn-to-Emission Ratio (R_BE < 1.0) + Stable Nominal Rewards.",
+            signal: `Declining Burn-to-Emission Ratio (R_BE < ${solvencyCriticalFloor}) + stable nominal rewards.`,
             verdict: "Time-Shifting Risk",
             verdictDetail: "A mechanism that trades early stability for catastrophic adjustment later. The longer the delay, the harder the crash."
         };

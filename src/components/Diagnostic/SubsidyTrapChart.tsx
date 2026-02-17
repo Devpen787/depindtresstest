@@ -3,6 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line } from 'react-chartjs-2';
 import { DiagnosticInput, DiagnosticState } from './types';
 import { calculateSubsidyTrapSeries } from '../../audit/diagnosticViewMath';
+import { SOLVENCY_GUARDRAILS } from '../../constants/guardrails';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const SubsidyTrapChart: React.FC<Props> = ({ inputs, state }) => {
+    const severeDeficitThresholdRatio = SOLVENCY_GUARDRAILS.criticalRatio * 0.5;
     const years = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
     const { emissions, burn } = calculateSubsidyTrapSeries(inputs, 5);
 
@@ -73,10 +75,10 @@ export const SubsidyTrapChart: React.FC<Props> = ({ inputs, state }) => {
         <div className="w-full h-[300px] bg-slate-900/50 rounded-xl border border-slate-800 p-4 flex gap-4 overflow-hidden">
             <div className="flex-1 min-w-0 relative">
                 <Line data={data} options={options} />
-                {state.r_be < 0.5 && (
+                {state.r_be < severeDeficitThresholdRatio && (
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-950/80 border border-red-500/50 p-4 rounded-xl text-center backdrop-blur-sm pointer-events-none">
                         <h3 className="text-xl font-bold text-red-500 uppercase tracking-widest">Subsidy Trap</h3>
-                        <p className="text-sm text-red-300">Deficit &gt; 50%</p>
+                        <p className="text-sm text-red-300">R_BE &lt; {severeDeficitThresholdRatio.toFixed(1)} ({((1 - state.r_be) * 100).toFixed(0)}% deficit)</p>
                     </div>
                 )}
             </div>

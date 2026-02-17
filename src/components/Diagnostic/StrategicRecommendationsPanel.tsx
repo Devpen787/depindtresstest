@@ -1,6 +1,8 @@
 import React from 'react';
 import { DiagnosticInput, DiagnosticState } from './types';
 import { Layers, Target, AlertTriangle, Lightbulb, ArrowRight, ExternalLink, CheckCircle, HelpCircle } from 'lucide-react';
+import { SOLVENCY_GUARDRAILS } from '../../constants/guardrails';
+import { OWNER_KPI_THRESHOLD_VALUES } from '../../audit/kpiOwnerMath';
 
 interface Props {
     inputs: DiagnosticInput;
@@ -25,6 +27,9 @@ interface ProjectRecommendation {
 
 export const StrategicRecommendationsPanel: React.FC<Props> = ({ inputs, state }) => {
     const archetype = inputs.selectedArchetype || 'onocoy';
+    const solvencyFloor = SOLVENCY_GUARDRAILS.criticalRatio.toFixed(1);
+    const utilizationFloor = OWNER_KPI_THRESHOLD_VALUES.utilizationHealthyMinPct;
+    const retentionFloor = OWNER_KPI_THRESHOLD_VALUES.retentionWatchlistMinPct;
 
     // Project-specific recommendations with WHY for each step
     const recommendationMap: Record<string, ProjectRecommendation> = {
@@ -36,9 +41,9 @@ export const StrategicRecommendationsPanel: React.FC<Props> = ({ inputs, state }
             actionableSteps: [
                 { step: "Maintain streak appreciation rewards", why: "Streak bonuses create psychological sunk costs, making operators reluctant to leave and forfeit accumulated status.", priority: 'medium' },
                 { step: "Continue gating hardware quality at onboarding", why: "$250-900 investment (verified from gnss.store) still creates friction that filters out mercenary operators.", priority: 'medium' },
-                { step: "Expand enterprise GNSS partnerships", why: "Demand-side contracts lock in revenue before emission cycles, ensuring R_BE stays above 1.0.", priority: 'medium' }
+                { step: "Expand enterprise GNSS partnerships", why: `Demand-side contracts lock in revenue before emission cycles, ensuring R_BE stays above ${solvencyFloor}.`, priority: 'medium' }
             ],
-            successMetric: "Maintain R_BE > 1.0 through next halving cycle"
+            successMetric: `Maintain R_BE >= ${solvencyFloor} through next halving cycle`
         },
         'render': {
             projectName: "Render",
@@ -50,7 +55,7 @@ export const StrategicRecommendationsPanel: React.FC<Props> = ({ inputs, state }
                 { step: "Diversify beyond AI/ML to 3D rendering, video transcoding", why: "AI demand is volatile and concentrated. 3D rendering and video have stable, recurring enterprise demand.", priority: 'high' },
                 { step: "Build enterprise SLAs with uptime guarantees", why: "SLAs create contractual lock-in for both nodes and customers, smoothing out speculative demand cycles.", priority: 'medium' }
             ],
-            successMetric: "Maintain 60%+ GPU utilization across network",
+            successMetric: `Maintain >= ${utilizationFloor}% network utilization floor during stress scenarios`,
             realWorldExample: "Render's 2023 BME migration reduced emission volatility by 40%"
         },
         'ionet': {
@@ -115,7 +120,7 @@ export const StrategicRecommendationsPanel: React.FC<Props> = ({ inputs, state }
                 { step: "Add minimum uptime requirements (20+ hrs/week)", why: "Uptime requirements filter casual users who contribute nothing. Committed users provide consistent supply.", priority: 'critical' },
                 { step: "Build reputation tiers with loyalty multipliers", why: "Tiered rewards make tenure valuable. A 6-month user earning 2x won't leave to start over elsewhere.", priority: 'high' }
             ],
-            successMetric: "Achieve 50%+ 90-day retention rate",
+            successMetric: `Achieve >= ${retentionFloor}% retention proxy under stress`,
             realWorldExample: "Honeygain lost 60% of users within 3 months of TGE"
         },
         'dimo': {

@@ -6,22 +6,22 @@ import { SCENARIOS } from '../../data/scenarios';
 
 interface BenchmarkHeaderProps {
     params: SimulationParams;
-    setParams: React.Dispatch<React.SetStateAction<SimulationParams>>;
     activeProtocolId: string;
     activeProtocolName: string;
     lastUpdated?: Date;
     engineLabel: string;
     activeScenarioId?: string | null;
+    onScenarioLoad?: (params: Partial<SimulationParams>, scenarioId?: string) => void;
 }
 
 export const BenchmarkHeader: React.FC<BenchmarkHeaderProps> = ({
     params,
-    setParams,
     activeProtocolId,
     activeProtocolName,
     lastUpdated,
     engineLabel,
-    activeScenarioId
+    activeScenarioId,
+    onScenarioLoad
 }) => {
     // Find active scenario details
     const activeScenario = SCENARIOS.find(s => s.id === activeScenarioId);
@@ -82,7 +82,12 @@ export const BenchmarkHeader: React.FC<BenchmarkHeaderProps> = ({
                         currentParams={params}
                         protocolId={activeProtocolId}
                         protocolName={activeProtocolName}
-                        onLoadScenario={(scenarioParams) => setParams(prev => ({ ...prev, ...scenarioParams }))}
+                        activeScenarioId={activeScenarioId}
+                        onLoadScenario={(scenarioParams, scenarioId) => {
+                            if (onScenarioLoad) {
+                                onScenarioLoad(scenarioParams, scenarioId);
+                            }
+                        }}
                     />
                 </div>
             </div>
