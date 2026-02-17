@@ -1,0 +1,248 @@
+{
+  "capturedAt": "2026-02-17T15:43:19.122Z",
+  "rounds": 5,
+  "tabSequence": [
+    "benchmark",
+    "diagnostic",
+    "thesis",
+    "case_study",
+    "decision_tree",
+    "benchmark"
+  ],
+  "summary": {
+    "count": 25,
+    "minMs": 6.0999999940395355,
+    "p50Ms": 17.5,
+    "p90Ms": 84.40000000596046,
+    "p95Ms": 101.20000000298023,
+    "maxMs": 118.19999998807907,
+    "avgMs": 33.5919999986887
+  },
+  "tabSwitchEvents": [
+    {
+      "name": "tab-switch",
+      "durationMs": 13.5,
+      "at": "2026-02-17T15:43:15.016Z",
+      "meta": {
+        "activeTab": "diagnostic",
+        "viewMode": "benchmark"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 17.200000002980232,
+      "at": "2026-02-17T15:43:15.100Z",
+      "meta": {
+        "activeTab": "thesis",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 13.399999991059303,
+      "at": "2026-02-17T15:43:15.178Z",
+      "meta": {
+        "activeTab": "case_study",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 6.100000008940697,
+      "at": "2026-02-17T15:43:15.250Z",
+      "meta": {
+        "activeTab": "decision_tree",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 7.899999991059303,
+      "at": "2026-02-17T15:43:15.330Z",
+      "meta": {
+        "activeTab": "benchmark",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 6.0999999940395355,
+      "at": "2026-02-17T15:43:15.483Z",
+      "meta": {
+        "activeTab": "diagnostic",
+        "viewMode": "benchmark"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 101.20000000298023,
+      "at": "2026-02-17T15:43:15.657Z",
+      "meta": {
+        "activeTab": "thesis",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 53.099999994039536,
+      "at": "2026-02-17T15:43:15.769Z",
+      "meta": {
+        "activeTab": "case_study",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 40,
+      "at": "2026-02-17T15:43:15.984Z",
+      "meta": {
+        "activeTab": "decision_tree",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 51.20000000298023,
+      "at": "2026-02-17T15:43:16.140Z",
+      "meta": {
+        "activeTab": "benchmark",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 37.70000000298023,
+      "at": "2026-02-17T15:43:16.412Z",
+      "meta": {
+        "activeTab": "diagnostic",
+        "viewMode": "benchmark"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 84.40000000596046,
+      "at": "2026-02-17T15:43:16.932Z",
+      "meta": {
+        "activeTab": "thesis",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 18.599999994039536,
+      "at": "2026-02-17T15:43:17.021Z",
+      "meta": {
+        "activeTab": "case_study",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 14.700000002980232,
+      "at": "2026-02-17T15:43:17.109Z",
+      "meta": {
+        "activeTab": "decision_tree",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 17.5,
+      "at": "2026-02-17T15:43:17.201Z",
+      "meta": {
+        "activeTab": "benchmark",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 40,
+      "at": "2026-02-17T15:43:17.397Z",
+      "meta": {
+        "activeTab": "diagnostic",
+        "viewMode": "benchmark"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 81.19999998807907,
+      "at": "2026-02-17T15:43:17.866Z",
+      "meta": {
+        "activeTab": "thesis",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 15.5,
+      "at": "2026-02-17T15:43:17.952Z",
+      "meta": {
+        "activeTab": "case_study",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 15.599999994039536,
+      "at": "2026-02-17T15:43:18.047Z",
+      "meta": {
+        "activeTab": "decision_tree",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 17,
+      "at": "2026-02-17T15:43:18.136Z",
+      "meta": {
+        "activeTab": "benchmark",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 18.899999991059303,
+      "at": "2026-02-17T15:43:18.320Z",
+      "meta": {
+        "activeTab": "diagnostic",
+        "viewMode": "benchmark"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 118.19999998807907,
+      "at": "2026-02-17T15:43:18.789Z",
+      "meta": {
+        "activeTab": "thesis",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 17.299999997019768,
+      "at": "2026-02-17T15:43:18.877Z",
+      "meta": {
+        "activeTab": "case_study",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 15.800000011920929,
+      "at": "2026-02-17T15:43:18.974Z",
+      "meta": {
+        "activeTab": "decision_tree",
+        "viewMode": "sandbox"
+      }
+    },
+    {
+      "name": "tab-switch",
+      "durationMs": 17.700000002980232,
+      "at": "2026-02-17T15:43:19.063Z",
+      "meta": {
+        "activeTab": "benchmark",
+        "viewMode": "sandbox"
+      }
+    }
+  ]
+}
