@@ -40,11 +40,11 @@ Use this wiki as the source of truth for current controls and behavior.
 
 DTSE is the primary evaluation workflow. It loads a frozen simulation bundle and presents results through 5 progressive stages:
 
-1. **Protocol Context** — protocol identity, scenario grid, model version, evidence status
-2. **Applicability** — metric readiness verdicts (Runnable / Not Runnable) with reason codes
-3. **Outcomes** — key simulation KPIs classified by guardrail band (healthy / watchlist / intervention)
-4. **Failure Signature** — structural fragility patterns sorted by severity
-5. **Recommendations** — actionable items with priority, owner assignment, and export
+1. **Overview** — protocol identity, scenario, engine version, evidence status
+2. **Data Readiness** — which metrics are Runnable vs Not Runnable, with reason codes
+3. **Results** — stress test KPIs classified by risk level (healthy / watchlist / intervention)
+4. **Risk Patterns** — recurring failure patterns ranked by urgency
+5. **Next Actions** — concrete steps with priority, owner, and expected impact
 
 ### Run Context Strip
 

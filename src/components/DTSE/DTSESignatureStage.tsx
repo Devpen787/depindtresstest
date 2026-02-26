@@ -69,23 +69,23 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
     <div data-cy="dtse-signature-stage" className="space-y-8">
       <div>
         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-          Stage 4 — Failure Signature
+          Stage 4 — Risk Patterns
         </h2>
         <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-          Structural fragility patterns detected in the simulation. Sorted by severity.
+          Recurring failure patterns found during stress testing, ranked by urgency.
         </p>
       </div>
 
       {sorted.length === 0 ? (
         <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-10 text-center">
-          <p className="text-sm text-slate-500">No failure signatures detected.</p>
+          <p className="text-sm text-slate-500">No risk patterns detected — all signals within normal range.</p>
         </div>
       ) : (
         <>
           {/* Summary count bar */}
           <div className="bg-slate-900/60 border border-slate-800/50 rounded-xl px-6 py-4 flex items-center gap-3">
             <span className="text-sm font-bold text-slate-200">
-              {sorted.length} {sorted.length === 1 ? 'pattern' : 'patterns'} detected
+              {sorted.length} {sorted.length === 1 ? 'risk pattern' : 'risk patterns'} detected
             </span>
             <span className="text-slate-700">—</span>
             <span className="text-xs text-slate-400">
@@ -119,13 +119,13 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
                   {/* Trigger pattern */}
                   <div className="pl-10 space-y-3">
                     <div>
-                      <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider block mb-1">Pattern</span>
+                      <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider block mb-1">Trigger Condition</span>
                       <p className="text-sm text-slate-300 leading-relaxed">{sig.pattern}</p>
                     </div>
 
                     {sig.affected_metrics.length > 0 && (
                       <div className="flex items-center gap-2.5 pt-1">
-                        <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Affected:</span>
+                        <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Impacts:</span>
                         <div className="flex flex-wrap gap-1.5">
                           {sig.affected_metrics.map((m) => (
                             <span key={m} className="bg-slate-800/60 text-slate-400 text-[10px] font-mono px-2.5 py-1 rounded-md">

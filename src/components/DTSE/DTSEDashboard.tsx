@@ -17,11 +17,11 @@ import { DTSERecommendationsStage } from './DTSERecommendationsStage';
 const STAGE_COUNT = 5;
 
 const STAGE_LABELS: string[] = [
-  'Protocol Context',
-  'Applicability',
-  'Outcomes',
-  'Failure Signature',
-  'Recommendations',
+  'Overview',
+  'Data Readiness',
+  'Results',
+  'Risk Patterns',
+  'Next Actions',
 ];
 
 const DEMO_RUN_CONTEXT: DTSERunContext = {
@@ -189,7 +189,7 @@ export const DTSEDashboard: React.FC = () => {
             </div>
             <div className="w-px h-8 bg-slate-800/60" />
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Scenario Grid</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Scenario</span>
               <p className="text-sm font-bold text-slate-100 font-mono mt-0.5">{ctx.scenario_grid_id}</p>
             </div>
             <div className="w-px h-8 bg-slate-800/60" />

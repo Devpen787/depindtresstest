@@ -51,10 +51,10 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
     <div data-cy="dtse-outcomes-stage" className="space-y-8">
       <div>
         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-          Stage 3 — Simulation Outcomes
+          Stage 3 — Stress Test Results
         </h2>
         <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-          Key performance indicators from the Monte Carlo stress simulation, classified by guardrail band.
+          How the protocol performed under simulated stress, classified by risk level.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   {band}
                 </div>
                 <div className="text-xs text-slate-600 mt-0.5">
-                  {bandCounts[band] === 1 ? 'metric' : 'metrics'}
+                  {bandCounts[band] === 1 ? 'indicator' : 'indicators'}
                 </div>
               </div>
             </div>

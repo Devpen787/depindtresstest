@@ -20,17 +20,17 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
       <div className="space-y-3">
         <div>
           <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">
-            Stage 1 — Protocol Context
+            Stage 1 — Overview
           </h2>
           <p className="text-4xl font-extrabold text-slate-50 tracking-tight">
             {protocolName}
           </p>
           <p className="text-base text-slate-400 mt-1.5">
-            DePIN Token Stress Evaluation
+            DTSE Stress Evaluation
           </p>
         </div>
         <p className="text-sm text-slate-500 leading-relaxed max-w-2xl">
-          Evaluating tokenomics resilience under adversarial stress scenarios — identifying structural fragilities before they surface in production.
+          Stress-testing tokenomics to surface structural risks before they reach production.
         </p>
       </div>
 
@@ -50,29 +50,29 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
         <div className="bg-slate-900/70 border border-slate-800/60 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-2.5 text-cyan-400">
             <Cpu size={15} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Model Version</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Engine</span>
           </div>
           <div>
             <p className="text-xl font-extrabold text-slate-100">{modelVersion}</p>
-            <p className="text-xs text-slate-500 mt-1.5">Engine configuration for this evaluation run</p>
+            <p className="text-xs text-slate-500 mt-1.5">Simulation engine used for this run</p>
           </div>
         </div>
 
         <div className="bg-slate-900/70 border border-slate-800/60 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-2.5 text-cyan-400">
             <Hash size={15} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Mechanism</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Framework</span>
           </div>
           <div>
-            <p className="text-lg font-bold text-slate-100">DePIN Token Stress</p>
-            <p className="text-xs text-slate-500 mt-1.5">DTSE framework — tokenomics resilience under adversarial scenarios</p>
+            <p className="text-lg font-bold text-slate-100">DTSE v1</p>
+            <p className="text-xs text-slate-500 mt-1.5">Frozen-bundle evaluation — deterministic and reproducible</p>
           </div>
         </div>
 
         <div className="bg-slate-900/70 border border-slate-800/60 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-2.5 text-cyan-400">
             <Clock size={15} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Generated</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Run Date</span>
           </div>
           <div>
             <p className="text-lg font-bold text-slate-100">

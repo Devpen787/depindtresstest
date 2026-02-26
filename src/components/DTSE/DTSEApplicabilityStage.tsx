@@ -19,10 +19,10 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
     <div data-cy="dtse-applicability-stage" className="space-y-8">
       <div>
         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-          Stage 2 — Applicability
+          Stage 2 — Data Readiness
         </h2>
         <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-          Determines which metrics have sufficient data quality to produce reliable DTSE verdicts.
+          Which metrics have enough data to produce a reliable evaluation.
         </p>
       </div>
 
@@ -46,8 +46,8 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
           />
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[10px] text-slate-600">{Math.round(runnablePct)}% coverage</span>
-          <span className="text-[10px] text-slate-600">{totalCount - runnableCount} not runnable</span>
+          <span className="text-[10px] text-slate-600">{Math.round(runnablePct)}% data coverage</span>
+          <span className="text-[10px] text-slate-600">{totalCount - runnableCount} blocked</span>
         </div>
       </div>
 

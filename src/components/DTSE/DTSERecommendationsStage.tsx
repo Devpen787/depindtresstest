@@ -63,10 +63,10 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
       <div className="flex items-start justify-between gap-6">
         <div>
           <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-            Stage 5 — Recommendations
+            Stage 5 — Next Actions
           </h2>
           <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-            Actionable items derived from the failure analysis. Export a full DTSE report bundle.
+            Concrete steps to address identified risks. Export the full evaluation report.
           </p>
         </div>
         <button
@@ -81,7 +81,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
 
       {sorted.length === 0 ? (
         <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-10 text-center">
-          <p className="text-sm text-slate-500">No recommendations generated.</p>
+          <p className="text-sm text-slate-500">No actions required — all indicators within healthy range.</p>
         </div>
       ) : (
         <div className="space-y-4">
