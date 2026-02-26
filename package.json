@@ -40,7 +40,9 @@
     "mindsdb:query-pack:quick": "node --experimental-strip-types scripts/generate_mindsdb_query_pack.ts --mode quick",
     "mindsdb:query-pack:full": "node --experimental-strip-types scripts/generate_mindsdb_query_pack.ts --mode full",
     "mindsdb:remediation:quick": "node --experimental-strip-types scripts/generate_mindsdb_remediation_list.ts --mode quick --top 5",
-    "mindsdb:remediation:full": "node --experimental-strip-types scripts/generate_mindsdb_remediation_list.ts --mode full --top 5"
+    "mindsdb:remediation:full": "node --experimental-strip-types scripts/generate_mindsdb_remediation_list.ts --mode full --top 5",
+    "dtse:sync": "node --experimental-strip-types scripts/sync_dtse_bundle.ts --mode sync",
+    "dtse:verify": "node --experimental-strip-types scripts/sync_dtse_bundle.ts --mode verify"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
