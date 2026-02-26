@@ -10,7 +10,7 @@ This is a client-side React SPA (no backend, no database). The only required ser
 |--------|---------|
 | Install deps | `npm install` |
 | Dev server | `npm run dev` (port 3000, `0.0.0.0`) |
-| Unit tests | `npm run test` (Vitest, 145 tests) |
+| Unit tests | `npm run test` (Vitest) |
 | Build | `npm run build` |
 | E2E tests | `npm run test:e2e` (Cypress, starts its own server on port 4173) |
 
