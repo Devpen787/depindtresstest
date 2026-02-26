@@ -1,10 +1,19 @@
 import React from 'react';
 import { Server, Clock, Cpu, Layers3, ArrowRightLeft, Coins } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { DTSERunContext, DTSEProtocolBrief } from '../../types/dtse';
+import type { DTSERunContext, DTSEProtocolBrief, DTSEOutcome } from '../../types/dtse';
+
+interface DTSEPeerContext {
+  peerNames: string[];
+  rationale: string;
+  confidence: 'high' | 'medium' | 'low';
+}
 
 interface DTSEContextStageProps {
   protocolBrief: DTSEProtocolBrief;
+  outcomes: DTSEOutcome[];
+  metricLabels: Record<string, string>;
+  peerContext?: DTSEPeerContext;
   modelVersion: string;
   generatedAt: string;
   scenarioGridId: string;
@@ -15,6 +24,9 @@ interface DTSEContextStageProps {
 
 export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   protocolBrief,
+  outcomes,
+  metricLabels,
+  peerContext,
   modelVersion,
   generatedAt,
   scenarioGridId,
@@ -37,6 +49,42 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
     </div>
   );
 
+  const coreOutcomes = outcomes.filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
+  const bandCounts = coreOutcomes.reduce(
+    (counts, outcome) => {
+      counts[outcome.band] += 1;
+      return counts;
+    },
+    { healthy: 0, watchlist: 0, intervention: 0 } as Record<'healthy' | 'watchlist' | 'intervention', number>,
+  );
+  const overallBand = bandCounts.intervention > 0
+    ? 'intervention'
+    : bandCounts.watchlist > 0
+      ? 'watchlist'
+      : 'healthy';
+  const bandClass = overallBand === 'healthy'
+    ? 'bg-emerald-500/8 border-emerald-500/30 text-emerald-300'
+    : overallBand === 'watchlist'
+      ? 'bg-amber-500/8 border-amber-500/30 text-amber-300'
+      : 'bg-rose-500/8 border-rose-500/30 text-rose-300';
+  const driverLabels = coreOutcomes
+    .filter((outcome) => outcome.band !== 'healthy')
+    .sort((left, right) => {
+      const rank: Record<string, number> = { intervention: 0, watchlist: 1, healthy: 2 };
+      return rank[left.band] - rank[right.band];
+    })
+    .slice(0, 2)
+    .map((outcome) => metricLabels[outcome.metric_id] ?? outcome.metric_id);
+  const attentionCount = bandCounts.watchlist + bandCounts.intervention;
+  const verdictSummary = overallBand === 'healthy'
+    ? `All ${coreOutcomes.length} core indicators are in healthy range.`
+    : `${attentionCount} of ${coreOutcomes.length} core indicators need attention.${driverLabels.length > 0 ? ` ${driverLabels.join(' and ')} are primary drivers.` : ''}`;
+  const peerConfidenceClass = peerContext?.confidence === 'high'
+    ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-300'
+    : peerContext?.confidence === 'medium'
+      ? 'bg-amber-950/40 border-amber-900/60 text-amber-300'
+      : 'bg-slate-900/70 border-slate-700/70 text-slate-300';
+
   return (
     <div data-cy="dtse-context-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
@@ -46,6 +94,11 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
         <p className="text-sm font-medium text-slate-400">
           Defines the required macro environment and structural bounds of the stress evaluation.
         </p>
+      </div>
+
+      <div data-cy="dtse-overall-verdict" className={`rounded-xl border px-4 py-3 ${bandClass}`}>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em]">{overallBand}</p>
+        <p className="text-sm font-semibold mt-1 text-slate-100">{verdictSummary}</p>
       </div>
 
       {/* Hero Protocol Card */}
@@ -72,6 +125,25 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           <p className="text-xs text-slate-500 leading-relaxed mt-2">{protocolBrief.notes}</p>
         </div>
       </div>
+
+      {peerContext && (
+        <div className="bg-slate-900/35 border border-white/5 rounded-xl p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Comparable peers</p>
+            <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-[0.16em] ${peerConfidenceClass}`}>
+              {peerContext.confidence} confidence
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {peerContext.peerNames.map((peerName) => (
+              <span key={peerName} className="px-2.5 py-1 rounded-md border border-slate-700/70 bg-slate-900/70 text-xs text-slate-200 font-semibold">
+                {peerName}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 leading-relaxed">{peerContext.rationale}</p>
+        </div>
+      )}
 
       {/* Mechanics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

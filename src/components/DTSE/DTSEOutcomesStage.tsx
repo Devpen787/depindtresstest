@@ -1,7 +1,23 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ReferenceLine,
+  Cell,
+} from 'recharts';
 import type { DTSEApplicabilityEntry, DTSEMetricInsight, DTSEOutcome } from '../../types/dtse';
 import type { GuardrailBand } from '../../constants/guardrails';
+
+export interface DTSEThresholdConfig {
+  healthyTarget: number;
+  direction: 'higher' | 'lower';
+  label: string;
+}
 
 interface DTSEOutcomesStageProps {
   outcomes: DTSEOutcome[];
@@ -9,6 +25,7 @@ interface DTSEOutcomesStageProps {
   unitMap: Record<string, string>;
   applicabilityEntries: DTSEApplicabilityEntry[];
   metricInsights: Record<string, DTSEMetricInsight>;
+  thresholdConfigMap: Record<string, DTSEThresholdConfig>;
 }
 
 const BAND_STYLES: Record<GuardrailBand, {
@@ -52,6 +69,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
   unitMap,
   applicabilityEntries,
   metricInsights,
+  thresholdConfigMap,
 }) => {
   const applicabilityByMetric: Record<string, DTSEApplicabilityEntry> = {};
   for (const entry of applicabilityEntries) {
@@ -69,6 +87,42 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
 
   const bandCounts: Record<GuardrailBand, number> = { healthy: 0, watchlist: 0, intervention: 0 };
   for (const o of scoredOutcomes) bandCounts[o.band]++;
+
+  const normalizeToHealthyPercent = (value: number, config: DTSEThresholdConfig): number => {
+    if (!Number.isFinite(value)) return 0;
+    if (config.direction === 'higher') {
+      return (value / config.healthyTarget) * 100;
+    }
+    if (value <= 0) return 140;
+    return (config.healthyTarget / value) * 100;
+  };
+
+  const chartData = scoredOutcomes
+    .filter((outcome) => outcome.metric_id !== 'stress_resilience_index')
+    .map((outcome) => {
+      const config = thresholdConfigMap[outcome.metric_id];
+      if (!config) return null;
+      const normalized = Math.max(0, Math.min(160, normalizeToHealthyPercent(outcome.value, config)));
+      return {
+        metricId: outcome.metric_id,
+        label: metricLabels[outcome.metric_id] ?? outcome.metric_id,
+        normalized,
+        band: outcome.band,
+      };
+    })
+    .filter((entry): entry is { metricId: string; label: string; normalized: number; band: GuardrailBand } => Boolean(entry));
+
+  const chartMax = Math.max(
+    120,
+    Math.ceil(
+      chartData.reduce((max, entry) => Math.max(max, entry.normalized), 100) / 20
+    ) * 20,
+  );
+  const chartColorByBand: Record<GuardrailBand, string> = {
+    healthy: '#34d399',
+    watchlist: '#fbbf24',
+    intervention: '#fb7185',
+  };
 
   return (
     <div data-cy="dtse-outcomes-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -97,6 +151,54 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
         })}
       </div>
 
+      {chartData.length > 0 && (
+        <div className="rounded-2xl border border-white/5 bg-slate-950/50 p-5 relative overflow-hidden backdrop-blur-sm">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Distance to healthy threshold</h3>
+          <div data-cy="dtse-threshold-chart" className="h-[260px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 8, right: 18, left: 12, bottom: 8 }}
+              >
+                <XAxis
+                  type="number"
+                  domain={[0, chartMax]}
+                  tickFormatter={(value) => `${Math.round(value)}%`}
+                  stroke="#475569"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="label"
+                  width={140}
+                  stroke="#475569"
+                  tick={{ fill: '#cbd5e1', fontSize: 11 }}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b' }}
+                  labelStyle={{ color: '#cbd5e1' }}
+                  formatter={(value: number) => [`${value.toFixed(0)}%`, 'Healthy proximity']}
+                />
+                <ReferenceLine
+                  x={100}
+                  stroke="#94a3b8"
+                  strokeDasharray="4 4"
+                  label={{ value: 'Healthy', fill: '#94a3b8', fontSize: 10, position: 'top' }}
+                />
+                <Bar dataKey="normalized" radius={[0, 8, 8, 0]}>
+                  {chartData.map((entry) => (
+                    <Cell key={entry.metricId} fill={chartColorByBand[entry.band]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">100% marks the healthy threshold for each metric.</p>
+        </div>
+      )}
+
       {/* Metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {scoredOutcomes.map((outcome, idx) => {
@@ -104,6 +206,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
           const label = metricLabels[outcome.metric_id] ?? outcome.metric_id;
           const unit = unitMap[outcome.metric_id] ?? '';
           const insight = metricInsights[outcome.metric_id];
+          const thresholdConfig = thresholdConfigMap[outcome.metric_id];
           const interpretation = insight?.interpretation[outcome.band] ?? 'Interpret using guardrail context and peer comparisons.';
           const isDerived = !applicabilityByMetric[outcome.metric_id];
           return (
@@ -137,6 +240,12 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   </>
                 )}
               </div>
+              {thresholdConfig && (
+                <p className="text-[11px] text-slate-500/95 leading-relaxed -mt-1 relative z-10">
+                  <span className="text-slate-400 font-semibold">Healthy threshold:</span>{' '}
+                  {thresholdConfig.direction === 'higher' ? '≥' : '≤'} {thresholdConfig.label}
+                </p>
+              )}
               {insight && (
                 <div className="space-y-2 relative z-10 pt-1">
                   <p className="text-[11px] text-slate-500/90 leading-relaxed font-medium">

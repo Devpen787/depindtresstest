@@ -7,11 +7,20 @@ import {
   DTSE_METRIC_INSIGHTS,
   DTSE_REASON_LABELS,
 } from '../../data/dtseContent';
+import { DTSE_PEER_ANALOGS } from '../../data/dtsePeerAnalogs';
 import { DTSEContextStage } from './DTSEContextStage';
 import { DTSEApplicabilityStage } from './DTSEApplicabilityStage';
-import { DTSEOutcomesStage } from './DTSEOutcomesStage';
+import { DTSEOutcomesStage, type DTSEThresholdConfig } from './DTSEOutcomesStage';
 import { DTSESignatureStage } from './DTSESignatureStage';
 import { DTSERecommendationsStage } from './DTSERecommendationsStage';
+import {
+  PAYBACK_GUARDRAILS,
+  RETENTION_GUARDRAILS,
+  RESILIENCE_GUARDRAILS,
+  SOLVENCY_GUARDRAILS,
+  TAIL_RISK_GUARDRAILS,
+  UTILIZATION_GUARDRAILS,
+} from '../../constants/guardrails';
 
 const STAGE_COUNT = 5;
 
@@ -41,6 +50,39 @@ const UNIT_MAP: Record<string, string> = {
   network_utilization: '%',
   tail_risk_score: 'score',
   stress_resilience_index: 'score',
+};
+
+const METRIC_THRESHOLD_CONFIG: Record<string, DTSEThresholdConfig> = {
+  solvency_ratio: {
+    healthyTarget: SOLVENCY_GUARDRAILS.healthyRatio,
+    direction: 'higher',
+    label: `${SOLVENCY_GUARDRAILS.healthyRatio.toFixed(2)}x`,
+  },
+  payback_period: {
+    healthyTarget: PAYBACK_GUARDRAILS.healthyMaxMonths,
+    direction: 'lower',
+    label: `${PAYBACK_GUARDRAILS.healthyMaxMonths} months`,
+  },
+  weekly_retention_rate: {
+    healthyTarget: RETENTION_GUARDRAILS.benchmarkMinPct,
+    direction: 'higher',
+    label: `${RETENTION_GUARDRAILS.benchmarkMinPct}%`,
+  },
+  network_utilization: {
+    healthyTarget: UTILIZATION_GUARDRAILS.healthyMinPct,
+    direction: 'higher',
+    label: `${UTILIZATION_GUARDRAILS.healthyMinPct}%`,
+  },
+  tail_risk_score: {
+    healthyTarget: TAIL_RISK_GUARDRAILS.healthyMax,
+    direction: 'lower',
+    label: `${TAIL_RISK_GUARDRAILS.healthyMax}`,
+  },
+  stress_resilience_index: {
+    healthyTarget: RESILIENCE_GUARDRAILS.healthyMinScore,
+    direction: 'higher',
+    label: `${RESILIENCE_GUARDRAILS.healthyMinScore}`,
+  },
 };
 
 interface DTSEDashboardProps {
@@ -75,6 +117,18 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
 
   const pack = useMemo(() => buildDTSEProtocolPack(selectedProfile), [selectedProfile]);
   const ctx = pack.runContext;
+  const peerContext = useMemo(() => {
+    const analog = DTSE_PEER_ANALOGS[selectedProfile.metadata.id];
+    if (!analog) return undefined;
+    const peerNames = analog.peer_ids.map((peerId) => (
+      availableProfiles.find((profile) => profile.metadata.id === peerId)?.metadata.name ?? peerId
+    ));
+    return {
+      peerNames,
+      rationale: analog.rationale,
+      confidence: analog.confidence,
+    };
+  }, [availableProfiles, selectedProfile.metadata.id]);
 
   const handleProtocolChange = useCallback((nextId: string) => {
     setSelectedProtocolId(nextId);
@@ -151,6 +205,9 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       return (
         <DTSEContextStage
           protocolBrief={pack.protocolBrief}
+          outcomes={pack.outcomes}
+          metricLabels={METRIC_LABELS}
+          peerContext={peerContext}
           modelVersion={ctx.model_version}
           generatedAt={ctx.generated_at_utc}
           scenarioGridId={ctx.scenario_grid_id}
@@ -180,6 +237,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
           unitMap={UNIT_MAP}
           applicabilityEntries={pack.applicability}
           metricInsights={DTSE_METRIC_INSIGHTS}
+          thresholdConfigMap={METRIC_THRESHOLD_CONFIG}
         />
       );
     }

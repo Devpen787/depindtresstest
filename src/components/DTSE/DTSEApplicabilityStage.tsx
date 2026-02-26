@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Info } from 'lucide-react';
+import { CheckCircle2, XCircle, Info, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
 import type { DTSEApplicabilityEntry, DTSEMetricInsight } from '../../types/dtse';
 
 interface DTSEApplicabilityStageProps {
@@ -17,6 +17,25 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
 }) => {
   const runnableCount = entries.filter((e) => e.verdict === 'R').length;
   const totalCount = entries.length;
+
+  const getEvidenceSignal = (entry: DTSEApplicabilityEntry) => {
+    if (entry.verdict === 'NR') {
+      return {
+        Icon: ShieldAlert,
+        className: 'bg-rose-950/40 border-rose-900/60 text-rose-300',
+      };
+    }
+    if (entry.reasonCode === 'PROXY_ACCEPTED' || entry.reasonCode === 'INTERPOLATION_RISK') {
+      return {
+        Icon: ShieldQuestion,
+        className: 'bg-amber-950/40 border-amber-900/60 text-amber-300',
+      };
+    }
+    return {
+      Icon: ShieldCheck,
+      className: 'bg-emerald-950/40 border-emerald-900/60 text-emerald-300',
+    };
+  };
 
   return (
     <div data-cy="dtse-applicability-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -43,6 +62,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
         <div className="space-y-3 relative z-10">
           {entries.map((entry) => {
             const isRunnable = entry.verdict === 'R';
+            const evidenceSignal = getEvidenceSignal(entry);
             return (
               <div
                 key={entry.metricId}
@@ -89,9 +109,15 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                       {isRunnable ? 'Runnable' : 'Not Runnable'}
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono tracking-wider font-semibold bg-slate-900 px-2 py-1 rounded border border-slate-800">
-                    {entry.reasonCode}
-                  </span>
+                  <div
+                    title={entry.reasonCode}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border shadow-inner ${evidenceSignal.className}`}
+                  >
+                    <evidenceSignal.Icon size={12} />
+                    <span className="text-[10px] font-semibold tracking-wide">
+                      {reasonLabels[entry.reasonCode] ?? entry.reasonCode}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
