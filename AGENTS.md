@@ -22,5 +22,5 @@ All standard commands are documented in `README.md` and `package.json` scripts.
 - The Vite dev server binds to `0.0.0.0:3000` by default (configured in `vite.config.ts`).
 - E2E tests (`npm run test:e2e`) use `start-server-and-test` to spin up a separate Vite instance on `127.0.0.1:4173` — do not start the dev server manually before running E2E.
 - Optional API keys (`GEMINI_API_KEY`, `DUNE_API_KEY`) can be set in a `.env` file at the repo root. The dashboard works fully without them — they enable AI insights and live on-chain data respectively.
-- The navigation tabs are labelled **Benchmark, Root Causes, Strategy, Decide, Evidence** (not the product area names in the README). The Stress Lab / Simulator is accessed via **Actions > Open Stress Lab** from any tab.
+- The default landing tab is **DTSE** (DePIN Token Stress Evaluation), a 5-stage guided workflow. Other navigation tabs are **Benchmark, Root Causes, Strategy, Decide, Evidence**. The Stress Lab / Simulator is accessed via **Actions > Open Stress Lab** from any tab.
 - Sub-packages under `packages/` (`simulator-mcp`, `memory-server`, `pdf-tool`) are independent and optional; they have their own `package.json` / `package-lock.json` and are not needed for dashboard development.
