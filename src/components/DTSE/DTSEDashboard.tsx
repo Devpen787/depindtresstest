@@ -1,13 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import type {
-  DTSERunContext,
-  DTSEApplicabilityEntry,
-  DTSEOutcome,
-  DTSEFailureSignature,
-  DTSERecommendation,
-} from '../../types/dtse';
-import type { GuardrailBand } from '../../constants/guardrails';
+import type { ProtocolProfileV1 } from '../../data/protocols';
+import { PROTOCOL_PROFILES } from '../../data/protocols';
+import {
+  buildDTSEProtocolPack,
+  DTSE_METRIC_INSIGHTS,
+  DTSE_REASON_LABELS,
+} from '../../data/dtseContent';
 import { DTSEContextStage } from './DTSEContextStage';
 import { DTSEApplicabilityStage } from './DTSEApplicabilityStage';
 import { DTSEOutcomesStage } from './DTSEOutcomesStage';
@@ -17,90 +16,13 @@ import { DTSERecommendationsStage } from './DTSERecommendationsStage';
 const STAGE_COUNT = 5;
 
 const STAGE_LABELS: string[] = [
-  'Overview',
-  'Data Readiness',
-  'Results',
-  'Risk Patterns',
-  'Next Actions',
+  'Protocol Context',
+  'Applicability',
+  'Outcomes',
+  'Failure Signature',
+  'Recommendations',
 ];
-
-const DEMO_RUN_CONTEXT: DTSERunContext = {
-  scenario_grid_id: 'grid-onocoy-baseline-2026Q1',
-  run_id: 'dtse-run-001',
-  seed_policy: { seed: 42, locked: true },
-  horizon_weeks: 52,
-  n_sims: 100,
-  evidence_status: 'partial',
-  protocol_id: 'onocoy',
-  model_version: 'Agent-Based v2',
-  generated_at_utc: new Date().toISOString(),
-  bundle_hash: 'sha256:demo0000',
-  outcomes: [
-    { metric_id: 'solvency_ratio', value: 1.18, band: 'watchlist' },
-    { metric_id: 'payback_period', value: 28, band: 'watchlist' },
-    { metric_id: 'weekly_retention_rate', value: 94.2, band: 'healthy' },
-    { metric_id: 'network_utilization', value: 31, band: 'watchlist' },
-    { metric_id: 'tail_risk_score', value: 42, band: 'watchlist' },
-  ],
-  failure_signatures: [
-    {
-      id: 'fs-subsidy-trap',
-      label: 'Subsidy Trap',
-      pattern: 'Emissions exceed organic demand revenue, creating dependency on token inflation.',
-      severity: 'high',
-      affected_metrics: ['solvency_ratio', 'payback_period'],
-    },
-    {
-      id: 'fs-density-gap',
-      label: 'Density Gap',
-      pattern: 'Network coverage density insufficient to attract enterprise-grade demand.',
-      severity: 'medium',
-      affected_metrics: ['network_utilization'],
-    },
-    {
-      id: 'fs-churn-cascade',
-      label: 'Churn Cascade',
-      pattern: 'Negative feedback loop where provider exits reduce coverage, further reducing demand.',
-      severity: 'low',
-      affected_metrics: ['weekly_retention_rate', 'tail_risk_score'],
-    },
-  ],
-  recommendations: [
-    {
-      id: 'rec-001',
-      priority: 'high',
-      owner: 'Protocol Team',
-      rationale: 'Solvency ratio is in watchlist band. Emission schedule needs tightening to approach 1.3x floor.',
-      action: 'Reduce weekly emission cap by 15% and re-evaluate after 4 weeks.',
-      expected_effect: 'Move solvency ratio from 1.18 toward 1.30+ healthy threshold.',
-    },
-    {
-      id: 'rec-002',
-      priority: 'medium',
-      owner: 'Business Development',
-      rationale: 'Network utilization at 31% indicates underutilized capacity.',
-      action: 'Launch enterprise partnership pipeline targeting 3 new data consumers within 8 weeks.',
-      expected_effect: 'Increase utilization from 31% toward 35%+ healthy band.',
-    },
-    {
-      id: 'rec-003',
-      priority: 'low',
-      owner: 'Community Ops',
-      rationale: 'Retention is healthy but tail risk is elevated — early churn warning.',
-      action: 'Introduce provider loyalty bonus program for nodes active >26 weeks.',
-      expected_effect: 'Reduce tail risk score from 42 toward <35 healthy threshold.',
-    },
-  ],
-};
-
-const DEMO_APPLICABILITY: DTSEApplicabilityEntry[] = [
-  { metricId: 'solvency_ratio', verdict: 'R', reasonCode: 'DATA_AVAILABLE' },
-  { metricId: 'payback_period', verdict: 'R', reasonCode: 'DATA_AVAILABLE' },
-  { metricId: 'weekly_retention_rate', verdict: 'R', reasonCode: 'PROXY_ACCEPTED', details: 'Proxy source accepted (runnable) for weekly_retention_rate.' },
-  { metricId: 'network_utilization', verdict: 'NR', reasonCode: 'DATA_MISSING', details: 'No primary utilization data pipeline configured.' },
-  { metricId: 'tail_risk_score', verdict: 'R', reasonCode: 'DATA_AVAILABLE' },
-  { metricId: 'vampire_churn', verdict: 'NR', reasonCode: 'SOURCE_GRADE_INSUFFICIENT', details: 'Competitor data sourced from interpolation.' },
-];
+type DTSEViewMode = 'guided' | 'overview';
 
 const METRIC_LABELS: Record<string, string> = {
   solvency_ratio: 'Solvency Ratio',
@@ -109,6 +31,7 @@ const METRIC_LABELS: Record<string, string> = {
   network_utilization: 'Network Utilization',
   tail_risk_score: 'Tail Risk Score',
   vampire_churn: 'Vampire Churn',
+  stress_resilience_index: 'Stress Resilience Index',
 };
 
 const UNIT_MAP: Record<string, string> = {
@@ -117,12 +40,66 @@ const UNIT_MAP: Record<string, string> = {
   weekly_retention_rate: '%',
   network_utilization: '%',
   tail_risk_score: 'score',
+  stress_resilience_index: 'score',
 };
 
-export const DTSEDashboard: React.FC = () => {
-  const [currentStage, setCurrentStage] = useState(0);
+interface DTSEDashboardProps {
+  activeProfile?: ProtocolProfileV1;
+  profiles?: ProtocolProfileV1[];
+  onSelectProtocol?: (profile: ProtocolProfileV1) => void;
+}
 
-  const ctx = DEMO_RUN_CONTEXT;
+export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
+  activeProfile,
+  profiles,
+  onSelectProtocol,
+}) => {
+  const availableProfiles = profiles && profiles.length > 0 ? profiles : PROTOCOL_PROFILES;
+  const fallbackProfile = (availableProfiles[0] ?? PROTOCOL_PROFILES[0]) as ProtocolProfileV1;
+  const [currentStage, setCurrentStage] = useState(0);
+  const [viewMode, setViewMode] = useState<DTSEViewMode>('guided');
+  const [selectedProtocolId, setSelectedProtocolId] = useState(
+    activeProfile?.metadata.id ?? fallbackProfile.metadata.id
+  );
+
+  useEffect(() => {
+    if (activeProfile?.metadata.id) {
+      setSelectedProtocolId(activeProfile.metadata.id);
+    }
+  }, [activeProfile?.metadata.id]);
+
+  const selectedProfile = useMemo(
+    () => availableProfiles.find((profile) => profile.metadata.id === selectedProtocolId) ?? fallbackProfile,
+    [availableProfiles, fallbackProfile, selectedProtocolId]
+  );
+
+  const pack = useMemo(() => buildDTSEProtocolPack(selectedProfile), [selectedProfile]);
+  const ctx = pack.runContext;
+
+  const handleProtocolChange = useCallback((nextId: string) => {
+    setSelectedProtocolId(nextId);
+    setCurrentStage(0);
+    const profile = availableProfiles.find((candidate) => candidate.metadata.id === nextId);
+    if (profile && onSelectProtocol) {
+      onSelectProtocol(profile);
+    }
+  }, [availableProfiles, onSelectProtocol]);
+
+  const scrollToOverviewStage = useCallback((stageIdx: number) => {
+    document.getElementById(`dtse-overview-section-${stageIdx}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, []);
+
+  const activateStage = useCallback((stageIdx: number) => {
+    setCurrentStage(stageIdx);
+    if (viewMode === 'overview') {
+      window.requestAnimationFrame(() => {
+        scrollToOverviewStage(stageIdx);
+      });
+    }
+  }, [scrollToOverviewStage, viewMode]);
 
   const goNext = useCallback(() => {
     setCurrentStage((s) => Math.min(s + 1, STAGE_COUNT - 1));
@@ -142,7 +119,7 @@ export const DTSEDashboard: React.FC = () => {
   const handleStageKeyDown = (e: React.KeyboardEvent, stageIdx: number) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setCurrentStage(stageIdx);
+      activateStage(stageIdx);
       return;
     }
     let next: number | null = null;
@@ -153,17 +130,85 @@ export const DTSEDashboard: React.FC = () => {
 
     if (next !== null) {
       e.preventDefault();
-      setCurrentStage(next);
-      window.requestAnimationFrame(() => {
-        document.getElementById(`dtse-stage-btn-${next}`)?.focus();
-      });
+      activateStage(next);
+      if (viewMode === 'guided') {
+        window.requestAnimationFrame(() => {
+          document.getElementById(`dtse-stage-btn-${next}`)?.focus();
+        });
+      }
     }
+  };
+
+  const handleSwitchToOverview = useCallback(() => {
+    setViewMode('overview');
+    window.requestAnimationFrame(() => {
+      scrollToOverviewStage(currentStage);
+    });
+  }, [currentStage, scrollToOverviewStage]);
+
+  const renderStageContent = (stageIdx: number) => {
+    if (stageIdx === 0) {
+      return (
+        <DTSEContextStage
+          protocolBrief={pack.protocolBrief}
+          modelVersion={ctx.model_version}
+          generatedAt={ctx.generated_at_utc}
+          scenarioGridId={ctx.scenario_grid_id}
+          horizonWeeks={ctx.horizon_weeks}
+          nSims={ctx.n_sims}
+          evidenceStatus={ctx.evidence_status}
+        />
+      );
+    }
+
+    if (stageIdx === 1) {
+      return (
+        <DTSEApplicabilityStage
+          entries={pack.applicability}
+          metricLabels={METRIC_LABELS}
+          metricInsights={DTSE_METRIC_INSIGHTS}
+          reasonLabels={DTSE_REASON_LABELS}
+        />
+      );
+    }
+
+    if (stageIdx === 2) {
+      return (
+        <DTSEOutcomesStage
+          outcomes={pack.outcomes}
+          metricLabels={METRIC_LABELS}
+          unitMap={UNIT_MAP}
+          applicabilityEntries={pack.applicability}
+          metricInsights={DTSE_METRIC_INSIGHTS}
+        />
+      );
+    }
+
+    if (stageIdx === 3) {
+      return (
+        <DTSESignatureStage
+          signatures={pack.failureSignatures}
+          metricLabels={METRIC_LABELS}
+        />
+      );
+    }
+
+    return (
+      <DTSERecommendationsStage
+        recommendations={pack.recommendations}
+        onExport={handleExport}
+      />
+    );
   };
 
   const handleExport = useCallback(() => {
     const payload = {
       runContext: ctx,
-      applicability: DEMO_APPLICABILITY,
+      protocolBrief: pack.protocolBrief,
+      applicability: pack.applicability,
+      outcomes: pack.outcomes,
+      failureSignatures: pack.failureSignatures,
+      recommendations: pack.recommendations,
       exportedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -175,73 +220,117 @@ export const DTSEDashboard: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [ctx]);
+  }, [ctx, pack]);
 
   return (
     <div data-cy="dtse-dashboard-root" className="flex flex-col h-full">
       {/* Persistent run context strip */}
-      <div className="shrink-0 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-sm px-8 py-4">
+      <div className="shrink-0 border-b border-slate-800 bg-slate-950/90 backdrop-blur-sm px-6 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Protocol</span>
-              <p className="text-sm font-bold text-slate-100 mt-0.5">{ctx.protocol_id}</p>
+              <div className="mt-1">
+                <select
+                  data-cy="dtse-protocol-select"
+                  value={selectedProfile.metadata.id}
+                  onChange={(event) => handleProtocolChange(event.target.value)}
+                  className="bg-slate-900 border border-slate-700 text-slate-100 text-sm font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {availableProfiles.map((profile) => (
+                    <option key={profile.metadata.id} value={profile.metadata.id}>
+                      {profile.metadata.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="w-px h-8 bg-slate-800/60" />
+            <div className="w-px h-8 bg-slate-800" />
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Scenario</span>
-              <p className="text-sm font-bold text-slate-100 font-mono mt-0.5">{ctx.scenario_grid_id}</p>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Scenario Grid</span>
+              <p className="text-sm font-bold text-slate-100 font-mono">{ctx.scenario_grid_id}</p>
             </div>
-            <div className="w-px h-8 bg-slate-800/60" />
+            <div className="w-px h-8 bg-slate-800" />
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Horizon</span>
-              <p className="text-sm font-bold text-slate-100 mt-0.5">{ctx.horizon_weeks}w &middot; {ctx.n_sims} sims</p>
+              <p className="text-sm font-bold text-slate-100">{ctx.horizon_weeks}w &middot; {ctx.n_sims} sims</p>
             </div>
-            <div className="w-px h-8 bg-slate-800/60" />
+            <div className="w-px h-8 bg-slate-800" />
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Evidence</span>
-              <span className={`ml-1 inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+              <span className={`ml-1 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                 ctx.evidence_status === 'complete'
-                  ? 'bg-emerald-900/50 text-emerald-400'
+                  ? 'bg-emerald-900/60 text-emerald-400'
                   : ctx.evidence_status === 'partial'
-                    ? 'bg-amber-900/50 text-amber-400'
-                    : 'bg-red-900/50 text-red-400'
+                    ? 'bg-amber-900/60 text-amber-400'
+                    : 'bg-red-900/60 text-red-400'
               }`}>
                 {ctx.evidence_status}
               </span>
             </div>
           </div>
-          <div className="text-[10px] text-slate-600 font-mono">
-            {ctx.model_version} &middot; {ctx.run_id}
+          <div className="flex items-center gap-4">
+            <div className="inline-flex items-center rounded-lg border border-slate-800 bg-slate-900 p-1">
+              <button
+                data-cy="dtse-view-mode-guided"
+                onClick={() => setViewMode('guided')}
+                className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${
+                  viewMode === 'guided'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Guided
+              </button>
+              <button
+                data-cy="dtse-view-mode-overview"
+                onClick={handleSwitchToOverview}
+                className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${
+                  viewMode === 'overview'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Overview
+              </button>
+            </div>
+            <div className="text-[10px] text-slate-600 font-mono">
+              {ctx.model_version} &middot; {ctx.run_id}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stage indicator bar */}
-      <div className="shrink-0 px-8 py-5 border-b border-slate-800/40">
-        <div role="tablist" aria-label="DTSE evaluation stages" className="flex items-center gap-1.5">
+      <div className="shrink-0 px-6 py-4 border-b border-slate-800/50">
+        <div
+          role={viewMode === 'guided' ? 'tablist' : undefined}
+          aria-label="DTSE evaluation stages"
+          className="flex items-center gap-1"
+        >
           {STAGE_LABELS.map((label, idx) => (
             <React.Fragment key={idx}>
               {idx > 0 && (
-                <div className={`h-px flex-1 max-w-[48px] transition-colors ${
-                  idx <= currentStage ? 'bg-indigo-500/70' : 'bg-slate-800/60'
+                <div className={`h-px flex-1 max-w-[40px] transition-colors ${
+                  idx <= currentStage ? 'bg-indigo-500' : 'bg-slate-800'
                 }`} />
               )}
               <button
                 id={`dtse-stage-btn-${idx}`}
-                role="tab"
-                tabIndex={currentStage === idx ? 0 : -1}
-                aria-selected={currentStage === idx}
-                aria-controls={`dtse-stage-panel-${idx}`}
+                role={viewMode === 'guided' ? 'tab' : undefined}
+                tabIndex={viewMode === 'guided' ? (currentStage === idx ? 0 : -1) : 0}
+                aria-selected={viewMode === 'guided' ? currentStage === idx : undefined}
+                aria-controls={viewMode === 'guided' ? `dtse-stage-panel-${idx}` : undefined}
+                aria-current={viewMode === 'overview' && currentStage === idx ? 'step' : undefined}
                 data-cy={`dtse-stage-${idx + 1}`}
-                onClick={() => setCurrentStage(idx)}
+                onClick={() => activateStage(idx)}
                 onKeyDown={(e) => handleStageKeyDown(e, idx)}
-                className={`flex items-center gap-2.5 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                   currentStage === idx
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
                     : idx < currentStage
-                      ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
-                      : 'bg-slate-900/60 text-slate-500 hover:text-slate-400'
+                      ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      : 'bg-slate-900 text-slate-500 hover:text-slate-400'
                 }`}
               >
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
@@ -261,92 +350,87 @@ export const DTSEDashboard: React.FC = () => {
       </div>
 
       {/* Stage content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-8">
-        <div
-          className="max-w-5xl mx-auto"
-        >
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        {viewMode === 'guided' ? (
           <div
             id={`dtse-stage-panel-${currentStage}`}
             role="tabpanel"
             aria-labelledby={`dtse-stage-btn-${currentStage}`}
             data-cy={`dtse-stage-panel-${currentStage + 1}`}
           >
-            {currentStage === 0 && (
-              <DTSEContextStage
-                protocolId={ctx.protocol_id}
-                protocolName={ctx.protocol_id.charAt(0).toUpperCase() + ctx.protocol_id.slice(1)}
-                modelVersion={ctx.model_version}
-                generatedAt={ctx.generated_at_utc}
-              />
-            )}
-
-            {currentStage === 1 && (
-              <DTSEApplicabilityStage
-                entries={DEMO_APPLICABILITY}
-                metricLabels={METRIC_LABELS}
-              />
-            )}
-
-            {currentStage === 2 && (
-              <DTSEOutcomesStage
-                outcomes={ctx.outcomes ?? []}
-                metricLabels={METRIC_LABELS}
-                unitMap={UNIT_MAP}
-              />
-            )}
-
-            {currentStage === 3 && (
-              <DTSESignatureStage
-                signatures={ctx.failure_signatures ?? []}
-              />
-            )}
-
-            {currentStage === 4 && (
-              <DTSERecommendationsStage
-                recommendations={ctx.recommendations ?? []}
-                onExport={handleExport}
-              />
-            )}
+            {renderStageContent(currentStage)}
           </div>
-        </div>
+        ) : (
+          <div data-cy="dtse-overview-root" className="space-y-5">
+            {STAGE_LABELS.map((label, idx) => (
+              <section
+                key={label}
+                id={`dtse-overview-section-${idx}`}
+                data-cy={`dtse-stage-panel-${idx + 1}`}
+                className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+              >
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-indigo-900/60 text-[10px] font-black text-indigo-300">
+                    {idx + 1}
+                  </span>
+                  <h2 className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">{label}</h2>
+                </div>
+                {renderStageContent(idx)}
+              </section>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Navigation footer */}
-      <div className="shrink-0 border-t border-slate-800/60 bg-slate-950/90 backdrop-blur-sm px-8 py-4 flex items-center justify-between">
-        <button
-          data-cy="dtse-prev-stage"
-          onClick={goPrev}
-          onKeyDown={(e) => handleFooterNavKeyDown(e, 'prev')}
-          disabled={currentStage === 0}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all ${
-            currentStage === 0
-              ? 'text-slate-700 cursor-not-allowed'
-              : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
-          }`}
-        >
-          <ChevronLeft size={14} />
-          Previous
-        </button>
+      {viewMode === 'guided' ? (
+        <div className="shrink-0 border-t border-slate-800 bg-slate-950/90 backdrop-blur-sm px-6 py-3 flex items-center justify-between">
+          <button
+            data-cy="dtse-prev-stage"
+            onClick={goPrev}
+            onKeyDown={(e) => handleFooterNavKeyDown(e, 'prev')}
+            disabled={currentStage === 0}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              currentStage === 0
+                ? 'text-slate-700 cursor-not-allowed'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+            }`}
+          >
+            <ChevronLeft size={14} />
+            Previous
+          </button>
 
-        <span className="text-[11px] text-slate-500 font-mono tracking-wide">
-          Stage {currentStage + 1} of {STAGE_COUNT}
-        </span>
+          <span className="text-[10px] text-slate-600 font-mono">
+            Stage {currentStage + 1} of {STAGE_COUNT}
+          </span>
 
-        <button
-          data-cy="dtse-next-stage"
-          onClick={goNext}
-          onKeyDown={(e) => handleFooterNavKeyDown(e, 'next')}
-          disabled={currentStage === STAGE_COUNT - 1}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all ${
-            currentStage === STAGE_COUNT - 1
-              ? 'text-slate-700 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25'
-          }`}
-        >
-          Next
-          <ChevronRight size={14} />
-        </button>
-      </div>
+          <button
+            data-cy="dtse-next-stage"
+            onClick={goNext}
+            onKeyDown={(e) => handleFooterNavKeyDown(e, 'next')}
+            disabled={currentStage === STAGE_COUNT - 1}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              currentStage === STAGE_COUNT - 1
+                ? 'text-slate-700 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30'
+            }`}
+          >
+            Next
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      ) : (
+        <div className="shrink-0 border-t border-slate-800 bg-slate-950/90 backdrop-blur-sm px-6 py-3 flex items-center justify-between">
+          <span className="text-[10px] text-slate-500 uppercase tracking-[0.14em]">Overview mode: all stages visible</span>
+          <button
+            data-cy="dtse-switch-guided-footer"
+            onClick={() => setViewMode('guided')}
+            className="px-3 py-1 rounded text-[10px] font-bold uppercase tracking-[0.12em] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+          >
+            Back to Guided
+          </button>
+        </div>
+      )}
     </div>
   );
 };

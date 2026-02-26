@@ -4,9 +4,8 @@ import type { DTSEFailureSignature } from '../../types/dtse';
 
 interface DTSESignatureStageProps {
   signatures: DTSEFailureSignature[];
+  metricLabels: Record<string, string>;
 }
-
-const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'] as const;
 
 const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
   icon: React.ReactNode;
@@ -14,133 +13,130 @@ const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
   border: string;
   badge: string;
   badgeText: string;
-  accent: string;
+  shadow: string;
 }> = {
   critical: {
-    icon: <AlertOctagon size={18} className="text-red-400" />,
-    bg: 'bg-red-950/20',
-    border: 'border-red-900/40',
-    badge: 'bg-red-900/50',
-    badgeText: 'text-red-400',
-    accent: 'border-l-red-500',
+    icon: <AlertOctagon size={20} className="text-rose-400 drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]" />,
+    bg: 'bg-rose-500/5',
+    border: 'border-rose-500/30',
+    badge: 'bg-rose-950/60 border-rose-900/50',
+    badgeText: 'text-rose-400',
+    shadow: 'shadow-[0_0_30px_rgba(225,29,72,0.1)] hover:shadow-[0_0_40px_rgba(225,29,72,0.15)]',
   },
   high: {
-    icon: <ShieldAlert size={18} className="text-orange-400" />,
-    bg: 'bg-orange-950/15',
-    border: 'border-orange-900/30',
-    badge: 'bg-orange-900/50',
+    icon: <ShieldAlert size={20} className="text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" />,
+    bg: 'bg-orange-500/5',
+    border: 'border-orange-500/20',
+    badge: 'bg-orange-950/60 border-orange-900/50',
     badgeText: 'text-orange-400',
-    accent: 'border-l-orange-500',
+    shadow: 'shadow-[0_0_20px_rgba(249,115,22,0.05)] hover:shadow-[0_0_30px_rgba(249,115,22,0.1)]',
   },
   medium: {
-    icon: <AlertTriangle size={18} className="text-amber-400" />,
-    bg: 'bg-amber-950/15',
-    border: 'border-amber-900/30',
-    badge: 'bg-amber-900/50',
+    icon: <AlertTriangle size={20} className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />,
+    bg: 'bg-amber-500/5',
+    border: 'border-amber-500/20',
+    badge: 'bg-amber-950/60 border-amber-900/50',
     badgeText: 'text-amber-400',
-    accent: 'border-l-amber-500',
+    shadow: 'shadow-lg hover:shadow-xl hover:shadow-amber-500/10',
   },
   low: {
-    icon: <Info size={18} className="text-slate-400" />,
-    bg: 'bg-slate-900/60',
-    border: 'border-slate-800/60',
-    badge: 'bg-slate-800',
+    icon: <Info size={20} className="text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />,
+    bg: 'bg-slate-900/40',
+    border: 'border-white/5',
+    badge: 'bg-slate-900 border-slate-800',
     badgeText: 'text-slate-400',
-    accent: 'border-l-slate-600',
+    shadow: 'shadow-md hover:shadow-lg',
   },
 };
 
-export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatures }) => {
+export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatures, metricLabels }) => {
   const sorted = [...signatures].sort((a, b) => {
     const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
   });
 
-  const severityCounts: Record<string, number> = {};
-  for (const sig of signatures) {
-    severityCounts[sig.severity] = (severityCounts[sig.severity] ?? 0) + 1;
-  }
-
-  const summaryParts = SEVERITY_ORDER
-    .filter((s) => severityCounts[s])
-    .map((s) => `${severityCounts[s]} ${s.toUpperCase()}`);
-
   return (
-    <div data-cy="dtse-signature-stage" className="space-y-8">
-      <div>
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-          Stage 4 — Risk Patterns
+    <div data-cy="dtse-signature-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
+          Stage 4 — Failure Signatures
         </h2>
-        <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-          Recurring failure patterns found during stress testing, ranked by urgency.
+        <p className="text-sm font-medium text-slate-400">
+          Diagnose systemic breakdowns and structural protocol weaknesses.
         </p>
       </div>
 
       {sorted.length === 0 ? (
-        <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-10 text-center">
-          <p className="text-sm text-slate-500">No risk patterns detected — all signals within normal range.</p>
+        <div className="bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-12 text-center shadow-inner flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4 border border-emerald-500/20">
+            <Info size={24} className="text-emerald-400" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-200 mb-1">No Signatures Detected</h3>
+          <p className="text-xs text-slate-500">The current scenario did not trigger any structural failure patterns.</p>
         </div>
       ) : (
-        <>
-          {/* Summary count bar */}
-          <div className="bg-slate-900/60 border border-slate-800/50 rounded-xl px-6 py-4 flex items-center gap-3">
-            <span className="text-sm font-bold text-slate-200">
-              {sorted.length} {sorted.length === 1 ? 'risk pattern' : 'risk patterns'} detected
-            </span>
-            <span className="text-slate-700">—</span>
-            <span className="text-xs text-slate-400">
-              {summaryParts.join(', ')}
-            </span>
-          </div>
+        <div className="space-y-4">
+          {sorted.map((sig, idx) => {
+            const cfg = SEVERITY_CONFIG[sig.severity];
+            const isCritical = sig.severity === 'critical';
+            return (
+              <div
+                key={sig.id}
+                data-cy={`dtse-signature-${sig.id}`}
+                className={`relative overflow-hidden ${cfg.bg} border ${cfg.border} rounded-2xl p-6 ${cfg.shadow} transition-all duration-300 backdrop-blur-md group hover:-translate-y-0.5`}
+                style={{ animationDelay: `${idx * 75}ms` }}
+              >
+                {/* Subtle animated background gradient line for critical items */}
+                {isCritical && (
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-rose-500/50 to-transparent animate-pulse" />
+                )}
 
-          {/* Signature cards */}
-          <div className="space-y-4">
-            {sorted.map((sig) => {
-              const cfg = SEVERITY_CONFIG[sig.severity];
-              return (
-                <div
-                  key={sig.id}
-                  data-cy={`dtse-signature-${sig.id}`}
-                  className={`${cfg.bg} border ${cfg.border} ${cfg.accent} border-l-2 rounded-xl p-6 space-y-4`}
-                >
-                  {/* Header row */}
-                  <div className="flex items-start gap-3.5">
-                    <div className="mt-0.5 shrink-0">{cfg.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-base font-bold text-slate-100">{sig.label}</h3>
-                        <span className={`${cfg.badge} ${cfg.badgeText} text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md`}>
-                          {sig.severity}
-                        </span>
-                      </div>
-                    </div>
+                <div className="flex items-start gap-4 relative z-10">
+                  <div className="mt-1 shrink-0 p-2 rounded-xl bg-slate-950/50 border border-white/5 shadow-inner">
+                    {cfg.icon}
                   </div>
-
-                  {/* Trigger pattern */}
-                  <div className="pl-10 space-y-3">
-                    <div>
-                      <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider block mb-1">Trigger Condition</span>
-                      <p className="text-sm text-slate-300 leading-relaxed">{sig.pattern}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <h3 className="text-base font-black tracking-tight text-slate-100">{sig.label}</h3>
+                      <span className={`${cfg.badge} border ${cfg.badgeText} text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded shadow-inner`}>
+                        {sig.severity}
+                      </span>
                     </div>
+                    <p className="text-sm text-slate-300 leading-relaxed font-medium mb-4 pr-4">{sig.pattern}</p>
 
-                    {sig.affected_metrics.length > 0 && (
-                      <div className="flex items-center gap-2.5 pt-1">
-                        <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Impacts:</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {sig.affected_metrics.map((m) => (
-                            <span key={m} className="bg-slate-800/60 text-slate-400 text-[10px] font-mono px-2.5 py-1 rounded-md">
-                              {m}
-                            </span>
-                          ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                      {sig.why_it_matters && (
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Impact</p>
+                          <p className="text-xs text-slate-400 leading-relaxed font-medium pr-4">{sig.why_it_matters}</p>
                         </div>
-                      </div>
-                    )}
+                      )}
+                      {sig.trigger_logic && (
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Trigger Condition</p>
+                          <p className="text-xs text-slate-400 leading-relaxed font-mono pr-4">{sig.trigger_logic}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </>
+
+                {sig.affected_metrics.length > 0 && (
+                  <div className="flex items-center gap-3 pl-[4.5rem] mt-5 relative z-10">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/70">Trace:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {sig.affected_metrics.map((m) => (
+                        <span key={m} className="bg-slate-950/80 text-slate-400 text-[10px] font-mono font-medium px-2.5 py-1 rounded border border-white/5 shadow-inner">
+                          {metricLabels[m] ?? m}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

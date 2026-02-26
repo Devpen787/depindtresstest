@@ -1,85 +1,78 @@
 import { describe, it, expect } from 'vitest';
-import { GENERATED_PROTOCOL_PROFILES } from '@/data/generated/protocolProfiles.generated';
-import { DTSE_PROTOCOL_PACKS, getDTSEProtocolPack } from '@/data/dtseContent';
+import { PROTOCOL_PROFILES } from './protocols';
+import {
+    DTSE_PROTOCOL_PACKS,
+    getDTSEProtocolPack,
+    buildDTSEProtocolPack,
+} from './dtseContent';
 
-const generatedIds = GENERATED_PROTOCOL_PROFILES.map((p) => p.metadata.id);
+const STANDARD_METRICS = [
+    'solvency_ratio',
+    'payback_period',
+    'weekly_retention_rate',
+    'network_utilization',
+    'tail_risk_score',
+];
 
-describe('DTSE Protocol Packs coverage', () => {
-    it('every generated protocol ID has a DTSE pack', () => {
-        for (const id of generatedIds) {
-            expect(DTSE_PROTOCOL_PACKS).toHaveProperty(id);
+const APPLICABILITY_METRICS = [
+    ...STANDARD_METRICS,
+    'vampire_churn',
+];
+
+describe('DTSE protocol pack coverage', () => {
+    it('has one raw protocol pack per generated profile', () => {
+        expect(Object.keys(DTSE_PROTOCOL_PACKS).length).toBe(PROTOCOL_PROFILES.length);
+    });
+
+    it('covers every generated profile id', () => {
+        for (const profile of PROTOCOL_PROFILES) {
+            expect(DTSE_PROTOCOL_PACKS[profile.metadata.id]).toBeDefined();
         }
     });
 
-    it('every DTSE pack ID exists in generated profiles', () => {
-        for (const id of Object.keys(DTSE_PROTOCOL_PACKS)) {
-            expect(generatedIds).toContain(id);
+    it('does not include orphan protocol ids', () => {
+        const profileIds = new Set(PROTOCOL_PROFILES.map((profile) => profile.metadata.id));
+        for (const packId of Object.keys(DTSE_PROTOCOL_PACKS)) {
+            expect(profileIds.has(packId)).toBe(true);
         }
     });
+});
 
-    it('pack count matches generated profile count (1:1)', () => {
-        expect(Object.keys(DTSE_PROTOCOL_PACKS).length).toBe(generatedIds.length);
+describe('buildDTSEProtocolPack', () => {
+    for (const profile of PROTOCOL_PROFILES) {
+        it(`builds a complete dashboard pack for ${profile.metadata.id}`, () => {
+            const pack = buildDTSEProtocolPack(profile);
+
+            expect(pack.runContext.protocol_id).toBe(profile.metadata.id);
+            expect(pack.protocolBrief.protocol_id).toBe(profile.metadata.id);
+            expect(pack.protocolBrief.protocol_name).toBe(profile.metadata.name);
+
+            expect(pack.applicability.length).toBe(APPLICABILITY_METRICS.length);
+            for (const metricId of APPLICABILITY_METRICS) {
+                expect(pack.applicability.some((entry) => entry.metricId === metricId)).toBe(true);
+            }
+
+            for (const metricId of STANDARD_METRICS) {
+                expect(pack.outcomes.some((outcome) => outcome.metric_id === metricId)).toBe(true);
+            }
+            expect(pack.outcomes.some((outcome) => outcome.metric_id === 'stress_resilience_index')).toBe(true);
+
+            expect(pack.failureSignatures.length).toBeGreaterThan(0);
+            expect(pack.recommendations.length).toBeGreaterThan(0);
+        });
+    }
+});
+
+describe('getDTSEProtocolPack', () => {
+    it('returns pack for valid id', () => {
+        const id = PROTOCOL_PROFILES[0]?.metadata.id;
+        expect(id).toBeTruthy();
+        if (!id) return;
+        const pack = getDTSEProtocolPack(id);
+        expect(pack.protocolId).toBe(id);
     });
 
-    describe.each(Object.entries(DTSE_PROTOCOL_PACKS))('%s pack completeness', (_id, pack) => {
-        it('has non-empty outcomes', () => {
-            expect(pack.runContext.outcomes!.length).toBeGreaterThan(0);
-        });
-
-        it('has non-empty failure_signatures', () => {
-            expect(pack.runContext.failure_signatures!.length).toBeGreaterThan(0);
-        });
-
-        it('has non-empty recommendations', () => {
-            expect(pack.runContext.recommendations!.length).toBeGreaterThan(0);
-        });
-
-        it('has non-empty applicability', () => {
-            expect(pack.applicability.length).toBeGreaterThan(0);
-        });
-
-        it('has all 5 standard outcome metrics', () => {
-            const metricIds = pack.runContext.outcomes!.map((o) => o.metric_id).sort();
-            expect(metricIds).toEqual([
-                'network_utilization',
-                'payback_period',
-                'solvency_ratio',
-                'tail_risk_score',
-                'weekly_retention_rate',
-            ]);
-        });
-
-        it('has applicability entries for all 6 standard metrics', () => {
-            const applicMetrics = pack.applicability.map((a) => a.metricId).sort();
-            expect(applicMetrics).toEqual([
-                'network_utilization',
-                'payback_period',
-                'solvency_ratio',
-                'tail_risk_score',
-                'vampire_churn',
-                'weekly_retention_rate',
-            ]);
-        });
-
-        it('protocolId matches the registry key', () => {
-            expect(pack.protocolId).toBe(_id);
-        });
-
-        it('runContext.protocol_id matches pack protocolId', () => {
-            expect(pack.runContext.protocol_id).toBe(pack.protocolId);
-        });
-    });
-
-    describe('getDTSEProtocolPack', () => {
-        it('returns the correct pack for a valid ID', () => {
-            const pack = getDTSEProtocolPack('ono_v3_calibrated');
-            expect(pack.protocolName).toBe('ONOCOY');
-        });
-
-        it('throws for an unknown protocol ID', () => {
-            expect(() => getDTSEProtocolPack('nonexistent_protocol')).toThrowError(
-                /No protocol pack found for "nonexistent_protocol"/,
-            );
-        });
+    it('throws on unknown id', () => {
+        expect(() => getDTSEProtocolPack('unknown_protocol')).toThrow(/No protocol pack found/);
     });
 });

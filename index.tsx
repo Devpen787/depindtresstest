@@ -757,7 +757,11 @@ const App: React.FC = () => {
       {activeTab === 'dtse' ? (
         <div id="panel-dtse" role="tabpanel" aria-labelledby="tab-dtse" className="flex-1 overflow-hidden bg-slate-950">
           <Suspense fallback={renderPanelFallback('DTSE')}>
-            <DTSEDashboard />
+            <DTSEDashboard
+              activeProfile={sim.activeProfile}
+              profiles={PROTOCOL_PROFILES}
+              onSelectProtocol={sim.loadProfile}
+            />
           </Suspense>
         </div>
       ) : activeTab === 'benchmark' ? (

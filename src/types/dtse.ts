@@ -101,6 +101,8 @@ export interface DTSEFailureSignature {
     pattern: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
     affected_metrics: string[];
+    trigger_logic?: string;
+    why_it_matters?: string;
 }
 
 export interface DTSERecommendation {
@@ -110,4 +112,33 @@ export interface DTSERecommendation {
     rationale: string;
     action: string;
     expected_effect?: string;
+    timeframe?: string;
+    success_metric?: string;
+    dependency?: string;
+    risk_if_delayed?: string;
+    peer_analog?: string;
+}
+
+export interface DTSEProtocolBrief {
+    protocol_id: string;
+    protocol_name: string;
+    chain: string;
+    depin_surface: string;
+    demand_signal: string;
+    supply_signal: string;
+    token_utility: string[];
+    notes: string;
+}
+
+export interface DTSEMetricInsight {
+    metric_id: string;
+    definition: string;
+    why_relevant: string;
+    decision_use: string;
+    target: string;
+    interpretation: {
+        healthy: string;
+        watchlist: string;
+        intervention: string;
+    };
 }

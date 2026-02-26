@@ -4,7 +4,10 @@ import type {
     DTSEOutcome,
     DTSEFailureSignature,
     DTSERecommendation,
+    DTSEMetricInsight,
+    DTSEProtocolBrief,
 } from '../types/dtse';
+import type { ProtocolProfileV1 } from './protocols';
 
 // ---------------------------------------------------------------------------
 // DTSEProtocolPack — self-contained stress-test data for a single protocol
@@ -20,6 +23,15 @@ export interface DTSEProtocolPack {
     unitMap: Record<string, string>;
 }
 
+export interface DTSEDashboardPack {
+    runContext: DTSERunContext;
+    protocolBrief: DTSEProtocolBrief;
+    applicability: DTSEApplicabilityEntry[];
+    outcomes: DTSEOutcome[];
+    failureSignatures: DTSEFailureSignature[];
+    recommendations: DTSERecommendation[];
+}
+
 // ---------------------------------------------------------------------------
 // Shared metric labels & units
 // ---------------------------------------------------------------------------
@@ -31,6 +43,7 @@ const METRIC_LABELS: Record<string, string> = {
     network_utilization: 'Network Utilization',
     tail_risk_score: 'Tail Risk Score',
     vampire_churn: 'Vampire Churn',
+    stress_resilience_index: 'Stress Resilience Index',
 };
 
 const UNIT_MAP: Record<string, string> = {
@@ -39,6 +52,7 @@ const UNIT_MAP: Record<string, string> = {
     weekly_retention_rate: '%',
     network_utilization: '%',
     tail_risk_score: 'score',
+    stress_resilience_index: 'score',
 };
 
 // ---------------------------------------------------------------------------
@@ -455,7 +469,7 @@ const alephPack: DTSEProtocolPack = {
 const xnetPack: DTSEProtocolPack = {
     protocolId: 'xnet_v1',
     protocolName: 'XNET',
-    mechanism: 'Wireless + Revitilization Burn',
+    mechanism: 'Wireless + Revitalization Burn',
     runContext: buildRunContext(
         'xnet_v1',
         'xnet-wireless-stress-v1',
@@ -470,13 +484,13 @@ const xnetPack: DTSEProtocolPack = {
             { id: 'xnet-fs-01', label: 'Subscriber Bootstrapping', pattern: 'New wireless network has far more infrastructure than subscribers', severity: 'critical', affected_metrics: ['network_utilization', 'solvency_ratio'] },
             { id: 'xnet-fs-02', label: 'Hardware Payback Cliff', pattern: '$900 node cost with 42-month payback; providers exit before break-even', severity: 'critical', affected_metrics: ['payback_period', 'weekly_retention_rate'] },
             { id: 'xnet-fs-03', label: 'Carrier Competition', pattern: 'Incumbent carriers can undercut on coverage and pricing in early stages', severity: 'high', affected_metrics: ['tail_risk_score', 'network_utilization'] },
-            { id: 'xnet-fs-04', label: 'Burn Mechanism Inefficiency', pattern: 'Revitilization burn requires revenue that does not yet exist at scale', severity: 'high', affected_metrics: ['solvency_ratio'] },
+            { id: 'xnet-fs-04', label: 'Burn Mechanism Inefficiency', pattern: 'Revitalization burn requires revenue that does not yet exist at scale', severity: 'high', affected_metrics: ['solvency_ratio'] },
         ],
         [
             { id: 'xnet-rec-01', priority: 'critical', owner: 'strategy', rationale: 'Multiple metrics in intervention band; network is pre-product-market-fit', action: 'Focus deployment on 3-5 high-density metro areas with guaranteed subscriber demand', expected_effect: 'Improve utilization from 15% toward 35%' },
             { id: 'xnet-rec-02', priority: 'critical', owner: 'tokenomics', rationale: 'Solvency deeply in intervention', action: 'Reduce emissions by 50% until subscriber revenue covers at least 60% of emission cost', expected_effect: 'Move solvency above 0.9x' },
             { id: 'xnet-rec-03', priority: 'high', owner: 'operations', rationale: 'Provider retention in intervention due to long payback', action: 'Offer hardware leasing program to reduce upfront cost below $300', expected_effect: 'Reduce effective payback below 24 months' },
-            { id: 'xnet-rec-04', priority: 'high', owner: 'growth', rationale: 'Need subscriber base to generate revitilization burn revenue', action: 'Partner with MVNOs for wholesale wireless capacity agreements', expected_effect: 'Generate baseline subscriber revenue within 3 months' },
+            { id: 'xnet-rec-04', priority: 'high', owner: 'growth', rationale: 'Need subscriber base to generate revitalization burn revenue', action: 'Partner with MVNOs for wholesale wireless capacity agreements', expected_effect: 'Generate baseline subscriber revenue within 3 months' },
         ],
     ),
     applicability: standardApplicability(),
@@ -515,4 +529,275 @@ export function getDTSEProtocolPack(protocolId: string): DTSEProtocolPack {
         );
     }
     return pack;
+}
+
+const CHAIN_LABELS: Record<ProtocolProfileV1['metadata']['chain'], string> = {
+    solana: 'Solana',
+    ethereum: 'Ethereum',
+    polygon: 'Polygon',
+    cosmos: 'Cosmos',
+    filecoin: 'Filecoin',
+    other: 'Other',
+};
+
+const PROTOCOL_BRIEF_OVERRIDES: Record<string, Omit<DTSEProtocolBrief, 'protocol_id' | 'protocol_name' | 'chain'>> = {
+    ono_v3_calibrated: {
+        depin_surface: 'GNSS reference-station network for high-precision positioning.',
+        demand_signal: 'Enterprise/location demand depends on coverage quality and geographic density.',
+        supply_signal: 'Providers run reference stations; uptime + quality drive reward durability.',
+        token_utility: ['Provider rewards', 'Coverage growth incentives', 'Demand-linked burn pressure'],
+        notes: 'Coverage density and reward discipline are primary resilience levers.',
+    },
+    helium_bme_v1: {
+        depin_surface: 'IoT and mobile wireless coverage network with burn-and-mint equilibrium.',
+        demand_signal: 'Data-credit burn from enterprise and consumer traffic drives revenue pressure.',
+        supply_signal: 'Hotspot operators expand radio coverage where rewards remain durable.',
+        token_utility: ['Coverage mining rewards', 'Data-credit burn sink', 'Network participation incentives'],
+        notes: 'Adoption velocity and demand-side data-credit usage govern long-term balance.',
+    },
+    adaptive_elastic_v1: {
+        depin_surface: 'Distributed GPU marketplace for rendering and AI workloads.',
+        demand_signal: 'Job volume and workload mix determine burn velocity and margin stability.',
+        supply_signal: 'GPU providers join/exit based on expected utilization and payout quality.',
+        token_utility: ['Work rewards', 'Burn from compute jobs', 'Supply elasticity incentives'],
+        notes: 'Utilization quality and client concentration are key fragility drivers.',
+    },
+    filecoin_v1: {
+        depin_surface: 'Decentralized storage network anchored by provider collateral and deal flow.',
+        demand_signal: 'Verified storage demand and retrieval usage define monetized utility.',
+        supply_signal: 'Storage providers invest in hardware and collateral under long payback horizons.',
+        token_utility: ['Storage/retrieval settlement', 'Collateral lockups', 'Protocol incentives'],
+        notes: 'Collateral burden and renewal cadence shape resilience under market stress.',
+    },
+    akash_v1: {
+        depin_surface: 'Decentralized cloud marketplace using reverse-auction infrastructure supply.',
+        demand_signal: 'Workload consistency and tenant commitments stabilize recurring compute demand.',
+        supply_signal: 'Providers price capacity aggressively, creating margin and retention sensitivity.',
+        token_utility: ['Marketplace settlement', 'Burn share from fees', 'Provider reward mechanics'],
+        notes: 'Price competition and low burn periods can quickly pressure solvency.',
+    },
+    hivemapper_v1: {
+        depin_surface: 'Dashcam-powered map-to-earn network monetizing geospatial freshness.',
+        demand_signal: 'Enterprise map buyers pay for freshness, density, and regional coverage quality.',
+        supply_signal: 'Contributors provide road coverage where incentives justify ongoing capture.',
+        token_utility: ['Coverage rewards', 'Freshness incentives', 'Growth-phase emissions'],
+        notes: 'Freshness economics and demand conversion must improve together.',
+    },
+    dimo_v1: {
+        depin_surface: 'User-owned vehicle telemetry network serving insurance and mobility demand.',
+        demand_signal: 'Data buyers require high-quality telemetry and recurring commercial contracts.',
+        supply_signal: 'Drivers onboard hardware/software integrations for tokenized rewards.',
+        token_utility: ['Data-sharing rewards', 'Buyer settlement utility', 'Participation incentives'],
+        notes: 'Monetization depth vs. emissions is the central sustainability constraint.',
+    },
+    grass_v1: {
+        depin_surface: 'Residential bandwidth-sharing layer serving AI/web data access markets.',
+        demand_signal: 'Buyer demand depends on clean traffic quality, reliability, and compliance.',
+        supply_signal: 'Low-friction node supply grows quickly but can churn rapidly under reward decay.',
+        token_utility: ['Bandwidth incentives', 'Demand routing rewards', 'Bootstrapping emissions'],
+        notes: 'Quality-adjusted utilization and churn defense dominate risk profile.',
+    },
+    ionet_v1: {
+        depin_surface: 'GPU cloud marketplace orchestrating distributed inference/compute supply.',
+        demand_signal: 'Sustained enterprise inference demand determines provider ROI durability.',
+        supply_signal: 'GPU operators participate based on payback speed and token revenue stability.',
+        token_utility: ['Compute settlement', 'Staking participation', 'Demand growth incentives'],
+        notes: 'Payback compression and utilization depth are primary operational levers.',
+    },
+    nosana_v1: {
+        depin_surface: 'Solana-native GPU grid focused on AI inference and CI/CD workloads.',
+        demand_signal: 'Compute job volume in target verticals determines monetization reliability.',
+        supply_signal: 'Providers face transition risk as mining-era incentives phase out.',
+        token_utility: ['Job settlement', 'Node reward mechanics', 'Staking/governance participation'],
+        notes: 'Post-mining incentive design is pivotal for sustained network retention.',
+    },
+    geodnet_v1: {
+        depin_surface: 'RTK precision-location network funded by data demand and token incentives.',
+        demand_signal: 'Precision-location enterprise demand and subscription durability drive burn.',
+        supply_signal: 'Reference-station operators respond to halving schedules and local economics.',
+        token_utility: ['RTK service settlement', 'Provider rewards', 'Revenue-linked burn dynamics'],
+        notes: 'Halving discipline works only if paid demand scales with coverage.',
+    },
+    aleph_v1: {
+        depin_surface: 'Decentralized cloud stack with staking-backed compute and indexing services.',
+        demand_signal: 'Developer and dApp service adoption governs monetized utilization.',
+        supply_signal: 'Virtual node operators scale quickly when incentives outpace demand.',
+        token_utility: ['Service settlement utility', 'Staking security sink', 'Node incentives'],
+        notes: 'Utility sink expansion is required to offset low burn pressure.',
+    },
+    xnet_v1: {
+        depin_surface: 'Wireless infrastructure network monetizing subscriber demand and coverage quality.',
+        demand_signal: 'Subscriber growth and MVNO partnerships determine revenue conversion speed.',
+        supply_signal: 'Radio providers need shorter hardware payback to avoid retention cliffs.',
+        token_utility: ['Coverage rewards', 'Buy-and-burn sink', 'Subscriber growth incentives'],
+        notes: 'Pre-PMF infrastructure oversupply creates elevated solvency and churn risk.',
+    },
+};
+
+function deriveDefaultProtocolBrief(profile: ProtocolProfileV1): Omit<DTSEProtocolBrief, 'protocol_id' | 'protocol_name' | 'chain'> {
+    const note = profile.metadata.notes.split('.').map((chunk) => chunk.trim()).filter(Boolean)[0]
+        ?? `${profile.metadata.name} DePIN network.`;
+    const isLocation = profile.metadata.model_type === 'location_based';
+    return {
+        depin_surface: note.endsWith('.') ? note : `${note}.`,
+        demand_signal: isLocation
+            ? 'Demand quality depends on geographic coverage depth and route-level service reliability.'
+            : 'Demand quality depends on sustained workload volume and buyer conversion durability.',
+        supply_signal: isLocation
+            ? 'Supply resilience is shaped by node placement quality and operator retention.'
+            : 'Supply resilience is shaped by provider economics, utilization, and reward credibility.',
+        token_utility: isLocation
+            ? ['Coverage incentives', 'Demand-linked utility sink', 'Provider participation rewards']
+            : ['Workload settlement utility', 'Incentive calibration', 'Provider retention rewards'],
+        notes: 'Interpret with protocol-specific applicability gates and evidence quality constraints.',
+    };
+}
+
+function deriveStressResilienceOutcome(outcomes: DTSEOutcome[]): DTSEOutcome {
+    const scoreByBand: Record<DTSEOutcome['band'], number> = {
+        healthy: 85,
+        watchlist: 62,
+        intervention: 38,
+    };
+    const avgScore = outcomes.length === 0
+        ? 60
+        : Math.round(outcomes.reduce((sum, outcome) => sum + scoreByBand[outcome.band], 0) / outcomes.length);
+    const band = avgScore >= 70 ? 'healthy' : avgScore >= 55 ? 'watchlist' : 'intervention';
+    return {
+        metric_id: 'stress_resilience_index',
+        value: avgScore,
+        band,
+        evidence_ref: 'derived_from_guardrail_bands',
+    };
+}
+
+function withDerivedOutcomes(outcomes: DTSEOutcome[]): DTSEOutcome[] {
+    const withoutDerived = outcomes.filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
+    return [...withoutDerived, deriveStressResilienceOutcome(withoutDerived)];
+}
+
+export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
+    solvency_ratio: {
+        metric_id: 'solvency_ratio',
+        definition: 'Revenue coverage relative to emissions burden.',
+        why_relevant: 'Captures whether token incentives are economically sustainable.',
+        decision_use: 'Primary guardrail for subsidy dependence risk.',
+        target: 'Healthy ≥ 1.30',
+        interpretation: {
+            healthy: 'Incentive spend is sufficiently covered by demand-linked value.',
+            watchlist: 'Coverage is thin; prioritize emission discipline and demand quality.',
+            intervention: 'Sustainability breach; immediate tokenomics intervention required.',
+        },
+    },
+    payback_period: {
+        metric_id: 'payback_period',
+        definition: 'Estimated provider CAPEX payback duration under stress outcomes.',
+        why_relevant: 'Long payback periods weaken operator retention and onboarding quality.',
+        decision_use: 'Guides incentive calibration for durable provider participation.',
+        target: 'Healthy ≤ 18 months',
+        interpretation: {
+            healthy: 'Provider economics are attractive for sustained participation.',
+            watchlist: 'ROI horizon is stretched and may weaken conviction.',
+            intervention: 'Economics likely too weak for resilient supply growth.',
+        },
+    },
+    weekly_retention_rate: {
+        metric_id: 'weekly_retention_rate',
+        definition: 'Share of active providers retained week-over-week.',
+        why_relevant: 'Measures stability of productive supply under stress.',
+        decision_use: 'Early warning for churn cascades and coverage decay.',
+        target: 'Healthy ≥ 93%',
+        interpretation: {
+            healthy: 'Provider stickiness supports operational continuity.',
+            watchlist: 'Retention softening signals emerging fragility.',
+            intervention: 'Churn pressure threatens service reliability.',
+        },
+    },
+    network_utilization: {
+        metric_id: 'network_utilization',
+        definition: 'Demand served versus available network capacity.',
+        why_relevant: 'Low utilization implies incentive leakage and weak demand conversion.',
+        decision_use: 'Prioritizes GTM focus and supply allocation strategy.',
+        target: 'Healthy ≥ 35%',
+        interpretation: {
+            healthy: 'Capacity is productively monetized.',
+            watchlist: 'Demand conversion is under target; tighten supply-demand matching.',
+            intervention: 'Severe underutilization; revisit growth and incentive posture.',
+        },
+    },
+    tail_risk_score: {
+        metric_id: 'tail_risk_score',
+        definition: 'Composite stress fragility score focused on worst-case outcomes.',
+        why_relevant: 'Captures non-linear downside risk missed by averages.',
+        decision_use: 'Prioritizes mitigation where failure impact is concentrated.',
+        target: 'Healthy < 35',
+        interpretation: {
+            healthy: 'Tail scenarios are manageable with current controls.',
+            watchlist: 'Stress fragility is rising; add preventive controls.',
+            intervention: 'High downside concentration; escalation recommended.',
+        },
+    },
+    vampire_churn: {
+        metric_id: 'vampire_churn',
+        definition: 'Estimated churn pressure induced by competing yield alternatives.',
+        why_relevant: 'Reveals susceptibility to mercenary capital rotation.',
+        decision_use: 'Informs retention defense and reward-quality strategy.',
+        target: 'Lower is better',
+        interpretation: {
+            healthy: 'Competitive yield pressure is contained.',
+            watchlist: 'Rotation risk is material and should be monitored.',
+            intervention: 'High migration pressure threatens supply continuity.',
+        },
+    },
+    stress_resilience_index: {
+        metric_id: 'stress_resilience_index',
+        definition: 'Derived composite score summarizing multi-metric resilience under stress.',
+        why_relevant: 'Provides a single directional signal to summarize cross-metric risk.',
+        decision_use: 'Executive summary metric; interpret with underlying primary metrics.',
+        target: 'Healthy ≥ 70',
+        interpretation: {
+            healthy: 'Cross-metric resilience is robust.',
+            watchlist: 'Mixed resilience profile; targeted remediation needed.',
+            intervention: 'System-level fragility is elevated.',
+        },
+    },
+};
+
+export const DTSE_REASON_LABELS: Record<DTSEApplicabilityEntry['reasonCode'], string> = {
+    DATA_AVAILABLE: 'Data available',
+    DATA_MISSING: 'Data missing',
+    SOURCE_GRADE_INSUFFICIENT: 'Source quality insufficient',
+    MANUAL_OVERRIDE: 'Manual override',
+    PROXY_ACCEPTED: 'Proxy accepted',
+    INTERPOLATION_RISK: 'Interpolation risk',
+};
+
+export function buildDTSEProtocolPack(profile: ProtocolProfileV1): DTSEDashboardPack {
+    const pack = getDTSEProtocolPack(profile.metadata.id);
+    const baseOutcomes = pack.runContext.outcomes ?? [];
+    const outcomes = withDerivedOutcomes(baseOutcomes);
+    const failureSignatures = pack.runContext.failure_signatures ?? [];
+    const recommendations = pack.runContext.recommendations ?? [];
+    const protocolBriefTemplate = PROTOCOL_BRIEF_OVERRIDES[profile.metadata.id] ?? deriveDefaultProtocolBrief(profile);
+
+    return {
+        runContext: {
+            ...pack.runContext,
+            protocol_id: profile.metadata.id,
+            model_version: 'Agent-Based v2',
+            outcomes,
+            failure_signatures: failureSignatures,
+            recommendations,
+        },
+        protocolBrief: {
+            protocol_id: profile.metadata.id,
+            protocol_name: profile.metadata.name,
+            chain: CHAIN_LABELS[profile.metadata.chain] ?? profile.metadata.chain,
+            ...protocolBriefTemplate,
+        },
+        applicability: pack.applicability,
+        outcomes,
+        failureSignatures,
+        recommendations,
+    };
 }
