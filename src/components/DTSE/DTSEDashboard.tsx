@@ -132,6 +132,13 @@ export const DTSEDashboard: React.FC = () => {
     setCurrentStage((s) => Math.max(s - 1, 0));
   }, []);
 
+  const handleFooterNavKeyDown = useCallback((e: React.KeyboardEvent, direction: 'next' | 'prev') => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    if (direction === 'next') goNext();
+    else goPrev();
+  }, [goNext, goPrev]);
+
   const handleStageKeyDown = (e: React.KeyboardEvent, stageIdx: number) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -305,6 +312,7 @@ export const DTSEDashboard: React.FC = () => {
         <button
           data-cy="dtse-prev-stage"
           onClick={goPrev}
+          onKeyDown={(e) => handleFooterNavKeyDown(e, 'prev')}
           disabled={currentStage === 0}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
             currentStage === 0
@@ -323,6 +331,7 @@ export const DTSEDashboard: React.FC = () => {
         <button
           data-cy="dtse-next-stage"
           onClick={goNext}
+          onKeyDown={(e) => handleFooterNavKeyDown(e, 'next')}
           disabled={currentStage === STAGE_COUNT - 1}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
             currentStage === STAGE_COUNT - 1
