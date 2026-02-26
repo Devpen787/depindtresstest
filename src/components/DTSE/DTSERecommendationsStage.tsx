@@ -7,11 +7,46 @@ interface DTSERecommendationsStageProps {
   onExport: () => void;
 }
 
-const PRIORITY_STYLES: Record<DTSERecommendation['priority'], { dot: string; badge: string; badgeText: string }> = {
-  critical: { dot: 'bg-red-400', badge: 'bg-red-900/60', badgeText: 'text-red-400' },
-  high: { dot: 'bg-orange-400', badge: 'bg-orange-900/60', badgeText: 'text-orange-400' },
-  medium: { dot: 'bg-amber-400', badge: 'bg-amber-900/60', badgeText: 'text-amber-400' },
-  low: { dot: 'bg-slate-500', badge: 'bg-slate-800', badgeText: 'text-slate-400' },
+const PRIORITY_STYLES: Record<DTSERecommendation['priority'], {
+  dot: string;
+  badge: string;
+  badgeText: string;
+  accent: string;
+  numBg: string;
+  numText: string;
+}> = {
+  critical: {
+    dot: 'bg-red-400',
+    badge: 'bg-red-900/50',
+    badgeText: 'text-red-400',
+    accent: 'border-l-red-500',
+    numBg: 'bg-red-900/40',
+    numText: 'text-red-400',
+  },
+  high: {
+    dot: 'bg-orange-400',
+    badge: 'bg-orange-900/50',
+    badgeText: 'text-orange-400',
+    accent: 'border-l-orange-500',
+    numBg: 'bg-orange-900/40',
+    numText: 'text-orange-400',
+  },
+  medium: {
+    dot: 'bg-amber-400',
+    badge: 'bg-amber-900/50',
+    badgeText: 'text-amber-400',
+    accent: 'border-l-amber-500',
+    numBg: 'bg-amber-900/40',
+    numText: 'text-amber-400',
+  },
+  low: {
+    dot: 'bg-slate-500',
+    badge: 'bg-slate-800',
+    badgeText: 'text-slate-400',
+    accent: 'border-l-slate-600',
+    numBg: 'bg-slate-800',
+    numText: 'text-slate-400',
+  },
 };
 
 export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> = ({
@@ -24,20 +59,20 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
   });
 
   return (
-    <div data-cy="dtse-recommendations-stage" className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div data-cy="dtse-recommendations-stage" className="space-y-8">
+      <div className="flex items-start justify-between gap-6">
         <div>
-          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
             Stage 5 — Recommendations
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
             Actionable items derived from the failure analysis. Export a full DTSE report bundle.
           </p>
         </div>
         <button
           data-cy="dtse-export-btn"
           onClick={onExport}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 shrink-0"
         >
           <Download size={14} />
           Export Report
@@ -45,39 +80,45 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
       </div>
 
       {sorted.length === 0 ? (
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-8 text-center">
+        <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-10 text-center">
           <p className="text-sm text-slate-500">No recommendations generated.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {sorted.map((rec, idx) => {
             const ps = PRIORITY_STYLES[rec.priority];
             return (
               <div
                 key={rec.id}
                 data-cy={`dtse-rec-${rec.id}`}
-                className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3"
+                className={`bg-slate-900/60 border border-slate-800/50 ${ps.accent} border-l-2 rounded-xl p-6 space-y-4`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black bg-slate-800 text-slate-400`}>
+                {/* Header */}
+                <div className="flex items-start gap-4">
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black ${ps.numBg} ${ps.numText} shrink-0`}>
                     {idx + 1}
                   </span>
-                  <h3 className="text-sm font-bold text-slate-100 flex-1">{rec.action}</h3>
-                  <span className={`${ps.badge} ${ps.badgeText} text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded`}>
-                    {rec.priority}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h3 className="text-sm font-bold text-slate-100 leading-snug">{rec.action}</h3>
+                      <span className={`${ps.badge} ${ps.badgeText} text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shrink-0`}>
+                        {rec.priority}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <p className="text-xs text-slate-400 leading-relaxed pl-9">{rec.rationale}</p>
+                {/* Rationale */}
+                <p className="text-xs text-slate-400 leading-relaxed pl-12">{rec.rationale}</p>
 
-                <div className="flex items-center gap-4 pl-9">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Owner:</span>
-                    <span className="text-xs text-slate-300">{rec.owner}</span>
-                  </div>
+                {/* Metadata row */}
+                <div className="flex items-center gap-4 pl-12 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 bg-slate-800/60 text-slate-300 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-md">
+                    {rec.owner}
+                  </span>
                   {rec.expected_effect && (
                     <div className="flex items-center gap-1.5">
-                      <ArrowRight size={10} className="text-slate-600" />
+                      <ArrowRight size={10} className="text-slate-600 shrink-0" />
                       <span className="text-xs text-slate-500 italic">{rec.expected_effect}</span>
                     </div>
                   )}

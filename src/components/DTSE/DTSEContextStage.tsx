@@ -15,54 +15,64 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   generatedAt,
 }) => {
   return (
-    <div data-cy="dtse-context-stage" className="space-y-6">
-      <div>
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
-          Stage 1 — Protocol Context
-        </h2>
-        <p className="text-sm text-slate-500">
-          Identifies the protocol under evaluation and the model configuration used to generate results.
+    <div data-cy="dtse-context-stage" className="space-y-8">
+      {/* Hero brief */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">
+            Stage 1 — Protocol Context
+          </h2>
+          <p className="text-4xl font-extrabold text-slate-50 tracking-tight">
+            {protocolName}
+          </p>
+          <p className="text-base text-slate-400 mt-1.5">
+            DePIN Token Stress Evaluation
+          </p>
+        </div>
+        <p className="text-sm text-slate-500 leading-relaxed max-w-2xl">
+          Evaluating tokenomics resilience under adversarial stress scenarios — identifying structural fragilities before they surface in production.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-cyan-400">
-            <Server size={16} />
-            <span className="text-xs font-bold uppercase tracking-widest">Protocol</span>
+      {/* Context grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="bg-slate-900/70 border border-slate-800/60 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2.5 text-cyan-400">
+            <Server size={15} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Protocol</span>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-slate-100">{protocolName}</p>
-            <p className="text-xs text-slate-500 mt-1 font-mono">{protocolId}</p>
+            <p className="text-xl font-extrabold text-slate-100">{protocolName}</p>
+            <p className="text-xs text-slate-500 mt-1.5 font-mono">{protocolId}</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-cyan-400">
-            <Cpu size={16} />
-            <span className="text-xs font-bold uppercase tracking-widest">Model Version</span>
+        <div className="bg-slate-900/70 border border-slate-800/60 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2.5 text-cyan-400">
+            <Cpu size={15} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Model Version</span>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-slate-100">{modelVersion}</p>
-            <p className="text-xs text-slate-500 mt-1">Engine configuration for this evaluation run</p>
+            <p className="text-xl font-extrabold text-slate-100">{modelVersion}</p>
+            <p className="text-xs text-slate-500 mt-1.5">Engine configuration for this evaluation run</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-cyan-400">
-            <Hash size={16} />
-            <span className="text-xs font-bold uppercase tracking-widest">Mechanism</span>
+        <div className="bg-slate-900/70 border border-slate-800/60 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2.5 text-cyan-400">
+            <Hash size={15} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Mechanism</span>
           </div>
           <div>
             <p className="text-lg font-bold text-slate-100">DePIN Token Stress</p>
-            <p className="text-xs text-slate-500 mt-1">DTSE evaluation framework — tokenomics resilience under adversarial scenarios</p>
+            <p className="text-xs text-slate-500 mt-1.5">DTSE framework — tokenomics resilience under adversarial scenarios</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-cyan-400">
-            <Clock size={16} />
-            <span className="text-xs font-bold uppercase tracking-widest">Generated</span>
+        <div className="bg-slate-900/70 border border-slate-800/60 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2.5 text-cyan-400">
+            <Clock size={15} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Generated</span>
           </div>
           <div>
             <p className="text-lg font-bold text-slate-100">
@@ -72,7 +82,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                 day: 'numeric',
               })}
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1.5">
               {new Date(generatedAt).toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',

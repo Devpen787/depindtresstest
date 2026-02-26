@@ -9,24 +9,27 @@ interface DTSEOutcomesStageProps {
   unitMap: Record<string, string>;
 }
 
-const BAND_STYLES: Record<GuardrailBand, { bg: string; border: string; text: string; dot: string }> = {
+const BAND_STYLES: Record<GuardrailBand, { bg: string; border: string; text: string; dot: string; iconBg: string }> = {
   healthy: {
-    bg: 'bg-emerald-950/30',
-    border: 'border-emerald-900/50',
+    bg: 'bg-emerald-950/20',
+    border: 'border-emerald-900/40',
     text: 'text-emerald-400',
     dot: 'bg-emerald-400',
+    iconBg: 'bg-emerald-900/30',
   },
   watchlist: {
-    bg: 'bg-amber-950/30',
-    border: 'border-amber-900/50',
+    bg: 'bg-amber-950/20',
+    border: 'border-amber-900/40',
     text: 'text-amber-400',
     dot: 'bg-amber-400',
+    iconBg: 'bg-amber-900/30',
   },
   intervention: {
-    bg: 'bg-red-950/30',
-    border: 'border-red-900/50',
+    bg: 'bg-red-950/20',
+    border: 'border-red-900/40',
     text: 'text-red-400',
     dot: 'bg-red-400',
+    iconBg: 'bg-red-900/30',
   },
 };
 
@@ -45,33 +48,40 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
   for (const o of outcomes) bandCounts[o.band]++;
 
   return (
-    <div data-cy="dtse-outcomes-stage" className="space-y-6">
+    <div data-cy="dtse-outcomes-stage" className="space-y-8">
       <div>
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
           Stage 3 — Simulation Outcomes
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
           Key performance indicators from the Monte Carlo stress simulation, classified by guardrail band.
         </p>
       </div>
 
-      {/* Band summary */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Band summary — wider cards with breathing room */}
+      <div className="grid grid-cols-3 gap-4">
         {(['healthy', 'watchlist', 'intervention'] as GuardrailBand[]).map((band) => {
           const s = BAND_STYLES[band];
           return (
-            <div key={band} className={`${s.bg} border ${s.border} rounded-xl p-4 text-center`}>
-              <div className={`text-2xl font-extrabold ${s.text}`}>{bandCounts[band]}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">
-                {band}
+            <div key={band} className={`${s.bg} border ${s.border} rounded-xl px-6 py-5 flex items-center gap-4`}>
+              <div className={`w-10 h-10 rounded-lg ${s.iconBg} flex items-center justify-center shrink-0`}>
+                <span className={`text-xl font-extrabold ${s.text}`}>{bandCounts[band]}</span>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  {band}
+                </div>
+                <div className="text-xs text-slate-600 mt-0.5">
+                  {bandCounts[band] === 1 ? 'metric' : 'metrics'}
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Metric cards — uniform height, value-dominant */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {outcomes.map((outcome) => {
           const s = BAND_STYLES[outcome.band];
           const label = metricLabels[outcome.metric_id] ?? outcome.metric_id;
@@ -80,21 +90,25 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
             <div
               key={outcome.metric_id}
               data-cy={`dtse-outcome-${outcome.metric_id}`}
-              className={`${s.bg} border ${s.border} rounded-xl p-5 space-y-3`}
+              className={`${s.bg} border ${s.border} rounded-xl p-6 flex flex-col justify-between min-h-[140px]`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-                <BandIcon band={outcome.band} />
+                <div className={`w-7 h-7 rounded-md ${s.iconBg} flex items-center justify-center`}>
+                  <BandIcon band={outcome.band} />
+                </div>
               </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className={`text-3xl font-extrabold ${s.text}`}>
-                  {typeof outcome.value === 'number' ? outcome.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : outcome.value}
-                </span>
-                {unit && <span className="text-xs text-slate-500">{unit}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${s.dot}`} />
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${s.text}`}>{outcome.band}</span>
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-4xl font-extrabold tracking-tight ${s.text}`}>
+                    {typeof outcome.value === 'number' ? outcome.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : outcome.value}
+                  </span>
+                  {unit && <span className="text-sm text-slate-500 font-medium">{unit}</span>}
+                </div>
+                <div className="flex items-center gap-2 mt-2.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${s.text}`}>{outcome.band}</span>
+                </div>
               </div>
             </div>
           );

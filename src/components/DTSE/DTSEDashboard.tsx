@@ -180,32 +180,32 @@ export const DTSEDashboard: React.FC = () => {
   return (
     <div data-cy="dtse-dashboard-root" className="flex flex-col h-full">
       {/* Persistent run context strip */}
-      <div className="shrink-0 border-b border-slate-800 bg-slate-950/90 backdrop-blur-sm px-6 py-3">
+      <div className="shrink-0 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-sm px-8 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Protocol</span>
-              <p className="text-sm font-bold text-slate-100">{ctx.protocol_id}</p>
+              <p className="text-sm font-bold text-slate-100 mt-0.5">{ctx.protocol_id}</p>
             </div>
-            <div className="w-px h-8 bg-slate-800" />
+            <div className="w-px h-8 bg-slate-800/60" />
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Scenario Grid</span>
-              <p className="text-sm font-bold text-slate-100 font-mono">{ctx.scenario_grid_id}</p>
+              <p className="text-sm font-bold text-slate-100 font-mono mt-0.5">{ctx.scenario_grid_id}</p>
             </div>
-            <div className="w-px h-8 bg-slate-800" />
+            <div className="w-px h-8 bg-slate-800/60" />
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Horizon</span>
-              <p className="text-sm font-bold text-slate-100">{ctx.horizon_weeks}w &middot; {ctx.n_sims} sims</p>
+              <p className="text-sm font-bold text-slate-100 mt-0.5">{ctx.horizon_weeks}w &middot; {ctx.n_sims} sims</p>
             </div>
-            <div className="w-px h-8 bg-slate-800" />
+            <div className="w-px h-8 bg-slate-800/60" />
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Evidence</span>
-              <span className={`ml-1 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+              <span className={`ml-1 inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                 ctx.evidence_status === 'complete'
-                  ? 'bg-emerald-900/60 text-emerald-400'
+                  ? 'bg-emerald-900/50 text-emerald-400'
                   : ctx.evidence_status === 'partial'
-                    ? 'bg-amber-900/60 text-amber-400'
-                    : 'bg-red-900/60 text-red-400'
+                    ? 'bg-amber-900/50 text-amber-400'
+                    : 'bg-red-900/50 text-red-400'
               }`}>
                 {ctx.evidence_status}
               </span>
@@ -218,13 +218,13 @@ export const DTSEDashboard: React.FC = () => {
       </div>
 
       {/* Stage indicator bar */}
-      <div className="shrink-0 px-6 py-4 border-b border-slate-800/50">
-        <div role="tablist" aria-label="DTSE evaluation stages" className="flex items-center gap-1">
+      <div className="shrink-0 px-8 py-5 border-b border-slate-800/40">
+        <div role="tablist" aria-label="DTSE evaluation stages" className="flex items-center gap-1.5">
           {STAGE_LABELS.map((label, idx) => (
             <React.Fragment key={idx}>
               {idx > 0 && (
-                <div className={`h-px flex-1 max-w-[40px] transition-colors ${
-                  idx <= currentStage ? 'bg-indigo-500' : 'bg-slate-800'
+                <div className={`h-px flex-1 max-w-[48px] transition-colors ${
+                  idx <= currentStage ? 'bg-indigo-500/70' : 'bg-slate-800/60'
                 }`} />
               )}
               <button
@@ -236,12 +236,12 @@ export const DTSEDashboard: React.FC = () => {
                 data-cy={`dtse-stage-${idx + 1}`}
                 onClick={() => setCurrentStage(idx)}
                 onKeyDown={(e) => handleStageKeyDown(e, idx)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                   currentStage === idx
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25'
                     : idx < currentStage
-                      ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      : 'bg-slate-900 text-slate-500 hover:text-slate-400'
+                      ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
+                      : 'bg-slate-900/60 text-slate-500 hover:text-slate-400'
                 }`}
               >
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
@@ -261,70 +261,74 @@ export const DTSEDashboard: React.FC = () => {
       </div>
 
       {/* Stage content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-8">
         <div
-          id={`dtse-stage-panel-${currentStage}`}
-          role="tabpanel"
-          aria-labelledby={`dtse-stage-btn-${currentStage}`}
-          data-cy={`dtse-stage-panel-${currentStage + 1}`}
+          className="max-w-5xl mx-auto"
         >
-          {currentStage === 0 && (
-            <DTSEContextStage
-              protocolId={ctx.protocol_id}
-              protocolName={ctx.protocol_id.charAt(0).toUpperCase() + ctx.protocol_id.slice(1)}
-              modelVersion={ctx.model_version}
-              generatedAt={ctx.generated_at_utc}
-            />
-          )}
+          <div
+            id={`dtse-stage-panel-${currentStage}`}
+            role="tabpanel"
+            aria-labelledby={`dtse-stage-btn-${currentStage}`}
+            data-cy={`dtse-stage-panel-${currentStage + 1}`}
+          >
+            {currentStage === 0 && (
+              <DTSEContextStage
+                protocolId={ctx.protocol_id}
+                protocolName={ctx.protocol_id.charAt(0).toUpperCase() + ctx.protocol_id.slice(1)}
+                modelVersion={ctx.model_version}
+                generatedAt={ctx.generated_at_utc}
+              />
+            )}
 
-          {currentStage === 1 && (
-            <DTSEApplicabilityStage
-              entries={DEMO_APPLICABILITY}
-              metricLabels={METRIC_LABELS}
-            />
-          )}
+            {currentStage === 1 && (
+              <DTSEApplicabilityStage
+                entries={DEMO_APPLICABILITY}
+                metricLabels={METRIC_LABELS}
+              />
+            )}
 
-          {currentStage === 2 && (
-            <DTSEOutcomesStage
-              outcomes={ctx.outcomes ?? []}
-              metricLabels={METRIC_LABELS}
-              unitMap={UNIT_MAP}
-            />
-          )}
+            {currentStage === 2 && (
+              <DTSEOutcomesStage
+                outcomes={ctx.outcomes ?? []}
+                metricLabels={METRIC_LABELS}
+                unitMap={UNIT_MAP}
+              />
+            )}
 
-          {currentStage === 3 && (
-            <DTSESignatureStage
-              signatures={ctx.failure_signatures ?? []}
-            />
-          )}
+            {currentStage === 3 && (
+              <DTSESignatureStage
+                signatures={ctx.failure_signatures ?? []}
+              />
+            )}
 
-          {currentStage === 4 && (
-            <DTSERecommendationsStage
-              recommendations={ctx.recommendations ?? []}
-              onExport={handleExport}
-            />
-          )}
+            {currentStage === 4 && (
+              <DTSERecommendationsStage
+                recommendations={ctx.recommendations ?? []}
+                onExport={handleExport}
+              />
+            )}
+          </div>
         </div>
       </div>
 
       {/* Navigation footer */}
-      <div className="shrink-0 border-t border-slate-800 bg-slate-950/90 backdrop-blur-sm px-6 py-3 flex items-center justify-between">
+      <div className="shrink-0 border-t border-slate-800/60 bg-slate-950/90 backdrop-blur-sm px-8 py-4 flex items-center justify-between">
         <button
           data-cy="dtse-prev-stage"
           onClick={goPrev}
           onKeyDown={(e) => handleFooterNavKeyDown(e, 'prev')}
           disabled={currentStage === 0}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all ${
             currentStage === 0
               ? 'text-slate-700 cursor-not-allowed'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+              : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
           }`}
         >
           <ChevronLeft size={14} />
           Previous
         </button>
 
-        <span className="text-[10px] text-slate-600 font-mono">
+        <span className="text-[11px] text-slate-500 font-mono tracking-wide">
           Stage {currentStage + 1} of {STAGE_COUNT}
         </span>
 
@@ -333,10 +337,10 @@ export const DTSEDashboard: React.FC = () => {
           onClick={goNext}
           onKeyDown={(e) => handleFooterNavKeyDown(e, 'next')}
           disabled={currentStage === STAGE_COUNT - 1}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all ${
             currentStage === STAGE_COUNT - 1
               ? 'text-slate-700 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30'
+              : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25'
           }`}
         >
           Next
