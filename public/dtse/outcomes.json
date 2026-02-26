@@ -1,0 +1,24 @@
+{
+  "run_id": "dtse-run-20260226-001",
+  "protocol_id": "ono_v3_calibrated",
+  "outcomes": [
+    {
+      "metric_id": "solvency_ratio",
+      "value": 1.15,
+      "band": "healthy",
+      "evidence_ref": "model://src/model/simulation.ts"
+    },
+    {
+      "metric_id": "weekly_retention_rate",
+      "value": 0.93,
+      "band": "healthy",
+      "evidence_ref": "model://src/model/simulation.ts"
+    },
+    {
+      "metric_id": "payback_months",
+      "value": 18,
+      "band": "watchlist",
+      "evidence_ref": "model://src/model/simulation.ts"
+    }
+  ]
+}

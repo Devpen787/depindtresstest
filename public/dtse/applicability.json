@@ -1,0 +1,29 @@
+{
+  "protocol_id": "ono_v3_calibrated",
+  "evaluated_at_utc": "2026-02-26T00:00:00Z",
+  "entries": [
+    {
+      "metricId": "solvency_ratio",
+      "verdict": "R",
+      "reasonCode": "PROXY_ACCEPTED",
+      "details": "Proxy source accepted (runnable) for solvency_ratio."
+    },
+    {
+      "metricId": "weekly_retention_rate",
+      "verdict": "R",
+      "reasonCode": "PROXY_ACCEPTED",
+      "details": "Proxy source accepted (runnable) for weekly_retention_rate."
+    },
+    {
+      "metricId": "payback_months",
+      "verdict": "R",
+      "reasonCode": "DATA_AVAILABLE"
+    },
+    {
+      "metricId": "on_chain_revenue",
+      "verdict": "NR",
+      "reasonCode": "DATA_MISSING",
+      "details": "No source or definition available."
+    }
+  ]
+}

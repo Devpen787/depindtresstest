@@ -1,0 +1,15 @@
+{
+  "scenario_grid_id": "baseline_stress_grid_v1",
+  "run_id": "dtse-run-20260226-001",
+  "seed_policy": {
+    "seed": 42,
+    "locked": true
+  },
+  "horizon_weeks": 52,
+  "n_sims": 1000,
+  "evidence_status": "partial",
+  "protocol_id": "ono_v3_calibrated",
+  "model_version": "dtse_v1.0.0",
+  "generated_at_utc": "2026-02-26T00:00:00Z",
+  "bundle_hash": "placeholder_bundle_hash"
+}
