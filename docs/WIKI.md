@@ -4,7 +4,24 @@ This wiki reflects the current app behavior and control surface.
 
 ## 1. Product Map
 
-The app has five primary tabs plus a Decision Tree mode:
+The app's primary workflow is **DTSE (DePIN Token Stress Evaluation)**, which is the default landing tab. Legacy depth views are grouped under **Advanced**.
+
+### DTSE — Primary Workflow
+
+DTSE is a 6-stage guided evaluation:
+
+1. **Data Ingestion & Applicability** — Load a pre-computed bundle; classify metrics as Runnable (R) or Not Runnable (NR).
+2. **Peer Analog Selection** — Confirm cross-protocol comparison peers.
+3. **Scenario Configuration** — Review horizon, seed policy, simulation count, macro conditions.
+4. **Stress Execution & Results** — View simulation outcomes with guardrail band classification.
+5. **Failure Signatures & Recommendations** — Surface structural failures and generate prioritized actions.
+6. **Export & Report** — Export the evaluation as PDF, JSON bundle, or clipboard summary.
+
+DTSE operates in **frozen bundle** mode by default (pre-computed, deterministic results from `public/dtse/`) or **recompute** mode for fresh simulation runs.
+
+### Advanced Depth Views
+
+The following tabs are available under the Advanced grouping:
 
 - `Simulator` (with `Explorer`, `Comparison`, and `Sandbox` sub-views)
 - `Benchmark`
@@ -12,6 +29,8 @@ The app has five primary tabs plus a Decision Tree mode:
 - `Diagnostic`
 - `Case Study`
 - `Decision Tree` (separate mode launched from header)
+
+These remain fully functional for deep-dive analysis beyond the DTSE workflow.
 
 ## 2. Engine Modes
 
@@ -155,4 +174,19 @@ The in-app `System Wiki` modal is rendered from:
 
 ---
 
-Last updated: 2026-02-15
+## 10. DTSE Bundle Loading
+
+DTSE bundles are loaded from `public/dtse/` and consist of:
+
+- `manifest.json` — artifact listing with checksums.
+- `run_context.json` — scenario metadata (run ID, seed policy, horizon, evidence status).
+- `outcomes.json` — metric-level results with guardrail band classification.
+- `applicability.json` — per-metric R/NR classification with reason codes.
+
+The bundle loader (`src/services/dtseBundle.ts`) validates all required fields on load and rejects incomplete or malformed bundles with actionable error messages.
+
+See also: `docs/DTSE_PRODUCT_SPEC_V1.md` for the full specification.
+
+---
+
+Last updated: 2026-02-26
