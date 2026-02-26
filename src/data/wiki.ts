@@ -17,16 +17,42 @@ export const WIKI_CONTENT: WikiSection[] = [
     content: `
 # DePIN Stress Test Simulator
 
-The dashboard is split into five core tabs plus a Decision Tree mode:
+The dashboard uses **DTSE** (DePIN Token Stress Evaluation) as the primary landing tab — a 5-stage guided workflow for protocol evaluation.
 
-- **Simulator** (Explorer, Comparison, Sandbox)
-- **Benchmark**
-- **Thesis**
-- **Diagnostic**
-- **Case Study**
-- **Decision Tree**
+Advanced depth views (Benchmark, Root Causes, Strategy, Decide, Evidence) remain accessible in the tab bar for detailed analysis.
+
+- **DTSE** — primary evaluation workflow (Protocol Context → Applicability → Outcomes → Failure Signature → Recommendations)
+- **Benchmark** — peer scorecards and comparative matrices
+- **Root Causes** — structural fragility diagnostics
+- **Strategy** — intervention planning
+- **Decide** — decision tree analysis
+- **Evidence** — case study narratives
 
 Use this wiki as the source of truth for current controls and behavior.
+    `,
+  },
+  {
+    id: 'dtse',
+    title: 'DTSE Workflow',
+    icon: '🔬',
+    content: `
+## DTSE — DePIN Token Stress Evaluation
+
+DTSE is the primary evaluation workflow. It loads a frozen simulation bundle and presents results through 5 progressive stages:
+
+1. **Overview** — protocol identity, scenario, engine version, evidence status
+2. **Data Readiness** — which metrics are Runnable vs Not Runnable, with reason codes
+3. **Results** — stress test KPIs classified by risk level (healthy / watchlist / intervention)
+4. **Risk Patterns** — recurring failure patterns ranked by urgency
+5. **Next Actions** — concrete steps with priority, owner, and expected impact
+
+### Run Context Strip
+
+A persistent strip at the top shows protocol, scenario grid, horizon, evidence status, and model version.
+
+### Frozen Bundle
+
+DTSE loads pre-computed results from \`public/dtse/\`. Use \`npm run dtse:verify\` to validate bundle integrity.
     `,
   },
   {

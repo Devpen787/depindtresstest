@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "generated_at_utc": "2026-02-26T00:00:00Z",
+  "protocol_id": "ono_v3_calibrated",
+  "scenario_grid_ref": "baseline_stress_grid_v1",
+  "artifacts": [
+    {
+      "name": "run_context",
+      "path": "/dtse/run_context.json",
+      "sha256": "placeholder_sha256_run_context"
+    },
+    {
+      "name": "outcomes",
+      "path": "/dtse/outcomes.json",
+      "sha256": "placeholder_sha256_outcomes"
+    },
+    {
+      "name": "applicability",
+      "path": "/dtse/applicability.json",
+      "sha256": "placeholder_sha256_applicability"
+    }
+  ],
+  "root_checksum": "placeholder_root_checksum"
+}

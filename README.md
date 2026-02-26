@@ -4,6 +4,7 @@ Interactive dashboard for stress-testing DePIN tokenomics under macro shocks, li
 
 ## Product Areas
 
+- `DTSE` (**primary**): DePIN Token Stress Evaluation — a 6-stage guided workflow covering data ingestion, peer analogs, scenario config, stress execution, failure signatures, and export. Default landing tab.
 - `Simulator`: explorer, comparison, and sandbox workflows for parameterized stress tests.
 - `Benchmark`: peer scorecards, comparative matrices, and research overlays.
 - `Thesis`: compact narrative dashboard for protocol-level thesis defense.
@@ -35,6 +36,8 @@ Prerequisites: Node.js 18+
 - `npm run dev` - start local dev server
 - `npm run build` - production build
 - `npm run test` - test suite
+- `npm run dtse:sync` - sync DTSE bundle from upstream artifact store
+- `npm run dtse:verify` - verify integrity of local DTSE bundle files
 - `npm run ci:optimizer` - run optimizer diagnostics + gate and write done-marker summary to `output/skill_reports/*_done_marker.md`
 - `npm run acceptance:generate` - generate acceptance snapshots from live evaluator outputs
 - `npm run ci:dashboard:acceptance` - generate acceptance snapshots and enforce temporary waiver gate (`M1,M2,M3`)

@@ -46,13 +46,14 @@ const BenchmarkView = lazy(() => import('./src/components/Benchmark/BenchmarkVie
 const SandboxView = lazy(() => import('./src/components/Simulator/SandboxView').then((m) => ({ default: m.SandboxView })));
 const ComparisonView = lazy(() => import('./src/components/Simulator/ComparisonView').then((m) => ({ default: m.ComparisonView })));
 const DecisionTreeDashboard = lazy(() => import('./src/components/DecisionTree/DecisionTreeDashboard').then((m) => ({ default: m.DecisionTreeDashboard })));
+const DTSEDashboard = lazy(() => import('./src/components/DTSE/DTSEDashboard').then((m) => ({ default: m.DTSEDashboard })));
 
-type AppTab = 'simulator' | 'thesis' | 'case_study' | 'benchmark' | 'diagnostic' | 'decision_tree';
+type AppTab = 'simulator' | 'thesis' | 'case_study' | 'benchmark' | 'diagnostic' | 'decision_tree' | 'dtse';
 type PrimaryTab = Exclude<AppTab, 'simulator'>;
 
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppTab>('benchmark');
+  const [activeTab, setActiveTab] = useState<AppTab>('dtse');
   const profiles = PROTOCOL_PROFILES;
   const { metrics: onChainMetrics } = useProtocolMetrics(
     profiles.map(p => p.metadata.id)
@@ -79,6 +80,7 @@ const App: React.FC = () => {
   const priorPrimaryTabBeforeDecisionTree = useRef<AppTab>('benchmark');
 
   const primaryTabs: PrimaryTab[] = [
+    'dtse',
     'benchmark',
     'diagnostic',
     'thesis',
@@ -87,6 +89,7 @@ const App: React.FC = () => {
   ];
 
   const primaryTabLabel: Record<AppTab, string> = {
+    dtse: 'DTSE',
     benchmark: 'Benchmark',
     diagnostic: 'Root Causes',
     thesis: 'Strategy',
@@ -584,29 +587,34 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div role="tablist" aria-label="Primary dashboard sections" className="flex p-1 bg-slate-900 rounded-xl border border-slate-800">
-            {primaryTabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTabTracked(tab)}
-                onKeyDown={(event) => handlePrimaryTabKeyDown(event, tab)}
-                data-cy={`tab-${tab}`}
-                id={`tab-${tab}`}
-                role="tab"
-                tabIndex={activeTab === tab ? 0 : -1}
-                aria-selected={activeTab === tab}
-                aria-controls={`panel-${tab}`}
-                aria-pressed={activeTab === tab}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab
-                  ? tab === 'benchmark' ? 'bg-indigo-600 text-white shadow-lg' :
-                    tab === 'decision_tree' ? 'bg-indigo-600 text-white shadow-lg' :
-                      tab === 'thesis' ? 'bg-emerald-600 text-white shadow-lg' :
-                        tab === 'diagnostic' ? 'bg-rose-600 text-white shadow-lg' : 'bg-orange-500 text-white shadow-lg'
-                  : 'text-slate-500 hover:text-slate-300'
-                  }`}
-              >
-                {primaryTabLabel[tab]}
-              </button>
+          <div role="tablist" aria-label="Primary dashboard sections" className="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800">
+            {primaryTabs.map((tab, idx) => (
+              <React.Fragment key={tab}>
+                {tab === 'benchmark' && (
+                  <div className="w-px h-5 bg-slate-700/60 mx-0.5" aria-hidden="true" />
+                )}
+                <button
+                  onClick={() => setActiveTabTracked(tab)}
+                  onKeyDown={(event) => handlePrimaryTabKeyDown(event, tab)}
+                  data-cy={`tab-${tab}`}
+                  id={`tab-${tab}`}
+                  role="tab"
+                  tabIndex={activeTab === tab ? 0 : -1}
+                  aria-selected={activeTab === tab}
+                  aria-controls={`panel-${tab}`}
+                  aria-pressed={activeTab === tab}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab
+                    ? tab === 'dtse' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30' :
+                      tab === 'benchmark' ? 'bg-indigo-600 text-white shadow-lg' :
+                        tab === 'decision_tree' ? 'bg-indigo-600 text-white shadow-lg' :
+                          tab === 'thesis' ? 'bg-emerald-600 text-white shadow-lg' :
+                            tab === 'diagnostic' ? 'bg-rose-600 text-white shadow-lg' : 'bg-orange-500 text-white shadow-lg'
+                    : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                >
+                  {primaryTabLabel[tab]}
+                </button>
+              </React.Fragment>
             ))}
           </div>
 
@@ -746,7 +754,17 @@ const App: React.FC = () => {
 
 
       {/* MAIN CONTENT AREA */}
-      {activeTab === 'benchmark' ? (
+      {activeTab === 'dtse' ? (
+        <div id="panel-dtse" role="tabpanel" aria-labelledby="tab-dtse" className="flex-1 overflow-hidden bg-slate-950">
+          <Suspense fallback={renderPanelFallback('DTSE')}>
+            <DTSEDashboard
+              activeProfile={sim.activeProfile}
+              profiles={PROTOCOL_PROFILES}
+              onSelectProtocol={sim.loadProfile}
+            />
+          </Suspense>
+        </div>
+      ) : activeTab === 'benchmark' ? (
         <div id="panel-benchmark" role="tabpanel" aria-labelledby="tab-benchmark" className="flex-1 overflow-y-auto bg-slate-950 p-6 custom-scrollbar">
           <div className="mb-6 space-y-3">
             <DecisionBriefCard brief={briefsBySurface.benchmark} dataCy="benchmark-decision-brief" />
