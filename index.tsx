@@ -14,7 +14,7 @@ import { SimulatorSidebar } from './src/components/Simulator/SimulatorSidebar';
 // Hooks & Utils
 import { useSimulationRunner } from './src/hooks/useSimulationRunner';
 import { calculateRegime } from './src/utils/regime';
-import { fetchMultipleTokens, type TokenMarketData, ALL_DEPIN_TOKEN_IDS, getTimeUntilNextRefresh, autoRefreshManager } from './src/services/coingecko';
+import { fetchMultipleTokens, type TokenMarketData, getTimeUntilNextRefresh, autoRefreshManager } from './src/services/coingecko';
 import { SolanaVerifier, type NetworkStatus } from './src/model/solana';
 import { useProtocolMetrics } from './src/hooks/useProtocolMetrics'; // Import Hook
 import { PROTOCOL_PROFILES } from './src/data/protocols';
@@ -167,7 +167,12 @@ const App: React.FC = () => {
     setLiveDataLoading(true);
     setLiveDataError(null);
     try {
-      const data = await fetchMultipleTokens(ALL_DEPIN_TOKEN_IDS);
+      const profileTokenIds = Array.from(new Set(
+        PROTOCOL_PROFILES
+          .map((profile) => profile.metadata.coingeckoId)
+          .filter((value): value is string => Boolean(value))
+      ));
+      const data = await fetchMultipleTokens(profileTokenIds);
       setAllDePINData(data);
       const mappedData: Record<string, TokenMarketData | null> = {};
       for (const profile of PROTOCOL_PROFILES) {
@@ -761,6 +766,7 @@ const App: React.FC = () => {
               activeProfile={sim.activeProfile}
               profiles={PROTOCOL_PROFILES}
               onSelectProtocol={sim.loadProfile}
+              liveData={liveData}
               params={sim.params}
               aggregated={sim.aggregated}
               multiAggregated={sim.multiAggregated}

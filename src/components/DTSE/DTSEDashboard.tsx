@@ -3,6 +3,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react';
 import type { ProtocolProfileV1 } from '../../data/protocols';
 import { PROTOCOL_PROFILES } from '../../data/protocols';
 import type { AggregateResult, DerivedMetrics, SimulationParams } from '../../model/types';
+import type { TokenMarketData } from '../../services/coingecko';
 import {
   buildDTSEProtocolPack,
   DTSE_METRIC_INSIGHTS,
@@ -94,6 +95,7 @@ interface DTSEDashboardProps {
   activeProfile?: ProtocolProfileV1;
   profiles?: ProtocolProfileV1[];
   onSelectProtocol?: (profile: ProtocolProfileV1) => void;
+  liveData?: Record<string, TokenMarketData | null>;
   params?: SimulationParams;
   aggregated?: AggregateResult[];
   multiAggregated?: Record<string, AggregateResult[]>;
@@ -106,6 +108,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
   activeProfile,
   profiles,
   onSelectProtocol,
+  liveData,
   params,
   aggregated,
   multiAggregated,
@@ -274,6 +277,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
         <DTSEContextStage
           protocolBrief={pack.protocolBrief}
           outcomes={displayedOutcomes}
+          marketData={liveData?.[selectedProfile.metadata.id] ?? null}
           metricLabels={METRIC_LABELS}
           peerContext={peerContext}
           modelVersion={ctx.model_version}

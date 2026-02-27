@@ -2,6 +2,7 @@ import React from 'react';
 import { Server, ArrowRightLeft, Coins, Sparkles, Layers3, BadgeDollarSign, Factory, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { DTSERunContext, DTSEProtocolBrief, DTSEOutcome } from '../../types/dtse';
+import type { TokenMarketData } from '../../services/coingecko';
 
 interface DTSEPeerContext {
   peerNames: string[];
@@ -12,6 +13,7 @@ interface DTSEPeerContext {
 interface DTSEContextStageProps {
   protocolBrief: DTSEProtocolBrief;
   outcomes: DTSEOutcome[];
+  marketData?: TokenMarketData | null;
   metricLabels: Record<string, string>;
   peerContext?: DTSEPeerContext;
   modelVersion: string;
@@ -25,6 +27,7 @@ interface DTSEContextStageProps {
 export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   protocolBrief,
   outcomes,
+  marketData,
   metricLabels,
   peerContext,
   modelVersion: _modelVersion,
@@ -44,18 +47,45 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value);
-  const contextStats = [
+  const formatExactNumber = (value: number): string => new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0,
+  }).format(value);
+
+  const marketStats = marketData ? [
     {
-      label: 'Supply',
-      value: `${formatCompactNumber(protocolBrief.supply_count)} ${protocolBrief.supply_unit}`,
-      detail: protocolBrief.supply_structure,
-      icon: Layers3,
+      label: 'Price',
+      value: formatUsdCompact(marketData.currentPrice),
+      detail: `${marketData.symbol} · live market`,
+      icon: BadgeDollarSign,
     },
     {
       label: 'Market Cap',
-      value: formatUsdCompact(protocolBrief.market_cap_usd),
-      detail: `at ${formatUsdCompact(protocolBrief.token_price_usd)} / token`,
-      icon: BadgeDollarSign,
+      value: formatUsdCompact(marketData.marketCap),
+      detail: `${formatCompactNumber(marketData.circulatingSupply)} circulating`,
+      icon: Layers3,
+    },
+    {
+      label: 'FDV',
+      value: formatUsdCompact((marketData.maxSupply ?? marketData.totalSupply ?? 0) * marketData.currentPrice),
+      detail: `${formatCompactNumber(marketData.maxSupply ?? marketData.totalSupply ?? 0)} max / total supply`,
+      icon: Factory,
+    },
+    {
+      label: '24h Volume',
+      value: formatUsdCompact(marketData.totalVolume),
+      detail: marketData.lastUpdated
+        ? `Updated ${new Date(marketData.lastUpdated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+        : 'CoinGecko',
+      icon: Coins,
+    },
+  ] : [];
+
+  const modelStats = [
+    {
+      label: 'Modeled Supply',
+      value: `${formatCompactNumber(protocolBrief.supply_count)} ${protocolBrief.supply_unit}`,
+      detail: protocolBrief.supply_structure,
+      icon: Layers3,
     },
     {
       label: 'Weekly Emissions',
@@ -64,10 +94,16 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
       icon: Flame,
     },
     {
-      label: 'Active Supply Side',
+      label: 'Initial Supply Side',
       value: `${formatCompactNumber(protocolBrief.active_providers)} ${protocolBrief.active_providers_unit}`,
       detail: protocolBrief.mechanism,
       icon: Factory,
+    },
+    {
+      label: 'Supply Structure',
+      value: protocolBrief.supply_structure,
+      detail: `Baseline price ${formatUsdCompact(protocolBrief.token_price_usd)} · max ${formatExactNumber(protocolBrief.supply_count)}`,
+      icon: BadgeDollarSign,
     },
   ];
 
@@ -209,10 +245,38 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
         </div>
       </section>
 
+      {marketStats.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Market Snapshot</p>
+            <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-300">
+              Live Market
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {marketStats.map(({ label, value, detail, icon }) => (
+              <div key={label} className="rounded-xl border border-emerald-500/10 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/25 hover:bg-slate-900/35">
+                <CardHeader icon={icon} label={label} />
+                <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
+                <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-400">{detail}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs leading-relaxed text-slate-500">
+            These values come from CoinGecko and describe the current market state, not the simulation assumptions.
+          </p>
+        </section>
+      )}
+
       <section className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Tokenomics Snapshot</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Model Inputs</p>
+          <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-indigo-300">
+            Model
+          </span>
+        </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {contextStats.map(({ label, value, detail, icon }) => (
+          {modelStats.map(({ label, value, detail, icon }) => (
             <div key={label} className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/10 hover:bg-slate-900/35">
               <CardHeader icon={icon} label={label} />
               <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
@@ -221,7 +285,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           ))}
         </div>
         <p className="text-xs leading-relaxed text-slate-500">
-          This context explains what later DTSE stages are testing: whether current supply structure, issuance, burn pressure, and provider economics can survive stress without unfairly penalizing the protocol.
+          These are the protocol assumptions used to frame the DTSE evaluation: supply baseline, issuance, burn pressure, and supply-side starting conditions.
         </p>
       </section>
 

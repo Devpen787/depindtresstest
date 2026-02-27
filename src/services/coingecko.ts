@@ -59,6 +59,9 @@ export const COINGECKO_TOKEN_IDS: Record<string, string> = {
   'akash_v1': 'akash-network',
   'dimo_v1': 'dimo',
   'hivemapper_v1': 'hivemapper',
+  'grass_v1': 'grass',
+  'ionet_v1': 'io',
+  'nosana_v1': 'nosana',
   'theta_v1': 'theta-token',
   'geodnet_v1': 'geodnet',
   'aleph_v1': 'aleph',
@@ -111,9 +114,17 @@ export const DEPIN_TOKENS: Record<string, DePINTokenInfo> = {
     name: 'Grass',
     symbol: 'GRASS',
     category: 'AI/ML',
-    coingeckoId: 'wynd',  // Usually Wynd Network / Grass
+    coingeckoId: 'grass',
     description: 'Decentralized web scraping network',
     website: 'https://getgrass.io',
+  },
+  'io': {
+    name: 'io.net',
+    symbol: 'IO',
+    category: 'GPU Computing',
+    coingeckoId: 'io',
+    description: 'Decentralized GPU cloud for AI and compute workloads',
+    website: 'https://io.net',
   },
 
   'helium': {
