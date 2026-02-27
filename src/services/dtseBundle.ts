@@ -72,6 +72,25 @@ function validateBundleShape(data: Record<string, unknown>, path: string): {
         }
     }
 
+    if ('weekly_solvency' in data && data.weekly_solvency !== undefined && data.weekly_solvency !== null) {
+        if (!Array.isArray(data.weekly_solvency)) {
+            warnings.push(`DTSE bundle invalid field type: weekly_solvency must be an array at path ${path}`);
+        } else {
+            const horizonWeeks = typeof data.horizon_weeks === 'number' ? data.horizon_weeks : null;
+            if (horizonWeeks !== null && data.weekly_solvency.length !== horizonWeeks) {
+                warnings.push(
+                    `DTSE bundle invalid field type: weekly_solvency length must match horizon_weeks at path ${path}`,
+                );
+            }
+            const invalidPoint = data.weekly_solvency.find((value) => (
+                typeof value !== 'number' || !Number.isFinite(value)
+            ));
+            if (invalidPoint !== undefined) {
+                warnings.push(`DTSE bundle invalid field type: weekly_solvency must contain only finite numbers at path ${path}`);
+            }
+        }
+    }
+
     return { missingFields, warnings };
 }
 

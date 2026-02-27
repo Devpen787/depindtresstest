@@ -164,4 +164,35 @@ describe('verifyDTSEBundle', () => {
         expect(result.valid).toBe(false);
         expect(result.warnings.some(w => w.includes('run_id'))).toBe(true);
     });
+
+    it('accepts weekly_solvency when length matches horizon and points are finite', () => {
+        const good = {
+            ...VALID_BUNDLE,
+            weekly_solvency: Array.from({ length: VALID_BUNDLE.horizon_weeks }, (_, index) => 1.4 - index * 0.003),
+        };
+        const result = verifyDTSEBundle(good);
+        expect(result.valid).toBe(true);
+    });
+
+    it('detects invalid weekly_solvency length mismatch', () => {
+        const bad = {
+            ...VALID_BUNDLE,
+            weekly_solvency: [1.2, 1.1, 1.0],
+        };
+        const result = verifyDTSEBundle(bad);
+        expect(result.valid).toBe(false);
+        expect(result.warnings.some((warning) => warning.includes('weekly_solvency length'))).toBe(true);
+    });
+
+    it('detects non-finite weekly_solvency values', () => {
+        const bad = {
+            ...VALID_BUNDLE,
+            weekly_solvency: Array.from({ length: VALID_BUNDLE.horizon_weeks }, (_, index) => (
+                index === 3 ? Number.NaN : 1.2
+            )),
+        };
+        const result = verifyDTSEBundle(bad);
+        expect(result.valid).toBe(false);
+        expect(result.warnings.some((warning) => warning.includes('weekly_solvency must contain only finite numbers'))).toBe(true);
+    });
 });

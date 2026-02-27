@@ -25,6 +25,7 @@ describe("DTSE flow smoke", () => {
 
     cy.get('[data-cy="dtse-next-stage"]').click();
     cy.get('[data-cy="dtse-stage-panel-3"]').should("be.visible");
+    cy.get('[data-cy="dtse-solvency-trajectory-chart"]').scrollIntoView().should("be.visible");
 
     cy.get('[data-cy="dtse-next-stage"]').click();
     cy.get('[data-cy="dtse-stage-panel-4"]').should("be.visible");

@@ -83,21 +83,61 @@ function buildRunContext(
     failureSignatures: DTSEFailureSignature[],
     recommendations: DTSERecommendation[],
 ): DTSERunContext {
+    const horizonWeeks = 52;
+    const solvencyTarget = outcomes.find((outcome) => outcome.metric_id === 'solvency_ratio')?.value ?? 1.1;
+    const weeklySolvency = buildWeeklySolvencySeries(solvencyTarget, horizonWeeks);
     return {
         scenario_grid_id: gridId,
         run_id: `dtse-${protocolId}-001`,
         seed_policy: { seed: 42, locked: true },
-        horizon_weeks: 52,
+        horizon_weeks: horizonWeeks,
         n_sims: 1000,
         evidence_status: 'complete',
         protocol_id: protocolId,
         model_version: '1.2.0',
         generated_at_utc: '2025-06-01T00:00:00Z',
         bundle_hash: `sha256:${protocolId}_pack_v1`,
+        weekly_solvency: weeklySolvency,
         outcomes,
         failure_signatures: failureSignatures,
         recommendations,
     };
+}
+
+function roundTo3(value: number): number {
+    return Math.round(value * 1000) / 1000;
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}
+
+function buildWeeklySolvencySeries(targetRatio: number, horizonWeeks: number): number[] {
+    const clampedTarget = clamp(targetRatio, 0.55, 2.8);
+    const startOffset = clampedTarget < 1
+        ? 0.24
+        : clampedTarget < 1.3
+            ? 0.16
+            : 0.10;
+    const startRatio = clamp(clampedTarget + startOffset, 0.7, 2.8);
+    const volatility = clampedTarget < 1
+        ? 0.07
+        : clampedTarget < 1.3
+            ? 0.055
+            : 0.04;
+
+    const series: number[] = [];
+    for (let index = 0; index < horizonWeeks; index += 1) {
+        const progress = horizonWeeks <= 1 ? 1 : index / (horizonWeeks - 1);
+        const trend = startRatio + (clampedTarget - startRatio) * progress;
+        const oscillation = Math.sin((index / Math.max(1, horizonWeeks - 1)) * Math.PI * 3) * volatility * (1 - progress * 0.85);
+        series.push(roundTo3(clamp(trend + oscillation, 0.5, 3)));
+    }
+
+    if (series.length > 0) {
+        series[series.length - 1] = roundTo3(clampedTarget);
+    }
+    return series;
 }
 
 // ---------------------------------------------------------------------------

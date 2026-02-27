@@ -59,6 +59,13 @@ describe('buildDTSEProtocolPack', () => {
 
             expect(pack.failureSignatures.length).toBeGreaterThan(0);
             expect(pack.recommendations.length).toBeGreaterThan(0);
+
+            expect(Array.isArray(pack.runContext.weekly_solvency)).toBe(true);
+            expect(pack.runContext.weekly_solvency?.length).toBe(pack.runContext.horizon_weeks);
+            expect(pack.runContext.weekly_solvency?.every((point) => Number.isFinite(point))).toBe(true);
+            const finalSolvency = pack.outcomes.find((outcome) => outcome.metric_id === 'solvency_ratio')?.value;
+            const finalSeriesPoint = pack.runContext.weekly_solvency?.[pack.runContext.weekly_solvency.length - 1];
+            expect(finalSeriesPoint).toBeCloseTo(finalSolvency ?? 1, 3);
         });
     }
 });

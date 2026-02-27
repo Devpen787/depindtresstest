@@ -60,6 +60,7 @@ export interface DTSERunContext {
     model_version: string;
     generated_at_utc: string;
     bundle_hash: string;
+    weekly_solvency?: number[];
     outcomes?: DTSEOutcome[];
     failure_signatures?: DTSEFailureSignature[];
     recommendations?: DTSERecommendation[];

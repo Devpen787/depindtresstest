@@ -233,6 +233,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       return (
         <DTSEOutcomesStage
           outcomes={pack.outcomes}
+          weeklySolvency={ctx.weekly_solvency}
           metricLabels={METRIC_LABELS}
           unitMap={UNIT_MAP}
           applicabilityEntries={pack.applicability}

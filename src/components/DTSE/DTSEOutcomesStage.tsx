@@ -2,6 +2,8 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import {
   ResponsiveContainer,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
@@ -21,6 +23,7 @@ export interface DTSEThresholdConfig {
 
 interface DTSEOutcomesStageProps {
   outcomes: DTSEOutcome[];
+  weeklySolvency?: number[];
   metricLabels: Record<string, string>;
   unitMap: Record<string, string>;
   applicabilityEntries: DTSEApplicabilityEntry[];
@@ -65,6 +68,7 @@ const BandIcon: React.FC<{ band: GuardrailBand }> = ({ band }) => {
 
 export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
   outcomes,
+  weeklySolvency,
   metricLabels,
   unitMap,
   applicabilityEntries,
@@ -123,6 +127,23 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
     watchlist: '#fbbf24',
     intervention: '#fb7185',
   };
+  const solvencyTrajectory = (weeklySolvency ?? [])
+    .map((value, index) => ({ week: index + 1, solvency: value }))
+    .filter((point) => Number.isFinite(point.solvency));
+  const hasTrajectory = solvencyTrajectory.length > 1;
+  const SOLVENCY_HEALTHY_FLOOR = 1.3;
+  const SOLVENCY_INTERVENTION_FLOOR = 0.8;
+  const solvencyRange = hasTrajectory
+    ? solvencyTrajectory.reduce(
+      (range, point) => ({
+        min: Math.min(range.min, point.solvency),
+        max: Math.max(range.max, point.solvency),
+      }),
+      { min: Infinity, max: -Infinity },
+    )
+    : { min: 0.6, max: 1.5 };
+  const trajectoryMin = Math.min(0.6, Math.floor((solvencyRange.min - 0.1) * 10) / 10);
+  const trajectoryMax = Math.max(1.6, Math.ceil((solvencyRange.max + 0.1) * 10) / 10);
 
   return (
     <div data-cy="dtse-outcomes-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -196,6 +217,66 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
             </ResponsiveContainer>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">100% marks the healthy threshold for each metric.</p>
+        </div>
+      )}
+
+      {hasTrajectory && (
+        <div className="rounded-2xl border border-white/5 bg-slate-950/50 p-5 relative overflow-hidden backdrop-blur-sm">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Solvency trajectory (52 weeks)</h3>
+          <div data-cy="dtse-solvency-trajectory-chart" className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={solvencyTrajectory} margin={{ top: 12, right: 16, left: 8, bottom: 8 }}>
+                <defs>
+                  <linearGradient id="dtseSolvencyFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#60a5fa" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="week"
+                  stroke="#475569"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  tickFormatter={(week) => `W${week}`}
+                />
+                <YAxis
+                  domain={[trajectoryMin, trajectoryMax]}
+                  stroke="#475569"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  tickFormatter={(value) => `${value.toFixed(1)}x`}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b' }}
+                  labelStyle={{ color: '#cbd5e1' }}
+                  formatter={(value: number) => [`${value.toFixed(2)}x`, 'Solvency ratio']}
+                  labelFormatter={(label) => `Week ${label}`}
+                />
+                <ReferenceLine
+                  y={SOLVENCY_HEALTHY_FLOOR}
+                  stroke="#34d399"
+                  strokeDasharray="4 4"
+                  label={{ value: 'Healthy floor 1.3x', fill: '#34d399', fontSize: 10, position: 'right' }}
+                />
+                <ReferenceLine
+                  y={SOLVENCY_INTERVENTION_FLOOR}
+                  stroke="#fb7185"
+                  strokeDasharray="4 4"
+                  label={{ value: 'Intervention floor 0.8x', fill: '#fb7185', fontSize: 10, position: 'right' }}
+                />
+                <Area
+                  dataKey="solvency"
+                  type="monotone"
+                  stroke="#60a5fa"
+                  strokeWidth={2}
+                  fill="url(#dtseSolvencyFill)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-2">
+            Series is protocol-specific and deterministic for this frozen bundle.
+          </p>
         </div>
       )}
 

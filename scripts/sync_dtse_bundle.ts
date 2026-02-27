@@ -88,6 +88,27 @@ function verifyBundle(): boolean {
                     ok = false;
                 }
             }
+            if ('weekly_solvency' in rc && rc.weekly_solvency !== undefined && rc.weekly_solvency !== null) {
+                if (!Array.isArray(rc.weekly_solvency)) {
+                    console.error('[DTSE] ERROR: run_context.weekly_solvency must be an array when present');
+                    ok = false;
+                } else {
+                    const horizonWeeks = typeof rc.horizon_weeks === 'number' ? rc.horizon_weeks : null;
+                    if (horizonWeeks !== null && rc.weekly_solvency.length !== horizonWeeks) {
+                        console.error(
+                            `[DTSE] ERROR: run_context.weekly_solvency length ${rc.weekly_solvency.length} does not match horizon_weeks ${horizonWeeks}`,
+                        );
+                        ok = false;
+                    }
+                    const hasInvalidPoint = rc.weekly_solvency.some((value) => (
+                        typeof value !== 'number' || !Number.isFinite(value)
+                    ));
+                    if (hasInvalidPoint) {
+                        console.error('[DTSE] ERROR: run_context.weekly_solvency contains non-finite values');
+                        ok = false;
+                    }
+                }
+            }
             if (ok) {
                 console.log('[DTSE]   ✓ run_context fields validated');
             }
