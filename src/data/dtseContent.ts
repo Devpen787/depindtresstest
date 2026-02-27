@@ -734,7 +734,7 @@ export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
         definition: 'Estimated provider CAPEX payback duration under stress outcomes.',
         why_relevant: 'Long payback periods weaken operator retention and onboarding quality.',
         decision_use: 'Guides incentive calibration for durable provider participation.',
-        target: 'Healthy ≤ 18 months',
+        target: 'Healthy ≤ 24 months',
         interpretation: {
             healthy: 'Provider economics are attractive for sustained participation.',
             watchlist: 'ROI horizon is stretched and may weaken conviction.',

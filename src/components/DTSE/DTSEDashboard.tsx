@@ -2,12 +2,17 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import type { ProtocolProfileV1 } from '../../data/protocols';
 import { PROTOCOL_PROFILES } from '../../data/protocols';
+import type { AggregateResult, DerivedMetrics, SimulationParams } from '../../model/types';
 import {
   buildDTSEProtocolPack,
   DTSE_METRIC_INSIGHTS,
   DTSE_REASON_LABELS,
 } from '../../data/dtseContent';
 import { DTSE_PEER_ANALOGS } from '../../data/dtsePeerAnalogs';
+import { buildLiveDTSEOutputs, buildLiveDTSERunContext } from '../../utils/dtseLiveOutputs';
+import { buildLiveDTSEFailureSignatures } from '../../utils/dtseLiveSignatures';
+import { buildLiveDTSERecommendations } from '../../utils/dtseLiveRecommendations';
+import { buildLiveDTSEApplicability } from '../../utils/dtseLiveApplicability';
 import { DTSEContextStage } from './DTSEContextStage';
 import { DTSEApplicabilityStage } from './DTSEApplicabilityStage';
 import { DTSEOutcomesStage, type DTSEThresholdConfig } from './DTSEOutcomesStage';
@@ -89,12 +94,24 @@ interface DTSEDashboardProps {
   activeProfile?: ProtocolProfileV1;
   profiles?: ProtocolProfileV1[];
   onSelectProtocol?: (profile: ProtocolProfileV1) => void;
+  params?: SimulationParams;
+  aggregated?: AggregateResult[];
+  multiAggregated?: Record<string, AggregateResult[]>;
+  derivedMetrics?: DerivedMetrics | null;
+  simulationRunId?: number;
+  useNewModel?: boolean;
 }
 
 export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
   activeProfile,
   profiles,
   onSelectProtocol,
+  params,
+  aggregated,
+  multiAggregated,
+  derivedMetrics,
+  simulationRunId = 0,
+  useNewModel = true,
 }) => {
   const availableProfiles = profiles && profiles.length > 0 ? profiles : PROTOCOL_PROFILES;
   const fallbackProfile = (availableProfiles[0] ?? PROTOCOL_PROFILES[0]) as ProtocolProfileV1;
@@ -116,7 +133,34 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
   );
 
   const pack = useMemo(() => buildDTSEProtocolPack(selectedProfile), [selectedProfile]);
-  const ctx = pack.runContext;
+  const liveAggregated = useMemo(() => {
+    if (activeProfile?.metadata.id === selectedProfile.metadata.id && aggregated && aggregated.length > 0) {
+      return aggregated;
+    }
+    const selectedProfileSeries = multiAggregated?.[selectedProfile.metadata.id];
+    if (selectedProfileSeries && selectedProfileSeries.length > 0) {
+      return selectedProfileSeries;
+    }
+    return [];
+  }, [activeProfile?.metadata.id, aggregated, multiAggregated, selectedProfile.metadata.id]);
+  const liveOutputs = useMemo(() => {
+    if (!params) return null;
+    return buildLiveDTSEOutputs(liveAggregated, params, derivedMetrics);
+  }, [derivedMetrics, liveAggregated, params]);
+  const displayedApplicability = useMemo(() => {
+    if (!params) {
+      return pack.applicability;
+    }
+    return buildLiveDTSEApplicability(liveAggregated, params, derivedMetrics) ?? pack.applicability;
+  }, [derivedMetrics, liveAggregated, pack.applicability, params]);
+  const displayedOutcomes = liveOutputs?.outcomes ?? pack.outcomes;
+  const displayedFailureSignatures = useMemo(() => {
+    if (!params || !liveOutputs) {
+      return pack.failureSignatures;
+    }
+    const liveSignatures = buildLiveDTSEFailureSignatures(liveAggregated, params, liveOutputs.outcomes);
+    return liveSignatures.length > 0 ? liveSignatures : pack.failureSignatures;
+  }, [liveAggregated, liveOutputs, pack.failureSignatures, params]);
   const peerContext = useMemo(() => {
     const analog = DTSE_PEER_ANALOGS[selectedProfile.metadata.id];
     if (!analog) return undefined;
@@ -129,7 +173,31 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       confidence: analog.confidence,
     };
   }, [availableProfiles, selectedProfile.metadata.id]);
-
+  const displayedRecommendations = useMemo(() => {
+    if (!liveOutputs) {
+      return pack.recommendations;
+    }
+    return buildLiveDTSERecommendations(displayedFailureSignatures, liveOutputs.outcomes, {
+      protocolName: selectedProfile.metadata.name,
+      peerNames: peerContext?.peerNames,
+    });
+  }, [displayedFailureSignatures, liveOutputs, pack.recommendations, peerContext?.peerNames, selectedProfile.metadata.name]);
+  const ctx = useMemo(() => {
+    if (!params || !liveOutputs) {
+      return pack.runContext;
+    }
+    return buildLiveDTSERunContext({
+      profileId: selectedProfile.metadata.id,
+      params,
+      simulationRunId,
+      modelVersion: useNewModel ? 'Agent-Based v2' : 'Legacy v1',
+      outcomes: liveOutputs.outcomes,
+      weeklySolvency: liveOutputs.weeklySolvency,
+      fallbackScenarioGridId: pack.runContext.scenario_grid_id,
+      failureSignatures: displayedFailureSignatures,
+      recommendations: displayedRecommendations,
+    });
+  }, [displayedFailureSignatures, displayedRecommendations, liveOutputs, pack, params, selectedProfile.metadata.id, simulationRunId, useNewModel]);
   const handleProtocolChange = useCallback((nextId: string) => {
     setSelectedProtocolId(nextId);
     setCurrentStage(0);
@@ -205,7 +273,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       return (
         <DTSEContextStage
           protocolBrief={pack.protocolBrief}
-          outcomes={pack.outcomes}
+          outcomes={displayedOutcomes}
           metricLabels={METRIC_LABELS}
           peerContext={peerContext}
           modelVersion={ctx.model_version}
@@ -221,7 +289,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     if (stageIdx === 1) {
       return (
         <DTSEApplicabilityStage
-          entries={pack.applicability}
+          entries={displayedApplicability}
           metricLabels={METRIC_LABELS}
           metricInsights={DTSE_METRIC_INSIGHTS}
           reasonLabels={DTSE_REASON_LABELS}
@@ -232,11 +300,12 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     if (stageIdx === 2) {
       return (
         <DTSEOutcomesStage
-          outcomes={pack.outcomes}
+          outcomes={displayedOutcomes}
           weeklySolvency={ctx.weekly_solvency}
+          trajectorySource={liveOutputs ? 'model' : 'frozen'}
           metricLabels={METRIC_LABELS}
           unitMap={UNIT_MAP}
-          applicabilityEntries={pack.applicability}
+          applicabilityEntries={displayedApplicability}
           metricInsights={DTSE_METRIC_INSIGHTS}
           thresholdConfigMap={METRIC_THRESHOLD_CONFIG}
         />
@@ -246,7 +315,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     if (stageIdx === 3) {
       return (
         <DTSESignatureStage
-          signatures={pack.failureSignatures}
+          signatures={displayedFailureSignatures}
           metricLabels={METRIC_LABELS}
         />
       );
@@ -254,7 +323,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
 
     return (
       <DTSERecommendationsStage
-        recommendations={pack.recommendations}
+        recommendations={displayedRecommendations}
         onExport={handleExport}
       />
     );
@@ -264,10 +333,10 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     const payload = {
       runContext: ctx,
       protocolBrief: pack.protocolBrief,
-      applicability: pack.applicability,
-      outcomes: pack.outcomes,
-      failureSignatures: pack.failureSignatures,
-      recommendations: pack.recommendations,
+      applicability: displayedApplicability,
+      outcomes: displayedOutcomes,
+      failureSignatures: displayedFailureSignatures,
+      recommendations: displayedRecommendations,
       exportedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -279,7 +348,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [ctx, pack]);
+  }, [ctx, displayedApplicability, displayedFailureSignatures, displayedOutcomes, displayedRecommendations, pack]);
 
   return (
     <div data-cy="dtse-dashboard-root" className="flex flex-col h-full">

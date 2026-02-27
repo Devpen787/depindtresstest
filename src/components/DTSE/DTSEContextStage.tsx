@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Clock, Cpu, Layers3, ArrowRightLeft, Coins } from 'lucide-react';
+import { Server, ArrowRightLeft, Coins, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { DTSERunContext, DTSEProtocolBrief, DTSEOutcome } from '../../types/dtse';
 
@@ -27,22 +27,16 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   outcomes,
   metricLabels,
   peerContext,
-  modelVersion,
-  generatedAt,
-  scenarioGridId,
-  horizonWeeks,
-  nSims,
+  modelVersion: _modelVersion,
+  generatedAt: _generatedAt,
+  scenarioGridId: _scenarioGridId,
+  horizonWeeks: _horizonWeeks,
+  nSims: _nSims,
   evidenceStatus,
 }) => {
-  const evidenceClass = evidenceStatus === 'complete'
-    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-    : evidenceStatus === 'partial'
-      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-      : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-[0_0_15px_rgba(225,29,72,0.15)]';
-
   const CardHeader = ({ icon: Icon, label }: { icon: LucideIcon; label: string }) => (
-    <div className="flex items-center gap-2 mb-3">
-      <div className="p-1.5 rounded-md bg-cyan-950/30 border border-cyan-500/20">
+    <div className="mb-3 flex items-center gap-2">
+      <div className="rounded-md border border-cyan-500/20 bg-cyan-950/30 p-1.5">
         <Icon size={14} className="text-cyan-400" />
       </div>
       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400/90">{label}</span>
@@ -78,7 +72,12 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   const attentionCount = bandCounts.watchlist + bandCounts.intervention;
   const verdictSummary = overallBand === 'healthy'
     ? `All ${coreOutcomes.length} core indicators are in healthy range.`
-    : `${attentionCount} of ${coreOutcomes.length} core indicators need attention.${driverLabels.length > 0 ? ` ${driverLabels.join(' and ')} are primary drivers.` : ''}`;
+    : `${attentionCount} of ${coreOutcomes.length} core indicators need attention.${driverLabels.length > 0 ? ` ${driverLabels.join(' and ')} are the main drivers.` : ''}`;
+  const verdictTitle = overallBand === 'healthy'
+    ? 'Structure looks durable.'
+    : overallBand === 'watchlist'
+      ? 'Resilience is present, but the margin is thin.'
+      : 'The current token design breaks under stress.';
   const peerConfidenceClass = peerContext?.confidence === 'high'
     ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-300'
     : peerContext?.confidence === 'medium'
@@ -86,110 +85,137 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
       : 'bg-slate-900/70 border-slate-700/70 text-slate-300';
 
   return (
-    <div data-cy="dtse-context-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div data-cy="dtse-context-stage" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
         <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
           Stage 1 — Protocol Context
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Defines the required macro environment and structural bounds of the stress evaluation.
+          Protocol snapshot, key drivers, and confidence level.
         </p>
       </div>
 
-      <div data-cy="dtse-overall-verdict" className={`rounded-xl border px-4 py-3 ${bandClass}`}>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em]">{overallBand}</p>
-        <p className="text-sm font-semibold mt-1 text-slate-100">{verdictSummary}</p>
-      </div>
+      <section className="space-y-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Assessment</p>
 
-      {/* Hero Protocol Card */}
-      <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-xl transition-all duration-300 hover:border-white/10 group">
-        <div className="absolute top-0 right-0 p-32 bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none group-hover:bg-cyan-500/10 transition-colors duration-500" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-400/80">Entity Brief</span>
-              <span className="px-2.5 py-1 rounded-[4px] text-[9px] font-bold uppercase tracking-widest bg-slate-800/80 text-slate-300 border border-slate-700/50">
-                {protocolBrief.chain}
-              </span>
+        <div data-cy="dtse-overall-verdict" className={`relative overflow-hidden rounded-2xl border p-6 shadow-xl backdrop-blur-md ${bandClass}`}>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-white/5 via-transparent to-transparent" />
+            <div className="relative z-10 space-y-5">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em]">Overall assessment</p>
+                <h3 className="max-w-xl text-2xl font-black tracking-tight text-slate-100">{verdictTitle}</h3>
+                <p className="max-w-2xl text-sm font-semibold leading-relaxed text-slate-100">{verdictSummary}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
+                {([
+                  { label: 'Healthy', value: bandCounts.healthy, tone: 'text-emerald-300' },
+                  { label: 'Watchlist', value: bandCounts.watchlist, tone: 'text-amber-300' },
+                  { label: 'Intervention', value: bandCounts.intervention, tone: 'text-rose-300' },
+                ]).map((item) => (
+                  <div key={item.label} className="rounded-xl border border-white/10 bg-slate-950/35 p-3.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                    <p className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
+                <div className="flex items-center gap-2 text-cyan-300">
+                  <Sparkles size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em]">Primary drivers</span>
+                </div>
+                {(driverLabels.length > 0 ? driverLabels : ['No stressed drivers detected']).map((driver) => (
+                  <span
+                    key={driver}
+                    className="rounded-md border border-white/10 bg-slate-950/35 px-2.5 py-1 text-xs font-semibold text-slate-200"
+                  >
+                    {driver}
+                  </span>
+                ))}
+              </div>
             </div>
-            <h3 className="text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
-              {protocolBrief.protocol_name}
-            </h3>
-            <p className="text-xs font-mono text-slate-500 mt-1">{protocolBrief.protocol_id}</p>
+
+            <div className="relative z-10 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+              <div className="space-y-3">
+                <div>
+                  <div className="mb-2 flex items-center gap-3">
+                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-400/80">Protocol</span>
+                    <span className="rounded-[4px] border border-slate-700/50 bg-slate-800/80 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-slate-300">
+                      {protocolBrief.chain}
+                    </span>
+                  </div>
+                  <h3 className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-black tracking-tight text-transparent">
+                    {protocolBrief.protocol_name}
+                  </h3>
+                  <p className="mt-1 text-xs font-mono text-slate-500">{protocolBrief.protocol_id}</p>
+                </div>
+
+                <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Surface</p>
+                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.depin_surface}</p>
+                </div>
+
+                <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Notes</p>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400">{protocolBrief.notes}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div className="relative z-10 mt-5 pt-5 border-t border-white/5">
-          <p className="text-sm text-slate-300 leading-relaxed font-medium">{protocolBrief.depin_surface}</p>
-          <p className="text-xs text-slate-500 leading-relaxed mt-2">{protocolBrief.notes}</p>
-        </div>
-      </div>
+      </section>
 
       {peerContext && (
-        <div className="bg-slate-900/35 border border-white/5 rounded-xl p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Comparable peers</p>
-            <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-[0.16em] ${peerConfidenceClass}`}>
-              {peerContext.confidence} confidence
-            </span>
+        <section className="space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Comparables</p>
+          <div className="rounded-2xl border border-white/5 bg-slate-900/30 p-4 space-y-3">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+              <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Comparable peers</p>
+                <span className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${peerConfidenceClass}`}>
+                  {peerContext.confidence} confidence
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {peerContext.peerNames.map((peerName) => (
+                  <span key={peerName} className="rounded-md border border-slate-700/70 bg-slate-900/70 px-2.5 py-1 text-xs font-semibold text-slate-200">
+                    {peerName}
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs leading-relaxed text-slate-400">{peerContext.rationale}</p>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {peerContext.peerNames.map((peerName) => (
-              <span key={peerName} className="px-2.5 py-1 rounded-md border border-slate-700/70 bg-slate-900/70 text-xs text-slate-200 font-semibold">
-                {peerName}
-              </span>
-            ))}
-          </div>
-          <p className="text-xs text-slate-400 leading-relaxed">{peerContext.rationale}</p>
-        </div>
+        </section>
       )}
 
-      {/* Mechanics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { icon: ArrowRightLeft, label: "Demand Signal", text: protocolBrief.demand_signal, delay: "delay-[100ms]" },
-          { icon: Server, label: "Supply Signal", text: protocolBrief.supply_signal, delay: "delay-[150ms]" },
-        ].map((block, idx) => (
-          <div key={idx} className={`bg-slate-900/30 backdrop-blur-sm border border-white/5 rounded-xl p-5 hover:-translate-y-0.5 hover:bg-slate-900/50 hover:border-white/10 transition-all duration-300 shadow-lg ${block.delay}`}>
-            <CardHeader icon={block.icon} label={block.label} />
-            <p className="text-sm text-slate-300 leading-relaxed">{block.text}</p>
-          </div>
-        ))}
+      <section className="space-y-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Mechanics</p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {[
+            { icon: ArrowRightLeft, label: 'Demand Signal', text: protocolBrief.demand_signal },
+            { icon: Server, label: 'Supply Signal', text: protocolBrief.supply_signal },
+          ].map((block) => (
+            <div key={block.label} className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/10 hover:bg-slate-900/35">
+              <CardHeader icon={block.icon} label={block.label} />
+              <p className="text-sm leading-relaxed text-slate-300">{block.text}</p>
+            </div>
+          ))}
 
-        <div className="bg-slate-900/30 backdrop-blur-sm border border-white/5 rounded-xl p-5 hover:-translate-y-0.5 hover:bg-slate-900/50 hover:border-white/10 transition-all duration-300 shadow-lg delay-[200ms]">
-          <CardHeader icon={Coins} label="Token Utility" />
-          <ul className="space-y-1.5 marker:text-cyan-500/50 list-inside list-disc">
-            {protocolBrief.token_utility.map((item) => (
-              <li key={item} className="text-sm text-slate-300 leading-relaxed">{item}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* Run Context Footer Strip */}
-      <div className="bg-slate-950/50 border border-slate-800/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 mt-8 shadow-inner">
-        <div className="flex flex-wrap items-center gap-5 text-[11px] font-medium text-slate-400">
-          <div className="flex items-center gap-2">
-            <Layers3 size={12} className="text-slate-500" />
-            <span className="font-mono text-slate-300">{scenarioGridId}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Cpu size={12} className="text-slate-500" />
-            <span>{modelVersion}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock size={12} className="text-slate-500" />
-            <span>{new Date(generatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-          </div>
-          <div className="px-2 py-0.5 bg-slate-900 rounded select-none border border-slate-800">
-            {horizonWeeks}w <span className="text-slate-600">·</span> {nSims} sims
+          <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/10 hover:bg-slate-900/35">
+            <CardHeader icon={Coins} label="Token Utility" />
+            <ul className="list-inside list-disc space-y-1.5 marker:text-cyan-500/50">
+              {protocolBrief.token_utility.map((item) => (
+                <li key={item} className="text-sm leading-relaxed text-slate-300">{item}</li>
+              ))}
+            </ul>
           </div>
         </div>
-        <span className={`px-2.5 py-1 rounded-[4px] text-[9px] font-black uppercase tracking-widest border ${evidenceClass}`}>
-          {evidenceStatus} Evidence
-        </span>
-      </div>
+      </section>
     </div>
   );
 };

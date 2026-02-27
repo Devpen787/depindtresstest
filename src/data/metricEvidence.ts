@@ -102,6 +102,15 @@ export const METRIC_EVIDENCE_REGISTRY: Record<string, MetricEvidence> = {
         timeWindow: 'simulation_horizon_weeks',
         reproducibilityStatus: 'runnable',
     },
+    tail_risk_score: {
+        metricId: 'tail_risk_score',
+        definition: 'Composite downside fragility score derived from simulated drawdown, tail dispersion, and insolvency share.',
+        sourceUrlOrQueryId: 'model://src/audit/decisionTreeViewMath.ts',
+        sourceGrade: 'proxy',
+        timeWindow: 'simulation_horizon_weeks',
+        reproducibilityStatus: 'runnable',
+        notes: 'Derived from simulation aggregates rather than primary telemetry.',
+    },
     onocoy_reward_fidelity: {
         metricId: 'onocoy_reward_fidelity',
         definition: 'Onocoy reward-fidelity proxy from protocol hook scaffolding (location, quality, availability factors).',

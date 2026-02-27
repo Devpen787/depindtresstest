@@ -761,6 +761,12 @@ const App: React.FC = () => {
               activeProfile={sim.activeProfile}
               profiles={PROTOCOL_PROFILES}
               onSelectProtocol={sim.loadProfile}
+              params={sim.params}
+              aggregated={sim.aggregated}
+              multiAggregated={sim.multiAggregated}
+              derivedMetrics={sim.derivedMetrics}
+              simulationRunId={sim.simulationRunId}
+              useNewModel={sim.useNewModel}
             />
           </Suspense>
         </div>
