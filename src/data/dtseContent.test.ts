@@ -46,6 +46,15 @@ describe('buildDTSEProtocolPack', () => {
             expect(pack.runContext.protocol_id).toBe(profile.metadata.id);
             expect(pack.protocolBrief.protocol_id).toBe(profile.metadata.id);
             expect(pack.protocolBrief.protocol_name).toBe(profile.metadata.name);
+            expect(pack.protocolBrief.mechanism).toBeTruthy();
+            expect(pack.protocolBrief.supply_count).toBeGreaterThan(0);
+            expect(pack.protocolBrief.supply_unit).toBeTruthy();
+            expect(['Capped', 'Uncapped', 'Elastic']).toContain(pack.protocolBrief.supply_structure);
+            expect(pack.protocolBrief.token_price_usd).toBeGreaterThanOrEqual(0);
+            expect(pack.protocolBrief.market_cap_usd).toBeGreaterThanOrEqual(0);
+            expect(pack.protocolBrief.weekly_emissions).toBeGreaterThanOrEqual(0);
+            expect(pack.protocolBrief.burn_fraction_pct).toBeGreaterThanOrEqual(0);
+            expect(pack.protocolBrief.active_providers).toBeGreaterThanOrEqual(0);
 
             expect(pack.applicability.length).toBe(APPLICABILITY_METRICS.length);
             for (const metricId of APPLICABILITY_METRICS) {

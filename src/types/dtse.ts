@@ -124,7 +124,18 @@ export interface DTSEProtocolBrief {
     protocol_id: string;
     protocol_name: string;
     chain: string;
+    mechanism: string;
     depin_surface: string;
+    supply_count: number;
+    supply_unit: string;
+    supply_structure: 'Capped' | 'Uncapped' | 'Elastic';
+    token_price_usd: number;
+    market_cap_usd: number;
+    weekly_emissions: number;
+    weekly_emissions_unit: string;
+    burn_fraction_pct: number;
+    active_providers: number;
+    active_providers_unit: string;
     demand_signal: string;
     supply_signal: string;
     token_utility: string[];
