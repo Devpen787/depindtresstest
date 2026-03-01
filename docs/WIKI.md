@@ -189,4 +189,21 @@ See also: `docs/DTSE_PRODUCT_SPEC_V1.md` for the full specification.
 
 ---
 
+## 11. Protocol Data Sources
+
+Use:
+
+- `docs/PROTOCOL_DATA_SOURCES.md`
+
+to find which file owns:
+
+- protocol baseline inputs
+- verified protocol facts
+- live CoinGecko market data
+- DTSE presentation copy
+
+Do not use `src/data/dtseContent.ts` as the source of truth for live market values.
+
+---
+
 Last updated: 2026-02-26

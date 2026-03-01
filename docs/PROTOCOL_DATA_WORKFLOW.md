@@ -1,5 +1,9 @@
 # Protocol Data Workflow
 
+For the high-level map of where reliable protocol information lives, start with:
+
+- `docs/PROTOCOL_DATA_SOURCES.md`
+
 ## Source of truth
 
 Edit this file first:

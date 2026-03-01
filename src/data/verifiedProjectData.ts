@@ -1,9 +1,12 @@
 /**
  * Verified Project Data Reference
  * 
- * This file is the single source of truth for all DePIN project data
- * displayed in the Diagnostic tab. Every data point includes its source
- * and verification date.
+ * This file is the source of truth for verified protocol facts used by
+ * Diagnostic and related evidence surfaces. Every data point includes its
+ * source and verification date.
+ *
+ * It is not the source of truth for live market data or shared baseline
+ * simulation parameters. See `docs/PROTOCOL_DATA_SOURCES.md`.
  * 
  * IMPORTANT: Update this file when new verified data is available.
  * Mark unverified data with isVerified: false

@@ -60,3 +60,4 @@ Default CI scope is `optimizer`; switch to `dashboard` scope when you want full 
 - Live token market data is fetched from CoinGecko.
 - On-chain protocol telemetry is integrated through service hooks where available.
 - Simulator and benchmark outputs are scenario-driven model outputs, not price predictions.
+- Protocol data source map: `/Users/devinsonpena/Desktop/Files/DePin-Stress-Test/docs/PROTOCOL_DATA_SOURCES.md`
