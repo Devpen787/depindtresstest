@@ -1,6 +1,10 @@
 import { SimulationParams } from '../model/types';
 import { TrendingDown, Infinity, Swords, Zap } from 'lucide-react';
 
+// Legacy scenario library for broader dashboard flows.
+// DTSE itself now maps live runtime conditions into thesis-aligned stress channels
+// via `src/utils/dtseStressChannel.ts`.
+
 export interface SimulationScenario {
     id: string;
     name: string;

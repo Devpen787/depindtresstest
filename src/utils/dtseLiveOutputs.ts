@@ -13,7 +13,7 @@ import {
   classifySolvencyBand,
 } from '../audit/kpiOwnerMath';
 import type { AggregateResult, DerivedMetrics, SimulationParams } from '../model/types';
-import type { DTSERunContext, DTSEOutcome } from '../types/dtse';
+import type { DTSERunContext, DTSEOutcome, DTSEStressChannel } from '../types/dtse';
 
 const roundTo = (value: number, digits: number = 2): number => {
   const factor = 10 ** digits;
@@ -25,25 +25,6 @@ const classifyNetworkUtilizationBand = (utilizationPct: number): GuardrailBand =
   if (utilizationPct < UTILIZATION_GUARDRAILS.watchlistMinPct) return 'intervention';
   if (utilizationPct < UTILIZATION_GUARDRAILS.healthyMinPct) return 'watchlist';
   return 'healthy';
-};
-
-const deriveStressResilienceOutcome = (outcomes: DTSEOutcome[]): DTSEOutcome => {
-  const scoreByBand: Record<GuardrailBand, number> = {
-    healthy: 85,
-    watchlist: 62,
-    intervention: 38,
-  };
-  const avgScore = outcomes.length === 0
-    ? 60
-    : Math.round(outcomes.reduce((sum, outcome) => sum + scoreByBand[outcome.band], 0) / outcomes.length);
-  const band = avgScore >= 70 ? 'healthy' : avgScore >= 55 ? 'watchlist' : 'intervention';
-
-  return {
-    metric_id: 'stress_resilience_index',
-    value: avgScore,
-    band,
-    evidence_ref: 'derived_from_live_model_outputs',
-  };
 };
 
 const calculatePaybackMonthsFromAggregate = (
@@ -128,10 +109,9 @@ export function buildLiveDTSEOutputs(
     },
   ];
 
-  const outcomes = [...primaryOutcomes, deriveStressResilienceOutcome(primaryOutcomes)];
   const weeklySolvency = aggregated.map((point) => roundTo(calculateOwnerSolvencyRatio(point), 3));
 
-  return { outcomes, weeklySolvency };
+  return { outcomes: primaryOutcomes, weeklySolvency };
 }
 
 export interface BuildLiveDTSERunContextInputs {
@@ -141,6 +121,7 @@ export interface BuildLiveDTSERunContextInputs {
   modelVersion: string;
   outcomes: DTSEOutcome[];
   weeklySolvency: number[];
+  stressChannel?: DTSEStressChannel;
   fallbackScenarioGridId?: string;
   failureSignatures?: DTSERunContext['failure_signatures'];
   recommendations?: DTSERunContext['recommendations'];
@@ -153,6 +134,7 @@ export function buildLiveDTSERunContext({
   modelVersion,
   outcomes,
   weeklySolvency,
+  stressChannel,
   fallbackScenarioGridId,
   failureSignatures,
   recommendations,
@@ -174,6 +156,7 @@ export function buildLiveDTSERunContext({
     model_version: modelVersion,
     generated_at_utc: new Date().toISOString(),
     bundle_hash: `runtime:${profileId}:${simulationRunId}`,
+    stress_channel: stressChannel,
     weekly_solvency: weeklySolvency,
     outcomes,
     failure_signatures: failureSignatures,

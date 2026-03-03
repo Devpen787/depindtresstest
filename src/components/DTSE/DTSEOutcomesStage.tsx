@@ -4,6 +4,8 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  LineChart,
+  Line,
   BarChart,
   Bar,
   XAxis,
@@ -11,9 +13,11 @@ import {
   Tooltip,
   ReferenceLine,
   Cell,
+  CartesianGrid,
 } from 'recharts';
 import type { DTSEApplicabilityEntry, DTSEMetricInsight, DTSEOutcome } from '../../types/dtse';
 import type { GuardrailBand } from '../../constants/guardrails';
+import type { DTSESequenceView } from '../../utils/dtseSequenceView';
 
 export interface DTSEThresholdConfig {
   healthyTarget: number;
@@ -30,6 +34,7 @@ interface DTSEOutcomesStageProps {
   applicabilityEntries: DTSEApplicabilityEntry[];
   metricInsights: Record<string, DTSEMetricInsight>;
   thresholdConfigMap: Record<string, DTSEThresholdConfig>;
+  sequenceView?: DTSESequenceView;
 }
 
 const BAND_STYLES: Record<GuardrailBand, {
@@ -76,6 +81,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
   applicabilityEntries,
   metricInsights,
   thresholdConfigMap,
+  sequenceView,
 }) => {
   const applicabilityByMetric: Record<string, DTSEApplicabilityEntry> = {};
   for (const entry of applicabilityEntries) {
@@ -125,6 +131,12 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
     watchlist: '#fbbf24',
     intervention: '#fb7185',
   };
+  const pathwaySeverityStyles = {
+    none: 'bg-slate-900/80 border border-slate-800/80',
+    watch: 'bg-amber-500/20 border border-amber-500/30',
+    alert: 'bg-rose-500/30 border border-rose-500/40',
+    critical: 'bg-rose-400/70 border border-rose-300/80 shadow-[0_0_8px_rgba(251,113,133,0.45)]',
+  } as const;
 
   const solvencyTrajectory = (weeklySolvency ?? [])
     .map((value, index) => ({ week: index + 1, solvency: value }))
@@ -151,19 +163,152 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
           Stage 3 — Stress Results
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Result summary, charts, and metric-level outcomes.
+          Read this stage as deterioration order under matched conditions. The main question is what breaks first relative to baseline, not which protocol scores highest on a universal scale.
         </p>
       </div>
 
+      {sequenceView && (
+        <>
+          <section className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Baseline Drift</p>
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.75fr]">
+              <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Stress deviation vs baseline</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+                      Zero marks the matched baseline. Negative drift shows where stress materially knocks the network off its natural path.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2 text-right">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Earliest break</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-200">
+                      {sequenceView.earliestTriggerWeek ? `Week ${sequenceView.earliestTriggerWeek}` : 'Contained'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-500">{sequenceView.earliestTriggerLabel ?? 'No early threshold breach detected'}</p>
+                  </div>
+                </div>
+                <div data-cy="dtse-baseline-drift-chart" className="h-[280px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={sequenceView.deviationSeries} margin={{ top: 12, right: 16, left: 6, bottom: 8 }}>
+                      <CartesianGrid stroke="#172033" strokeDasharray="2 4" vertical={false} />
+                      <XAxis
+                        dataKey="week"
+                        stroke="#475569"
+                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                        tickFormatter={(week) => `W${week}`}
+                      />
+                      <YAxis
+                        stroke="#475569"
+                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                        tickFormatter={(value) => `${value}%`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b' }}
+                        labelStyle={{ color: '#cbd5e1' }}
+                        formatter={(value: number, name: string) => [`${value.toFixed(1)}%`, name]}
+                        labelFormatter={(label) => `Week ${label}`}
+                      />
+                      <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 4" />
+                      <Line type="monotone" dataKey="solvencyDeltaPct" name="Solvency" stroke="#60a5fa" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="utilizationDeltaPct" name="Utilization" stroke="#34d399" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="providerDeltaPct" name="Providers" stroke="#fbbf24" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="priceDeltaPct" name="Price" stroke="#f472b6" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Interpretive boundary</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    DTSE compares drift from a matched baseline path. It does not forecast live-network truth or compress unlike protocols into a single winner score.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 backdrop-blur-sm">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">The DePIN Illusion</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    {sequenceView.illusionWarning}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Transmission Pathway</p>
+            <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">What breaks first</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+                    Each row shows when a subsystem first departs from the healthy or baseline envelope. Earlier rows usually absorb the shock before node count visibly reacts.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Legend</p>
+                  <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+                    <span className={`h-2.5 w-2.5 rounded-sm ${pathwaySeverityStyles.watch}`} />
+                    Watch
+                    <span className={`ml-2 h-2.5 w-2.5 rounded-sm ${pathwaySeverityStyles.alert}`} />
+                    Alert
+                    <span className={`ml-2 h-2.5 w-2.5 rounded-sm ${pathwaySeverityStyles.critical}`} />
+                    Critical
+                  </div>
+                </div>
+              </div>
+
+              <div data-cy="dtse-transmission-pathway" className="space-y-3">
+                {sequenceView.pathway.map((row) => (
+                  <div key={row.familyId} className="rounded-xl border border-white/5 bg-slate-900/20 p-3.5">
+                    <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-slate-100">{row.label}</p>
+                          <span className="rounded-full border border-white/5 bg-slate-900/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                            {row.triggerWeek ? `Week ${row.triggerWeek}` : 'Contained'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-400">{row.triggerLabel}</p>
+                      </div>
+                      <p className="max-w-xl text-[11px] leading-relaxed text-slate-500">{row.detail}</p>
+                    </div>
+
+                    <div
+                      className="mt-3 grid gap-1"
+                      style={{ gridTemplateColumns: `repeat(${row.cells.length}, minmax(0, 1fr))` }}
+                    >
+                      {row.cells.map((cell) => (
+                        <div
+                          key={`${row.familyId}-${cell.week}`}
+                          title={`Week ${cell.week}`}
+                          className={`h-5 rounded-[4px] ${pathwaySeverityStyles[cell.severity]}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-[10px] font-medium text-slate-500">
+                      <span>Week 1</span>
+                      <span>Week {row.cells.length}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
       <section className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Summary</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Threshold Status</p>
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Band summary</p>
-                <h3 className="mt-2 text-base font-bold text-white">Overall result mix</h3>
-              </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Band snapshot</p>
+                  <h3 className="mt-2 text-base font-bold text-white">Where guardrails are holding or slipping</h3>
+                </div>
               <div className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-300">
                 {trajectorySource === 'model' ? 'Current run' : 'Saved run'}
               </div>
@@ -184,12 +329,15 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
 
             <div className="mt-4 rounded-xl border border-white/5 bg-slate-900/25 p-3.5">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Coverage</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                {scoredOutcomes.length} scored metric{scoredOutcomes.length === 1 ? '' : 's'}
-                {excludedOutcomes.length > 0 ? ` · ${excludedOutcomes.length} excluded` : ''}
-              </p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                  {scoredOutcomes.length} scored metric{scoredOutcomes.length === 1 ? '' : 's'}
+                  {excludedOutcomes.length > 0 ? ` · ${excludedOutcomes.length} excluded` : ''}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                  Keep this as a secondary readout. Sequence, timing, and baseline drift explain more than a compressed band count alone.
+                </p>
+              </div>
             </div>
-          </div>
 
           {chartData.length > 0 && (
             <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
@@ -208,7 +356,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
               </div>
               <div data-cy="dtse-threshold-chart" className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 18, left: 12, bottom: 8 }}>
+                  <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 18, left: 12, bottom: 8 }} barCategoryGap={10}>
                     <XAxis
                       type="number"
                       domain={[0, chartMax]}
@@ -234,7 +382,13 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                       strokeDasharray="4 4"
                       label={{ value: 'Healthy', fill: '#94a3b8', fontSize: 10, position: 'top' }}
                     />
-                    <Bar dataKey="normalized" radius={[0, 8, 8, 0]}>
+                    <Bar
+                      dataKey="normalized"
+                      radius={[0, 8, 8, 0]}
+                      barSize={18}
+                      minPointSize={8}
+                      background={{ fill: '#0f172a', radius: 8 }}
+                    >
                       {chartData.map((entry) => (
                         <Cell key={entry.metricId} fill={chartColorByBand[entry.band]} />
                       ))}
@@ -339,7 +493,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                 className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-slate-900/28 p-4 space-y-3 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/10 ${s.shadow}`}
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className={`absolute -right-10 -top-10 h-28 w-28 bg-gradient-to-br ${s.glow} blur-2xl opacity-15 transition-opacity duration-500 group-hover:opacity-30`} />
+                <div className={`absolute -right-10 -top-10 h-24 w-24 bg-gradient-to-br ${s.glow} blur-2xl opacity-10 transition-opacity duration-500 group-hover:opacity-20`} />
 
                 <div className="relative z-10 flex items-start justify-between">
                   <span className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</span>

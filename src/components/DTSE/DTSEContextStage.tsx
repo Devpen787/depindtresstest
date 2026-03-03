@@ -1,7 +1,7 @@
 import React from 'react';
 import { Server, ArrowRightLeft, Coins, Sparkles, Layers3, BadgeDollarSign, Factory, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { DTSERunContext, DTSEProtocolBrief, DTSEOutcome } from '../../types/dtse';
+import type { DTSERunContext, DTSEProtocolBrief, DTSEOutcome, DTSEStressChannel } from '../../types/dtse';
 import type { TokenMarketData } from '../../services/coingecko';
 
 interface DTSEPeerContext {
@@ -16,6 +16,7 @@ interface DTSEContextStageProps {
   marketData?: TokenMarketData | null;
   metricLabels: Record<string, string>;
   peerContext?: DTSEPeerContext;
+  stressChannel?: DTSEStressChannel;
   modelVersion: string;
   generatedAt: string;
   scenarioGridId: string;
@@ -30,11 +31,12 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   marketData,
   metricLabels,
   peerContext,
-  modelVersion: _modelVersion,
-  generatedAt: _generatedAt,
-  scenarioGridId: _scenarioGridId,
-  horizonWeeks: _horizonWeeks,
-  nSims: _nSims,
+  stressChannel,
+  modelVersion,
+  generatedAt,
+  scenarioGridId,
+  horizonWeeks,
+  nSims,
   evidenceStatus,
 }) => {
   const formatCompactNumber = (value: number): string => new Intl.NumberFormat('en-US', {
@@ -116,7 +118,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
     </div>
   );
 
-  const coreOutcomes = outcomes.filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
+  const coreOutcomes = outcomes;
   const bandCounts = coreOutcomes.reduce(
     (counts, outcome) => {
       counts[outcome.band] += 1;
@@ -167,6 +169,45 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           Protocol snapshot, key drivers, and confidence level.
         </p>
       </div>
+
+      <div className="rounded-2xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-300">Interpretation Boundary</p>
+        <p className="mt-2 text-xs leading-relaxed text-slate-300">
+          DTSE is a baseline-relative comparative evaluator. It is not a price predictor, not a universal ranking, and not a claim about live-network truth outside the modeled scenario envelope.
+        </p>
+      </div>
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Scenario Contract</p>
+          <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-indigo-300">
+            Matched Conditions
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400/90">Stress Channel</p>
+            <p className="mt-2 text-lg font-black tracking-tight text-slate-100">{stressChannel?.label ?? 'Saved DTSE Bundle'}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">{stressChannel?.summary ?? 'This view is using a saved DTSE bundle without a live stress-channel mapping.'}</p>
+            <p className="mt-3 text-xs leading-relaxed text-slate-500">{stressChannel?.basis ?? scenarioGridId}</p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Model Version</p>
+              <p className="mt-2 text-sm font-bold text-slate-100">{modelVersion}</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Run Envelope</p>
+              <p className="mt-2 text-sm font-bold text-slate-100">{horizonWeeks} weeks · {nSims} sims</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Generated</p>
+              <p className="mt-2 text-sm font-bold text-slate-100">{new Date(generatedAt).toLocaleDateString()}</p>
+              <p className="mt-1 text-xs text-slate-500">{evidenceStatus.toUpperCase()} evidence</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="space-y-2">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Assessment</p>

@@ -176,7 +176,6 @@ describe('dtseLiveOutputs', () => {
       'weekly_retention_rate',
       'network_utilization',
       'tail_risk_score',
-      'stress_resilience_index',
     ]);
     expect(result?.outcomes.find((outcome) => outcome.metric_id === 'solvency_ratio')?.value).toBe(1.16);
     expect(result?.outcomes.find((outcome) => outcome.metric_id === 'network_utilization')?.value).toBe(37);
@@ -192,6 +191,12 @@ describe('dtseLiveOutputs', () => {
       modelVersion: 'Agent-Based v2',
       outcomes,
       weeklySolvency: [1.2, 1.1],
+      stressChannel: {
+        id: 'baseline_neutral',
+        label: 'Baseline Neutral',
+        summary: 'Reference case',
+        basis: 'No explicit stress override',
+      },
     });
 
     expect(context.run_id).toBe('dtse-live-ono_v3_calibrated-7');
@@ -201,5 +206,6 @@ describe('dtseLiveOutputs', () => {
     expect(context.model_version).toBe('Agent-Based v2');
     expect(context.outcomes).toEqual(outcomes);
     expect(context.weekly_solvency).toEqual([1.2, 1.1]);
+    expect(context.stress_channel?.label).toBe('Baseline Neutral');
   });
 });

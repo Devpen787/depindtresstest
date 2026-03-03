@@ -41,6 +41,7 @@ export const useSimState = () => {
 
     // --- Results & Metrics ---
     const [aggregated, setAggregated] = useState<AggregateResult[]>([]);
+    const [baselineAggregated, setBaselineAggregated] = useState<AggregateResult[]>([]);
     const [multiAggregated, setMultiAggregated] = useState<Record<string, AggregateResult[]>>({});
     const [peerWizardAggregated, setPeerWizardAggregated] = useState<Record<string, AggregateResult[]>>({});
     const [loading, setLoading] = useState(false);
@@ -60,6 +61,7 @@ export const useSimState = () => {
         params, setParams,
 
         aggregated, setAggregated,
+        baselineAggregated, setBaselineAggregated,
         multiAggregated, setMultiAggregated,
         peerWizardAggregated, setPeerWizardAggregated,
         loading, setLoading,

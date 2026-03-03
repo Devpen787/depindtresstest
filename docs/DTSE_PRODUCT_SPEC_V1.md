@@ -1,134 +1,189 @@
-# DTSE Product Specification — V1
+# DTSE Product Specification — Thesis-Aligned V1
 
 **DTSE** = **DePIN Token Stress Evaluation**
 
-Version: 1.0  
-Status: Draft  
-Last updated: 2026-02-26
+Version: 1.1  
+Status: Active working spec  
+Last updated: 2026-03-03
 
 ---
 
-## 1. Overview
+## 1. Product Position
 
-DTSE is the primary analytical workflow in the DePIN Stress Test dashboard. It replaces the legacy tab-based exploration with a structured, stage-gated evaluation that walks the user through a complete token stress assessment from data ingestion to actionable recommendations.
+DTSE is the primary analytical workflow in the DePIN Stress Test dashboard.
 
-DTSE answers the question: _"Given the current on-chain and off-chain evidence, how resilient is this DePIN token's economics under realistic stress scenarios?"_
+Its job is to answer a bounded question:
+
+> Under matched conditions, what breaks first in a DePIN token coordination loop, when does it break, and which failure signature best describes that deterioration path?
+
+DTSE is:
+
+- a **baseline-relative comparative evaluator**
+- an **early-warning diagnostic surface**
+- a **stress interpretation workflow**
+
+DTSE is **not**:
+
+- a price prediction tool
+- a universal protocol ranking or leaderboard
+- a claim about live-network truth outside the modeled scenario envelope
+- a deterministic governance recommender
 
 ---
 
-## 2. The 6-Stage Workflow
+## 2. The 5-Stage Workflow
 
-DTSE guides the analyst through six sequential stages:
+DTSE is organized as a guided 5-stage workflow:
 
 | Stage | Name | Purpose |
 |-------|------|---------|
-| 1 | **Data Ingestion & Applicability** | Load the pre-computed bundle (or recompute). Assess which metrics are Runnable (R) vs Not Runnable (NR) based on evidence quality. |
-| 2 | **Peer Analog Selection** | Select or confirm peer protocols for cross-protocol comparison. Peer mappings are config-driven and deterministic. |
-| 3 | **Scenario Configuration** | Review and optionally adjust the scenario grid: horizon, seed policy, simulation count, macro conditions. |
-| 4 | **Stress Execution & Results** | Execute (or display frozen) simulation outcomes. View metric-level results with guardrail band classification (healthy / watchlist / intervention). |
-| 5 | **Failure Signatures & Recommendations** | Surface structural failure patterns and generate prioritized, actionable recommendations. |
-| 6 | **Export & Report** | Export the evaluation as a shareable artifact (PDF, JSON bundle, or clipboard summary). |
-
-Each stage must be completed (or acknowledged) before advancing to the next.
+| 1 | **Protocol Context** | Separate protocol context from DTSE output. Show market snapshot, model inputs, protocol mechanics, and interpretation boundaries. |
+| 2 | **Applicability** | Determine which metrics are runnable under the current evidence envelope so protocols are not rated unfairly. |
+| 3 | **Outcomes** | Show threshold status for the current matched run. Focus on guardrail behavior and scenario-relative diagnostics, not a universal resilience score. |
+| 4 | **Failure Autopsy** | Classify the breakdown using thesis-aligned failure signatures. |
+| 5 | **Response Paths** | Surface interpretive response areas and tradeoffs for discussion; these are not model-issued mandates. |
 
 ---
 
-## 3. Frozen Bundle vs Recompute Modes
+## 3. Canonical Stress Channels
 
-DTSE supports two operational modes:
+DTSE should present and evaluate the thesis-final stress channels explicitly:
 
-### 3.1 Frozen Bundle (Default)
+1. **Baseline Neutral**
+2. **Demand Contraction**
+3. **Liquidity Shock**
+4. **Competitive-Yield Pressure**
+5. **Provider Cost Inflation**
 
-- A pre-computed bundle is loaded from `public/dtse/`.
-- The bundle contains: `manifest.json`, `run_context.json`, `outcomes.json`, `applicability.json`.
-- No simulation is re-run; results are deterministic and reproducible.
-- Ideal for stakeholder presentations and audit trails.
-
-### 3.2 Recompute Mode
-
-- The user triggers a fresh simulation run with the current scenario configuration.
-- Recompute respects the seed policy: if `locked: true`, the same seed produces identical results.
-- Results overwrite the in-memory bundle but do not modify the on-disk bundle files.
+These channels are the canonical DTSE framing layer. Internal simulation parameter names may differ, but the UI and exported interpretation should use this vocabulary.
 
 ---
 
-## 4. Applicability Policy (R / NR)
+## 4. Metric Contract
+
+DTSE v1 evaluates the following core metric families:
+
+- `solvency_ratio`
+- `payback_period`
+- `weekly_retention_rate`
+- `network_utilization`
+- `tail_risk_score`
+- `vampire_churn` when competitive-yield pressure is active
+
+Interpretation rules:
+
+- metrics are shown against guardrails
+- metrics are interpreted inside the selected scenario envelope
+- metrics are not aggregated into a universal cross-protocol score
+
+The dashboard may use counts of healthy/watchlist/intervention states as a reading aid, but must not position those counts as a single protocol ranking.
+
+---
+
+## 5. Failure Signature Contract
+
+Stage 4 must use the thesis-final failure-signature vocabulary:
+
+- **Reward–Demand Decoupling**
+- **Profitability-Induced Churn**
+- **Liquidity-Driven Compression**
+- **Elastic Provider Exit**
+- **Latent Capacity Degradation**
+
+Each signature should expose:
+
+- the signature label
+- the structural pattern
+- why it matters
+- the trigger logic
+- the affected metrics
+
+These signatures are the formal classification layer of DTSE.
+
+---
+
+## 6. Applicability and Evidence Boundaries
 
 Every metric entering DTSE is classified as either:
 
-- **R (Runnable)**: Sufficient evidence exists to include this metric in the stress evaluation.
-- **NR (Not Runnable)**: Evidence is missing, interpolated, or below the minimum source grade threshold.
+- **R (Runnable)** — sufficient evidence exists to include the metric
+- **NR (Not Runnable)** — the metric is excluded to avoid unfair scoring
 
-### Reason Codes
+Reason codes remain:
 
-| Code | Meaning |
-|------|---------|
-| `DATA_AVAILABLE` | Primary or secondary data is available and sufficient. |
-| `DATA_MISSING` | Required data is missing entirely. |
-| `SOURCE_GRADE_INSUFFICIENT` | Source grade does not meet minimum threshold. |
-| `MANUAL_OVERRIDE` | Applicability was manually overridden by a reviewer. |
-| `PROXY_ACCEPTED` | Proxy-grade source accepted under current evaluation policy. |
-| `INTERPOLATION_RISK` | Interpolated data carries elevated uncertainty. |
+- `DATA_AVAILABLE`
+- `DATA_MISSING`
+- `SOURCE_GRADE_INSUFFICIENT`
+- `MANUAL_OVERRIDE`
+- `PROXY_ACCEPTED`
+- `INTERPOLATION_RISK`
 
-### Override Mechanism
+The UI should make provenance legible:
 
-A reviewer can manually override any applicability decision. Overrides are recorded with reviewer identity, timestamp, and rationale for audit purposes.
-
----
-
-## 5. Peer Analogs
-
-Peer analogs enable cross-protocol comparison within DTSE. Each protocol has a curated set of peer protocols selected based on:
-
-- Overlapping economic model (e.g., proof-of-coverage, compute marketplace)
-- Comparable token mechanics (burn/mint dynamics, emission schedules)
-- Geographic or vertical overlap
-
-Peer mappings are static and config-driven (see `src/data/dtsePeerAnalogs.ts`). Confidence levels (`high`, `medium`, `low`) indicate the strength of the analogy.
-
-Current peer groups include:
-- **GNSS/positioning**: Onocoy, Geodnet, Helium
-- **Decentralized compute**: Render, Akash, IO.net
-- **Decentralized storage**: Filecoin, Arweave
+- **LIVE MARKET** for market context
+- **MODEL INPUT** for simulation assumptions
+- **DTSE OUTPUT** for computed run results
 
 ---
 
-## 6. Evidence Status Levels
+## 7. Response Path Boundaries
 
-The `evidence_status` field on a DTSE run context indicates overall data completeness:
+Stage 5 is intentionally bounded.
 
-| Status | Meaning |
-|--------|---------|
-| `complete` | All required metrics have R-grade evidence. Full confidence in results. |
-| `partial` | Some metrics are NR. Results are valid but carry caveats for excluded metrics. |
-| `missing` | Insufficient evidence to produce a meaningful evaluation. Manual review recommended. |
+It may show:
 
----
+- interpretation of what the signature implies
+- likely response areas to examine
+- tradeoffs and dependencies
+- comparable peer context
 
-## 7. Integration with Existing Dashboard
+It must not imply:
 
-DTSE is the **default landing tab** when the dashboard loads. The legacy tabs (Benchmark, Diagnostic, Thesis, Case Study, Decision Tree) remain accessible under an "Advanced" grouping for users who need depth views.
+- that the model directly recommends a governance vote
+- that the DAO will take a specific action
+- that a response path is universally optimal
 
-Key integration points:
-
-- **Run Context Strip**: Displayed at the top of the DTSE dashboard, showing the active `run_id`, `protocol_id`, `evidence_status`, and `horizon_weeks`.
-- **Guardrail Bands**: DTSE reuses the existing guardrail band system (`healthy`, `watchlist`, `intervention`) from `src/constants/guardrails.ts`.
-- **Simulation Engine**: Recompute mode uses the same V2 agent-based engine (`src/model/simulation.ts`) as the Simulator/Sandbox views.
-- **Bundle Loader**: `src/services/dtseBundle.ts` handles loading, parsing, and validating pre-computed bundles.
+Stage 5 exists to support discussion and rerun design, not to replace human judgment.
 
 ---
 
-## 8. Residual Risks
+## 8. Runtime and Frozen Modes
 
-| Risk | Severity | Mitigation |
-|------|----------|------------|
-| Bundle staleness: pre-computed bundles may not reflect latest on-chain state | Medium | Display `generated_at_utc` prominently; encourage periodic recompute. |
-| Applicability overrides could mask data quality issues | Medium | Require reviewer identity and rationale; audit trail in bundle metadata. |
-| Peer analog mappings may become outdated as DePIN landscape evolves | Low | Periodic review cycle; confidence-level downgrade for stale mappings. |
-| Recompute mode performance on large scenario grids (high `n_sims`) | Medium | Warn user before recompute; consider web-worker offloading. |
-| NR metrics silently excluded may lead to false confidence in results | High | Surface NR count and specific exclusions prominently in Stage 1 and in export artifacts. |
-| Bundle hash integrity not verified against a trusted registry | Low | Future: integrate bundle hash verification against a content-addressed store. |
+DTSE supports two operating modes:
+
+### Live Runtime Mode
+
+- Uses current simulation outputs in memory.
+- Stage 2, 3, 4, and 5 should prefer live computed outputs when available.
+- Market snapshot may use live CoinGecko data when fetched.
+
+### Frozen Bundle Mode
+
+- Uses precomputed DTSE artifacts from `public/dtse/`.
+- Must remain reproducible and present explicit caveats when evidence is partial.
+
+In both modes, exported interpretation must preserve:
+
+- protocol
+- scenario
+- seed policy
+- horizon
+- model version
+- evidence status
 
 ---
 
-_End of DTSE Product Specification V1._
+## 9. Current Known Gaps
+
+The current implementation still needs follow-up work in these areas:
+
+- explicit baseline-vs-stress drift view
+- transmission-pathway / deterioration-order visualization
+- full scenario vocabulary normalization across legacy scenario registries
+- stale static pack copy cleanup outside the live path
+
+Those are implementation gaps, not changes to the DTSE contract.
+
+---
+
+_End of DTSE Product Specification — Thesis-Aligned V1._

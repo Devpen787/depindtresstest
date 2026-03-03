@@ -59,10 +59,10 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
     <div data-cy="dtse-signature-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
         <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
-          Stage 4 — Failure Signatures
+          Stage 4 — Failure Autopsy
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Diagnose systemic breakdowns and structural protocol weaknesses.
+          Classify the stress breakdown using thesis-aligned failure signatures.
         </p>
       </div>
 
@@ -71,8 +71,8 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4 border border-emerald-500/20">
             <Info size={24} className="text-emerald-400" />
           </div>
-          <h3 className="text-sm font-bold text-slate-200 mb-1">No Signatures Detected</h3>
-          <p className="text-xs text-slate-500">The current scenario did not trigger any structural failure patterns.</p>
+          <h3 className="text-sm font-bold text-slate-200 mb-1">No Failure Signature Triggered</h3>
+          <p className="text-xs text-slate-500">This run did not trigger a thesis-stage failure signature under the matched scenario assumptions.</p>
         </div>
       ) : (
         <div className="space-y-4">

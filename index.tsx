@@ -769,6 +769,7 @@ const App: React.FC = () => {
               liveData={liveData}
               params={sim.params}
               aggregated={sim.aggregated}
+              baselineAggregated={sim.baselineAggregated}
               multiAggregated={sim.multiAggregated}
               derivedMetrics={sim.derivedMetrics}
               simulationRunId={sim.simulationRunId}

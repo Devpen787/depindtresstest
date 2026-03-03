@@ -6,15 +6,15 @@ describe('dtseLiveRecommendations', () => {
   it('selects trigger-driven recommendations from live signatures', () => {
     const signatures: DTSEFailureSignature[] = [
       {
-        id: 'live-subsidy-trap',
-        label: 'Subsidy Trap',
+        id: 'reward-demand-decoupling',
+        label: 'Reward–Demand Decoupling',
         pattern: '',
         severity: 'critical',
         affected_metrics: ['solvency_ratio', 'payback_period'],
       },
       {
-        id: 'live-demand-gap',
-        label: 'Demand Gap',
+        id: 'latent-capacity-degradation',
+        label: 'Latent Capacity Degradation',
         pattern: '',
         severity: 'high',
         affected_metrics: ['network_utilization'],
@@ -35,10 +35,10 @@ describe('dtseLiveRecommendations', () => {
     });
 
     expect(recommendations).toHaveLength(2);
-    expect(recommendations[0].id).toBe('live-rec-subsidy-trap');
+    expect(recommendations[0].id).toBe('live-response-reward-demand-decoupling');
     expect(recommendations[0].priority).toBe('critical');
     expect(recommendations[0].expected_effect).toContain('1.30x+');
-    expect(recommendations[1].id).toBe('live-rec-demand-gap');
+    expect(recommendations[1].id).toBe('live-response-latent-capacity-degradation');
     expect(recommendations[1].peer_analog).toContain('GEODNET');
   });
 
@@ -49,6 +49,6 @@ describe('dtseLiveRecommendations', () => {
 
     expect(recommendations).toHaveLength(1);
     expect(recommendations[0].priority).toBe('low');
-    expect(recommendations[0].action).toContain('Maintain current posture');
+    expect(recommendations[0].action).toContain('keep the current design as the reference case');
   });
 });

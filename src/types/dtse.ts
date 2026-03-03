@@ -49,6 +49,13 @@ export interface DTSESeedPolicy {
     locked: boolean;
 }
 
+export interface DTSEStressChannel {
+    id: 'baseline_neutral' | 'demand_contraction' | 'liquidity_shock' | 'competitive_yield_pressure' | 'provider_cost_inflation';
+    label: string;
+    summary: string;
+    basis: string;
+}
+
 export interface DTSERunContext {
     scenario_grid_id: string;
     run_id: string;
@@ -60,6 +67,7 @@ export interface DTSERunContext {
     model_version: string;
     generated_at_utc: string;
     bundle_hash: string;
+    stress_channel?: DTSEStressChannel;
     weekly_solvency?: number[];
     outcomes?: DTSEOutcome[];
     failure_signatures?: DTSEFailureSignature[];

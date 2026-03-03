@@ -54,6 +54,7 @@ export const useSimulationRunner = (
         multiAggregated, setMultiAggregated,
         setOnocoyHookSnapshots,
         setAggregated,
+        setBaselineAggregated,
         setLoading,
         autoRun, setAutoRun,
         playbackWeek,
@@ -199,6 +200,26 @@ export const useSimulationRunner = (
         return peerResults;
     };
 
+    const buildBaselineParams = (
+        profile: ProtocolProfileV1,
+        localParams: NewSimulationParams
+    ): NewSimulationParams => {
+        const baselineDemandType = profile.parameters.demand_regime.value;
+        const baselineProviderCost = profile.parameters.provider_economics.opex_weekly.value;
+
+        return {
+            ...localParams,
+            scenario: 'baseline',
+            macro: 'sideways',
+            demandType: baselineDemandType,
+            providerCostPerWeek: baselineProviderCost,
+            competitorYield: 0,
+            investorSellPct: 0,
+            growthCallEventWeek: 0,
+            growthCallEventPct: 0,
+        };
+    };
+
     // 3. CORE SIMULATION RUNNER
     const runSimulation = () => {
         setLoading(true);
@@ -232,10 +253,19 @@ export const useSimulationRunner = (
                     useNewModel
                 };
             });
+            const activeProfileModuleParams = moduleParamsById[activeProfile.metadata.id];
+            const baselineJob: SimulationWorkerJob | null = activeProfileModuleParams
+                ? {
+                    protocolId: activeProfile.metadata.id,
+                    params: buildBaselineParams(activeProfile, activeProfileModuleParams),
+                    useNewModel
+                }
+                : null;
 
             try {
                 let allResults: Record<string, AggregateResult[]> = {};
                 let derivedMetrics: ReturnType<typeof calculateDerivedMetrics> | null = null;
+                let baselineResults: AggregateResult[] = [];
 
                 if (workerRef.current) {
                     const response = await requestWorker<SimulationWorkerRunResult>({
@@ -246,10 +276,31 @@ export const useSimulationRunner = (
                     }, 'runSimulationResult');
                     allResults = response.allResults;
                     derivedMetrics = response.derivedMetrics;
+                    if (baselineJob) {
+                        try {
+                            const baselineResponse = await requestWorker<SimulationWorkerRunResult>({
+                                type: 'runSimulation',
+                                runId: runId * 1000 + 1,
+                                jobs: [baselineJob],
+                                activeProfileId: activeProfile.metadata.id
+                            }, 'runSimulationResult');
+                            baselineResults = baselineResponse.allResults[activeProfile.metadata.id] || [];
+                        } catch (baselineError) {
+                            console.warn('Baseline comparison run failed', baselineError);
+                        }
+                    }
                 } else {
                     const fallback = await runSimulationOnMainThread(jobs, activeProfile.metadata.id);
                     allResults = fallback.allResults;
                     derivedMetrics = fallback.derivedMetrics;
+                    if (baselineJob) {
+                        try {
+                            const baselineFallback = await runSimulationOnMainThread([baselineJob], activeProfile.metadata.id);
+                            baselineResults = baselineFallback.allResults[activeProfile.metadata.id] || [];
+                        } catch (baselineError) {
+                            console.warn('Baseline comparison run failed', baselineError);
+                        }
+                    }
                 }
 
                 if (runId !== runSequenceRef.current) {
@@ -275,6 +326,7 @@ export const useSimulationRunner = (
 
                 setMultiAggregated(allResults);
                 setOnocoyHookSnapshots(protocolSnapshots);
+                setBaselineAggregated(baselineResults);
                 if (allResults[activeProfile.metadata.id]) {
                     setAggregated(allResults[activeProfile.metadata.id]);
                 }
@@ -467,6 +519,7 @@ export const useSimulationRunner = (
         activeProfile,
         selectedProtocolIds, setSelectedProtocolIds,
         aggregated: state.aggregated,
+        baselineAggregated: state.baselineAggregated,
         multiAggregated: state.multiAggregated,
         peerWizardAggregated: state.peerWizardAggregated,
         loading,

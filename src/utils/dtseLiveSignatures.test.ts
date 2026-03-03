@@ -114,19 +114,18 @@ describe('dtseLiveSignatures', () => {
       { metric_id: 'weekly_retention_rate', value: 86, band: 'intervention' },
       { metric_id: 'network_utilization', value: 16, band: 'intervention' },
       { metric_id: 'tail_risk_score', value: 71, band: 'intervention' },
-      { metric_id: 'stress_resilience_index', value: 42, band: 'intervention' },
     ];
 
     const signatures = buildLiveDTSEFailureSignatures(aggregated, params, outcomes);
 
     expect(signatures.map((signature) => signature.label)).toEqual([
-      'Subsidy Trap',
-      'Tail Fragility',
-      'Demand Gap',
-      'Churn Cascade',
+      'Reward–Demand Decoupling',
+      'Liquidity-Driven Compression',
+      'Profitability-Induced Churn',
+      'Latent Capacity Degradation',
     ]);
     expect(signatures[0].trigger_logic).toContain('solvency is 0.88x');
-    expect(signatures[2].affected_metrics).toContain('network_utilization');
+    expect(signatures[3].affected_metrics).toContain('network_utilization');
   });
 
   it('returns no signatures for an empty run', () => {

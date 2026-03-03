@@ -39,56 +39,82 @@ export function buildLiveDTSEFailureSignatures(
     : 0;
   const panicWeeks = minerChart.filter((point) => point.churnRatePct >= CHURN_GUARDRAILS.panicPctPerWeek).length;
   const risk = calculateRiskMetrics(aggregated);
+  const latestPoint = aggregated[aggregated.length - 1];
+  const burned = latestPoint?.burned?.mean ?? 0;
+  const minted = latestPoint?.minted?.mean ?? 0;
+  const burnToMint = minted > 0 ? burned / minted : 0;
+  const priceSeries = aggregated
+    .map((point) => point.price?.mean ?? NaN)
+    .filter((value) => Number.isFinite(value));
+  const firstPrice = priceSeries[0] ?? 0;
+  const lastPrice = priceSeries[priceSeries.length - 1] ?? 0;
+  const priceCompressionPct = firstPrice > 0 ? ((firstPrice - lastPrice) / firstPrice) * 100 : 0;
+  const avgVampireChurn = aggregated.reduce((sum, point) => sum + (point.vampireChurn?.mean ?? 0), 0) / aggregated.length;
+  const initialProviders = aggregated[0]?.providers?.mean ?? 0;
+  const currentProviders = latestPoint?.providers?.mean ?? 0;
+  const providerRetentionPct = initialProviders > 0 ? (currentProviders / initialProviders) * 100 : 100;
 
   const signatures: DTSEFailureSignature[] = [];
 
-  if (solvency < SOLVENCY_GUARDRAILS.healthyRatio && payback > 24) {
+  if (solvency < SOLVENCY_GUARDRAILS.healthyRatio && (payback > 24 || burnToMint < 0.8)) {
     signatures.push({
-      id: 'live-subsidy-trap',
-      label: 'Subsidy Trap',
-      pattern: 'Emissions and payout obligations are outrunning demand-linked economics, leaving provider ROI dependent on continued token support.',
+      id: 'reward-demand-decoupling',
+      label: 'Reward–Demand Decoupling',
+      pattern: 'Reward issuance remains too high relative to demand-linked sinks, so provider economics depend on continued token support rather than operating demand.',
       severity: solvency < SOLVENCY_GUARDRAILS.criticalRatio || payback > 36 ? 'critical' : 'high',
       affected_metrics: ['solvency_ratio', 'payback_period', 'tail_risk_score'],
-      why_it_matters: 'Sustained subsidy dependence can force token dilution, weaken operator confidence, and delay real unit economics.',
-      trigger_logic: `Triggered because solvency is ${roundTo(solvency, 2)}x while payback is ${roundTo(payback, 1)} months. Healthy requires solvency ≥ ${SOLVENCY_GUARDRAILS.healthyRatio.toFixed(2)}x and payback ≤ 24 months.`,
+      why_it_matters: 'When rewards and real demand separate, apparent network activity can persist while the economic base weakens underneath it.',
+      trigger_logic: `Triggered because solvency is ${roundTo(solvency, 2)}x, payback is ${roundTo(payback, 1)} months, and burn-to-mint coverage is ${roundTo(burnToMint * 100, 0)}%. Healthy requires solvency ≥ ${SOLVENCY_GUARDRAILS.healthyRatio.toFixed(2)}x and payback ≤ 24 months.`,
     });
   }
 
-  if (utilization < 35 || utilitySummary.overprovisioned) {
+  if (priceCompressionPct >= 20 || risk.drawdown >= 40 || tailRisk >= 35) {
     signatures.push({
-      id: 'live-demand-gap',
-      label: 'Demand Gap',
-      pattern: 'Available capacity is not being converted into enough served demand to justify current incentive spend.',
-      severity: utilization < 20 || utilitySummary.demandCoverage < 85 ? 'high' : 'medium',
-      affected_metrics: ['network_utilization', 'solvency_ratio'],
-      why_it_matters: 'Low utilization weakens revenue conversion and keeps the network dependent on emissions rather than durable demand.',
-      trigger_logic: utilitySummary.overprovisioned
-        ? `Triggered because demand coverage is ${roundTo(utilitySummary.demandCoverage, 1)}% but utilization is only ${roundTo(utilization, 1)}%, indicating overprovisioned supply.`
-        : `Triggered because utilization is ${roundTo(utilization, 1)}% and demand coverage is ${roundTo(utilitySummary.demandCoverage, 1)}%, below healthy network absorption.`,
+      id: 'liquidity-driven-compression',
+      label: 'Liquidity-Driven Compression',
+      pattern: 'Market stress compresses fiat-equivalent rewards faster than the network can adjust, squeezing provider economics even if token issuance remains unchanged.',
+      severity: risk.drawdown >= 60 || tailRisk >= 65 ? 'critical' : 'high',
+      affected_metrics: ['tail_risk_score', 'solvency_ratio'],
+      why_it_matters: 'A liquidity dislocation can turn a manageable token design into a rapid economic squeeze without any immediate change in physical network state.',
+      trigger_logic: `Triggered because price compression is ${roundTo(priceCompressionPct, 1)}%, max drawdown is ${roundTo(risk.drawdown, 1)}%, and tail risk is ${roundTo(tailRisk, 0)}.`,
+    });
+  }
+
+  if (params.competitorYield > 0 && (avgVampireChurn >= 2 || retention < 92)) {
+    signatures.push({
+      id: 'elastic-provider-exit',
+      label: 'Elastic Provider Exit',
+      pattern: 'Competing yields pull providers away before internal demand visibly collapses, showing that supply is more mobile than headline node count suggests.',
+      severity: avgVampireChurn >= 4 || retention < 90 ? 'high' : 'medium',
+      affected_metrics: ['vampire_churn', 'weekly_retention_rate', 'network_utilization'],
+      why_it_matters: 'When providers can leave for better external yields, physical capacity can vanish faster than users or governance expect.',
+      trigger_logic: `Triggered because competitor yield is ${roundTo(params.competitorYield * 100, 0)}% of baseline, average vampire churn is ${roundTo(avgVampireChurn, 1)} providers per step, and weekly retention is ${roundTo(retention, 1)}%.`,
     });
   }
 
   if (retention < 92 || avgTrailingChurn >= (CHURN_GUARDRAILS.panicPctPerWeek * 0.6) || panicWeeks > 0) {
     signatures.push({
-      id: 'live-churn-cascade',
-      label: 'Churn Cascade',
-      pattern: 'Provider exit pressure is rising faster than healthy replacement, increasing the risk of supply quality deterioration.',
+      id: 'profitability-induced-churn',
+      label: 'Profitability-Induced Churn',
+      pattern: 'Provider economics weaken enough that operators begin powering down or deferring participation, translating cost pressure into supply instability.',
       severity: retention < 90 || panicWeeks >= 2 ? 'high' : 'medium',
       affected_metrics: ['weekly_retention_rate', 'tail_risk_score'],
-      why_it_matters: 'Once churn becomes self-reinforcing, service continuity weakens and recovery becomes more expensive.',
-      trigger_logic: `Triggered because weekly retention is ${roundTo(retention, 1)}%, trailing average churn is ${roundTo(avgTrailingChurn, 1)}% per week, and panic-threshold churn was hit in ${panicWeeks} week(s).`,
+      why_it_matters: 'Once operating economics fall below provider tolerance, churn becomes an endogenous amplifier of network fragility.',
+      trigger_logic: `Triggered because weekly retention is ${roundTo(retention, 1)}%, trailing average churn is ${roundTo(avgTrailingChurn, 1)}% per week, payback is ${roundTo(payback, 1)} months, and panic-threshold churn was hit in ${panicWeeks} week(s).`,
     });
   }
 
-  if (tailRisk >= 35 || risk.drawdown >= 40 || risk.insolvencyWeeks > 0) {
+  if (utilization < 35 || utilitySummary.overprovisioned || providerRetentionPct >= 80) {
     signatures.push({
-      id: 'live-tail-fragility',
-      label: 'Tail Fragility',
-      pattern: 'Downside outcomes concentrate in severe paths even when the headline average appears manageable.',
-      severity: tailRisk >= 65 || risk.drawdown >= 60 ? 'critical' : tailRisk >= 35 ? 'high' : 'medium',
-      affected_metrics: ['tail_risk_score', 'solvency_ratio', 'weekly_retention_rate'],
-      why_it_matters: 'Fat-tail stress means a modest average result can still hide brittle failure behavior in adverse states.',
-      trigger_logic: `Triggered because tail risk is ${roundTo(tailRisk, 0)}, max drawdown is ${roundTo(risk.drawdown, 1)}%, and solvency breached 1.0x in ${risk.insolvencyWeeks} week(s).`,
+      id: 'latent-capacity-degradation',
+      label: 'Latent Capacity Degradation',
+      pattern: 'Physical capacity appears to persist, but demand conversion and utilization weaken first, hiding deterioration until service quality is harder to recover.',
+      severity: utilization < 20 || utilitySummary.demandCoverage < 85 ? 'high' : 'medium',
+      affected_metrics: ['network_utilization', 'solvency_ratio'],
+      why_it_matters: 'DePIN capacity can look stable for a while because hardware is sunk cost, but weak utilization is often the earlier sign of structural decay.',
+      trigger_logic: utilitySummary.overprovisioned
+        ? `Triggered because provider retention remains ${roundTo(providerRetentionPct, 1)}% while utilization is only ${roundTo(utilization, 1)}% and demand coverage is ${roundTo(utilitySummary.demandCoverage, 1)}%.`
+        : `Triggered because utilization is ${roundTo(utilization, 1)}%, demand coverage is ${roundTo(utilitySummary.demandCoverage, 1)}%, and active providers still sit at ${roundTo(providerRetentionPct, 1)}% of the starting base.`,
     });
   }
 

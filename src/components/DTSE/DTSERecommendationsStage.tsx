@@ -54,10 +54,10 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
     <div data-cy="dtse-recommendations-stage" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
         <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
-          Stage 5 — Recommendations
+          Stage 5 — Response Paths
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Prioritized actions and ownership.
+          Interpretive response areas and tradeoffs, not model-issued prescriptions.
         </p>
       </div>
 
@@ -66,23 +66,23 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
             <Zap size={24} className="text-emerald-400" />
           </div>
-          <h3 className="mb-1 text-sm font-bold text-slate-200">No Recommendations Needed</h3>
-          <p className="text-xs text-slate-500">The protocol passed all evaluated stress scenarios within healthy guardrails.</p>
+          <h3 className="mb-1 text-sm font-bold text-slate-200">No Immediate Response Path</h3>
+          <p className="text-xs text-slate-500">The current run stays inside healthy guardrails, so DTSE remains in monitoring mode rather than surfacing a response path.</p>
         </div>
       ) : (
         <>
           <section className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Priority Summary</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Response Posture</p>
             <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-900/35 p-5 shadow-xl backdrop-blur-md">
               <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-violet-500/10 via-indigo-500/5 to-transparent" />
               <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div className="max-w-3xl space-y-2.5">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-300">Top priority</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-300">Primary response path</p>
                   <h3 className="text-2xl font-black tracking-tight text-white">
                     {leadRecommendation ? leadRecommendation.action : 'No action required'}
                   </h3>
                   <p className="text-sm leading-relaxed text-slate-400">
-                    Owners: {uniqueOwners.join(', ')}
+                    Review areas: {uniqueOwners.join(', ')}
                   </p>
                 </div>
                 <div className="flex flex-col items-start gap-3 lg:items-end">
@@ -112,7 +112,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
           </section>
 
           <section className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Action List</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Interpretive Paths</p>
             <div className="space-y-3">
               {sorted.map((rec, idx) => {
                 const ps = PRIORITY_STYLES[rec.priority];
@@ -147,12 +147,12 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                     <div className="relative z-10 space-y-3 pl-11">
                       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-slate-950/22 p-3 px-3.5 shadow-inner">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Owner:</span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Review area:</span>
                           <span className="text-xs font-bold text-slate-200">{rec.owner}</span>
                         </div>
                         {rec.timeframe && (
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Timeline:</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Window:</span>
                             <span className="text-xs font-bold text-slate-200">{rec.timeframe}</span>
                           </div>
                         )}
@@ -164,29 +164,35 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                         {rec.success_metric && (
                           <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Success Metric</p>
+                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">What To Compare</p>
                             <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.success_metric}</p>
                           </div>
                         )}
                         {rec.dependency && (
                           <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Dependency</p>
+                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Boundary</p>
                             <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.dependency}</p>
                           </div>
                         )}
-                        {rec.risk_if_delayed && (
-                          <div className="rounded-xl border border-rose-500/10 bg-rose-950/8 p-3.5 md:col-span-2">
-                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-rose-500/70">Risk if Delayed</p>
-                            <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.risk_if_delayed}</p>
-                          </div>
-                        )}
-                        {rec.peer_analog && (
-                          <div className="rounded-xl border border-cyan-500/10 bg-cyan-950/8 p-3.5 md:col-span-2">
-                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/70">Peer Analog</p>
-                            <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.peer_analog}</p>
+                        {(rec.risk_if_delayed || rec.peer_analog) && (
+                          <div className="rounded-xl border border-white/5 bg-slate-950/18 p-3 md:col-span-2">
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                              {rec.risk_if_delayed && (
+                                <div>
+                                  <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-rose-500/70">Why It Matters</p>
+                                  <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.risk_if_delayed}</p>
+                                </div>
+                              )}
+                              {rec.peer_analog && (
+                                <div>
+                                  <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/70">Comparable Context</p>
+                                  <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.peer_analog}</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

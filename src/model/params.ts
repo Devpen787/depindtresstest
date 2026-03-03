@@ -97,12 +97,12 @@ export const PARAM_DOCS: Record<keyof SimulationParams, ParamDocumentation> = {
 
   scenario: {
     name: 'Thesis Scenario',
-    description: 'Pre-configured stress test scenarios from the Research Plan. Overrides standard simulation logic.',
+    description: 'Legacy scenario enum used by the simulator. DTSE remaps runtime conditions into canonical stress channels for thesis-aligned interpretation.',
     unit: 'mode',
     min: 0,
     max: 0,
     default: 0,
-    impact: 'Base: Organic. Winter: -90% Price. Saturation: 3x Nodes. Utility: High Growth.',
+    impact: 'DTSE canonical channels are baseline neutral, demand contraction, liquidity shock, competitive-yield pressure, and provider cost inflation.',
     category: 'simulation',
   },
 
@@ -699,4 +699,3 @@ export function validateParams(params: SimulationParams): { valid: boolean; erro
 
   return { valid: errors.length === 0, errors };
 }
-
