@@ -78,7 +78,7 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
         </div>
       ) : (
         <div className="space-y-4">
-          <section className="grid grid-cols-1 gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+          <section className="space-y-3">
             <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Autopsy summary</p>
               <h3 className="mt-2 text-lg font-bold text-white">{leadSignature?.label}</h3>
@@ -86,20 +86,25 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
                 {leadSignature?.pattern}
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Signatures</p>
-                <p className="mt-2 text-2xl font-black text-white">{sorted.length}</p>
+            <details className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
+              <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                Diagnostic Details
+              </summary>
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Signatures</p>
+                  <p className="mt-2 text-2xl font-black text-white">{sorted.length}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Active</p>
+                  <p className="mt-2 text-2xl font-black text-white">{activeCount}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Lead severity</p>
+                  <p className="mt-2 text-sm font-bold uppercase tracking-[0.16em] text-slate-200">{leadSignature?.severity ?? 'none'}</p>
+                </div>
               </div>
-              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Active</p>
-                <p className="mt-2 text-2xl font-black text-white">{activeCount}</p>
-              </div>
-              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Lead severity</p>
-                <p className="mt-2 text-sm font-bold uppercase tracking-[0.16em] text-slate-200">{leadSignature?.severity ?? 'none'}</p>
-              </div>
-            </div>
+            </details>
           </section>
 
           {sorted.map((sig, idx) => {

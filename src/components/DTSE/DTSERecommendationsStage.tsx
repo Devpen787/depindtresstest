@@ -86,8 +86,8 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
               <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Priority mix</p>
-                    <p className="mt-1 text-sm text-slate-400">Use this as a discussion filter, not a fixed execution queue.</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Export</p>
+                    <p className="mt-1 text-sm text-slate-400">Capture this run for discussion or review.</p>
                   </div>
                   <button
                     data-cy="dtse-export-btn"
@@ -98,17 +98,23 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                     <span>Export</span>
                   </button>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  {(['critical', 'high', 'medium', 'low'] as DTSERecommendation['priority'][]).map((priority) => {
-                    const ps = PRIORITY_STYLES[priority];
-                    return (
-                      <div key={priority} className={`rounded-xl border px-3.5 py-2.5 text-center ${ps.badge}`}>
-                        <p className={`text-lg font-black ${ps.badgeText}`}>{priorityCounts[priority]}</p>
-                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{priority}</p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <details className="mt-4 rounded-xl border border-white/5 bg-slate-950/20 p-3">
+                  <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Priority Mix
+                  </summary>
+                  <p className="mt-2 text-xs text-slate-400">Use this as a discussion filter, not a fixed execution queue.</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    {(['critical', 'high', 'medium', 'low'] as DTSERecommendation['priority'][]).map((priority) => {
+                      const ps = PRIORITY_STYLES[priority];
+                      return (
+                        <div key={priority} className={`rounded-xl border px-3.5 py-2.5 text-center ${ps.badge}`}>
+                          <p className={`text-lg font-black ${ps.badgeText}`}>{priorityCounts[priority]}</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{priority}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
               </div>
             </div>
           </section>
@@ -142,24 +148,13 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                     </div>
 
                     <div className="relative z-10 space-y-3 pl-11">
-                      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-slate-950/22 p-3 px-3.5 shadow-inner">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Review area:</span>
-                          <span className="text-xs font-bold text-slate-200">{rec.owner}</span>
+                      {rec.expected_effect && (
+                        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-3 px-3.5">
+                          <ArrowRight size={12} className="text-indigo-400" />
+                          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-300">Expected effect</span>
+                          <span className="text-xs font-semibold text-slate-200">{rec.expected_effect}</span>
                         </div>
-                        {rec.timeframe && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Window:</span>
-                            <span className="text-xs font-bold text-slate-200">{rec.timeframe}</span>
-                          </div>
-                        )}
-                        {rec.expected_effect && (
-                          <div className="ml-auto flex items-center gap-2 rounded border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5">
-                            <ArrowRight size={10} className="text-indigo-400" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">{rec.expected_effect}</span>
-                          </div>
-                        )}
-                      </div>
+                      )}
 
                       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                         {rec.success_metric && (
@@ -193,6 +188,24 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                           </div>
                         )}
                       </div>
+
+                      <details className="rounded-xl border border-white/5 bg-slate-950/16 p-3">
+                        <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                          Implementation Details
+                        </summary>
+                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Review area</span>
+                            <span className="font-semibold text-slate-200">{rec.owner}</span>
+                          </div>
+                          {rec.timeframe && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Window</span>
+                              <span className="font-semibold text-slate-200">{rec.timeframe}</span>
+                            </div>
+                          )}
+                        </div>
+                      </details>
                     </div>
                   </div>
                 );

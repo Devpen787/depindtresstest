@@ -385,17 +385,17 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
 
       <div className="relative flex flex-col h-full z-10">
         {/* Persistent run context strip */}
-        <div className="shrink-0 border-b border-white/5 bg-slate-900/40 backdrop-blur-xl px-6 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div>
+        <div className="shrink-0 border-b border-white/5 bg-slate-900/35 backdrop-blur-xl px-6 py-3">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+              <div className="min-w-[180px]">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Protocol</span>
                 <div className="mt-1">
                   <select
                     data-cy="dtse-protocol-select"
                     value={selectedProfile.metadata.id}
                     onChange={(event) => handleProtocolChange(event.target.value)}
-                    className="bg-slate-900 border border-slate-700 text-slate-100 text-sm font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     {availableProfiles.map((profile) => (
                       <option key={profile.metadata.id} value={profile.metadata.id}>
@@ -405,55 +405,57 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                   </select>
                 </div>
               </div>
-              <div className="w-px h-8 bg-slate-800" />
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Stress Channel</span>
-                <p className="text-sm font-bold text-slate-100">{ctx.stress_channel?.label ?? 'Saved DTSE bundle'}</p>
-                <p className="text-[10px] text-slate-500">{ctx.stress_channel?.basis ?? ctx.scenario_grid_id}</p>
-              </div>
-              <div className="w-px h-8 bg-slate-800" />
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Horizon</span>
-                <p className="text-sm font-bold text-slate-100">{ctx.horizon_weeks}w &middot; {ctx.n_sims} sims</p>
-              </div>
-              <div className="w-px h-8 bg-slate-800" />
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Evidence</span>
-                <span className={`ml-1 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${ctx.evidence_status === 'complete'
-                    ? 'bg-emerald-900/60 text-emerald-400'
+
+              <div className="flex flex-wrap items-center gap-2 xl:mt-5">
+                <span className="rounded-lg border border-white/5 bg-slate-900/70 px-3 py-1.5 text-[11px] font-semibold text-slate-200">
+                  {ctx.stress_channel?.label ?? 'Saved DTSE bundle'}
+                </span>
+                <span className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] ${ctx.evidence_status === 'complete'
+                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
                     : ctx.evidence_status === 'partial'
-                      ? 'bg-amber-900/60 text-amber-400'
-                      : 'bg-red-900/60 text-red-400'
+                      ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+                      : 'border-rose-500/20 bg-rose-500/10 text-rose-300'
                   }`}>
                   {ctx.evidence_status}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="inline-flex items-center rounded-lg border border-slate-800 bg-slate-900 p-1">
-                <button
-                  data-cy="dtse-view-mode-guided"
-                  onClick={() => setViewMode('guided')}
-                  className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${viewMode === 'guided'
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                >
-                  Guided
-                </button>
-                <button
-                  data-cy="dtse-view-mode-overview"
-                  onClick={handleSwitchToOverview}
-                  className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${viewMode === 'overview'
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                >
-                  Overview
-                </button>
-              </div>
-              <div className="text-[10px] text-slate-600 font-mono">
-                {ctx.model_version} &middot; {ctx.run_id}
+
+            <div className="flex flex-col gap-2 xl:items-end">
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                <div className="inline-flex items-center rounded-lg border border-slate-800 bg-slate-900 p-1">
+                  <button
+                    data-cy="dtse-view-mode-guided"
+                    onClick={() => setViewMode('guided')}
+                    className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${viewMode === 'guided'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                  >
+                    Guided
+                  </button>
+                  <button
+                    data-cy="dtse-view-mode-overview"
+                    onClick={handleSwitchToOverview}
+                    className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${viewMode === 'overview'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                  >
+                    Overview
+                  </button>
+                </div>
+                <details className="group rounded-lg border border-white/5 bg-slate-900/70 px-3 py-1.5 text-[11px] text-slate-400">
+                  <summary className="cursor-pointer list-none font-semibold text-slate-300">
+                    Details
+                  </summary>
+                  <div className="mt-2 space-y-1.5 border-t border-white/5 pt-2 text-[10px] text-slate-500">
+                    <p><span className="font-semibold text-slate-400">Horizon:</span> {ctx.horizon_weeks}w · {ctx.n_sims} sims</p>
+                    <p><span className="font-semibold text-slate-400">Basis:</span> {ctx.stress_channel?.basis ?? ctx.scenario_grid_id}</p>
+                    <p><span className="font-semibold text-slate-400">Model:</span> {ctx.model_version}</p>
+                    <p className="font-mono">{ctx.run_id}</p>
+                  </div>
+                </details>
               </div>
             </div>
           </div>
@@ -497,7 +499,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                     }`}>
                     {idx + 1}
                   </span>
-                  <span className="hidden sm:inline">{label}</span>
+                  <span>{label}</span>
                 </button>
               </React.Fragment>
             ))}

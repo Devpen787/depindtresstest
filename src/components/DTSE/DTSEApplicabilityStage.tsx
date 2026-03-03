@@ -124,22 +124,22 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
           })}
         </div>
 
-        <div className="mt-8 rounded-xl border border-white/5 bg-slate-950/30 p-4 relative z-10 group transition-all duration-300 hover:border-white/10">
-          <div className="flex items-center gap-2 mb-3">
+        <details className="mt-8 rounded-xl border border-white/5 bg-slate-950/30 p-4 relative z-10 transition-all duration-300 hover:border-white/10">
+          <summary className="flex cursor-pointer list-none items-center gap-2">
             <Info size={14} className="text-indigo-400" />
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400/80">Override Context</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400/80">Evidence Legend</p>
+          </summary>
+          <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(reasonLabels).map(([key, label]) => (
               <p key={key} className="text-[11px] text-slate-500/80 font-medium">
-                <span className="text-slate-400 font-mono text-[10px] tracking-wider bg-slate-900 px-1.5 py-0.5 rounded mr-1.5 border border-slate-800">
+                <span className="mr-1.5 rounded border border-slate-800 bg-slate-900 px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-slate-400">
                   {key}
-                </span>{' '}
+                </span>
                 {label}
               </p>
             ))}
           </div>
-        </div>
+        </details>
       </div>
     </div>
   );

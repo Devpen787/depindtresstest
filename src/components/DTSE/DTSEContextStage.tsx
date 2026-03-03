@@ -166,13 +166,13 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           Stage 1 — Protocol Context
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Protocol snapshot, key drivers, and confidence level.
+          Enough protocol setup to understand what DTSE is stress-testing and how to read the next stages.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
+      <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-300">Interpretation Boundary</p>
-        <p className="mt-2 text-xs leading-relaxed text-slate-300">
+        <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
           DTSE is a baseline-relative comparative evaluator. It is not a price predictor, not a universal ranking, and not a claim about live-network truth outside the modeled scenario envelope.
         </p>
       </div>
@@ -184,27 +184,31 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
             Matched Conditions
           </span>
         </div>
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.75fr]">
+          <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 backdrop-blur-sm">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400/90">Stress Channel</p>
             <p className="mt-2 text-lg font-black tracking-tight text-slate-100">{stressChannel?.label ?? 'Saved DTSE Bundle'}</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">{stressChannel?.summary ?? 'This view is using a saved DTSE bundle without a live stress-channel mapping.'}</p>
             <p className="mt-3 text-xs leading-relaxed text-slate-500">{stressChannel?.basis ?? scenarioGridId}</p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Model Version</p>
-              <p className="mt-2 text-sm font-bold text-slate-100">{modelVersion}</p>
-            </div>
-            <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Run Envelope</p>
-              <p className="mt-2 text-sm font-bold text-slate-100">{horizonWeeks} weeks · {nSims} sims</p>
-            </div>
-            <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Generated</p>
-              <p className="mt-2 text-sm font-bold text-slate-100">{new Date(generatedAt).toLocaleDateString()}</p>
-              <p className="mt-1 text-xs text-slate-500">{evidenceStatus.toUpperCase()} evidence</p>
-            </div>
+            <details className="mt-4 rounded-xl border border-white/5 bg-slate-950/25 px-3.5 py-3 text-sm text-slate-400">
+              <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                Method Details
+              </summary>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Model</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-300">{modelVersion}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Run Envelope</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-300">{horizonWeeks} weeks · {nSims} sims</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Generated</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-300">{new Date(generatedAt).toLocaleDateString()} · {evidenceStatus.toUpperCase()} evidence</p>
+                </div>
+              </div>
+            </details>
           </div>
         </div>
       </section>
@@ -212,9 +216,9 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
       <section className="space-y-2">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Assessment</p>
 
-        <div data-cy="dtse-overall-verdict" className={`relative overflow-hidden rounded-2xl border p-6 shadow-xl backdrop-blur-md ${bandClass}`}>
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-white/5 via-transparent to-transparent" />
+        <div data-cy="dtse-overall-verdict" className={`relative overflow-hidden rounded-2xl border p-5 backdrop-blur-md ${bandClass}`}>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-white/5 via-transparent to-transparent" />
             <div className="relative z-10 space-y-5">
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase tracking-[0.22em]">Overall assessment</p>
@@ -271,9 +275,17 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                   <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.depin_surface}</p>
                 </div>
 
-                <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Mechanism</p>
-                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.mechanism}</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Mechanism</p>
+                    <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.mechanism}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">What to watch next</p>
+                    <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">
+                      Stage 2 checks which metrics are fair to score. Stage 3 then shows what breaks first under the matched stress path.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
@@ -296,7 +308,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {marketStats.map(({ label, value, detail, icon }) => (
-              <div key={label} className="rounded-xl border border-emerald-500/10 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/25 hover:bg-slate-900/35">
+              <div key={label} className="rounded-xl border border-emerald-500/10 bg-slate-900/20 p-4 backdrop-blur-sm transition-all duration-300 hover:border-emerald-500/25 hover:bg-slate-900/35">
                 <CardHeader icon={icon} label={label} />
                 <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
                 <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-400">{detail}</p>
@@ -318,7 +330,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {modelStats.map(({ label, value, detail, icon }) => (
-            <div key={label} className="rounded-xl border border-white/5 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/10 hover:bg-slate-900/35">
+            <div key={label} className="rounded-xl border border-white/5 bg-slate-900/20 p-4 backdrop-blur-sm transition-all duration-300 hover:border-white/10 hover:bg-slate-900/35">
               <CardHeader icon={icon} label={label} />
               <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
               <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-400">{detail}</p>
