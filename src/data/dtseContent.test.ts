@@ -64,10 +64,18 @@ describe('buildDTSEProtocolPack', () => {
             for (const metricId of STANDARD_METRICS) {
                 expect(pack.outcomes.some((outcome) => outcome.metric_id === metricId)).toBe(true);
             }
-            expect(pack.outcomes.some((outcome) => outcome.metric_id === 'stress_resilience_index')).toBe(true);
+            expect(pack.outcomes.some((outcome) => outcome.metric_id === 'stress_resilience_index')).toBe(false);
 
             expect(pack.failureSignatures.length).toBeGreaterThan(0);
             expect(pack.recommendations.length).toBeGreaterThan(0);
+            expect(pack.failureSignatures.every((signature) => [
+                'Reward–Demand Decoupling',
+                'Profitability-Induced Churn',
+                'Liquidity-Driven Compression',
+                'Elastic Provider Exit',
+                'Latent Capacity Degradation',
+            ].includes(signature.label))).toBe(true);
+            expect(pack.recommendations.every((recommendation) => recommendation.action.startsWith('Possible response path:'))).toBe(true);
 
             expect(Array.isArray(pack.runContext.weekly_solvency)).toBe(true);
             expect(pack.runContext.weekly_solvency?.length).toBe(pack.runContext.horizon_weeks);

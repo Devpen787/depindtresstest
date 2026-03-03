@@ -73,39 +73,41 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
         <>
           <section className="space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Response Posture</p>
-            <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-900/35 p-5 shadow-xl backdrop-blur-md">
-              <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-violet-500/10 via-indigo-500/5 to-transparent" />
-              <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="max-w-3xl space-y-2.5">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-300">Primary response path</p>
-                  <h3 className="text-2xl font-black tracking-tight text-white">
-                    {leadRecommendation ? leadRecommendation.action : 'No action required'}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-slate-400">
-                    Review areas: {uniqueOwners.join(', ')}
-                  </p>
-                </div>
-                <div className="flex flex-col items-start gap-3 lg:items-end">
-                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                    {(['critical', 'high', 'medium', 'low'] as DTSERecommendation['priority'][]).map((priority) => {
-                      const ps = PRIORITY_STYLES[priority];
-                      return (
-                        <div key={priority} className={`rounded-xl border px-3.5 py-2.5 text-center ${ps.badge}`}>
-                          <p className={`text-lg font-black ${ps.badgeText}`}>{priorityCounts[priority]}</p>
-                          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{priority}</p>
-                        </div>
-                      );
-                    })}
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr]">
+              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-300">Lead response path</p>
+                <h3 className="mt-2 text-xl font-black tracking-tight text-white">
+                  {leadRecommendation ? leadRecommendation.action : 'No action required'}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  Review areas: {uniqueOwners.join(', ')}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Priority mix</p>
+                    <p className="mt-1 text-sm text-slate-400">Use this as a discussion filter, not a fixed execution queue.</p>
                   </div>
                   <button
                     data-cy="dtse-export-btn"
                     onClick={onExport}
-                    className="group relative flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-xs font-black tracking-wide text-white shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 hover:shadow-[0_0_30px_rgba(91,33,182,0.5)]"
+                    className="flex items-center gap-2 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-2 text-xs font-black tracking-wide text-indigo-100 transition-colors hover:bg-indigo-500/15"
                   >
-                    <div className="absolute inset-0 h-full w-full -translate-x-[150%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                    <Download size={14} className="relative z-10 drop-shadow-sm" />
-                    <span className="relative z-10">Export Report</span>
+                    <Download size={14} />
+                    <span>Export</span>
                   </button>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {(['critical', 'high', 'medium', 'low'] as DTSERecommendation['priority'][]).map((priority) => {
+                    const ps = PRIORITY_STYLES[priority];
+                    return (
+                      <div key={priority} className={`rounded-xl border px-3.5 py-2.5 text-center ${ps.badge}`}>
+                        <p className={`text-lg font-black ${ps.badgeText}`}>{priorityCounts[priority]}</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{priority}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -116,7 +118,6 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
             <div className="space-y-3">
               {sorted.map((rec, idx) => {
                 const ps = PRIORITY_STYLES[rec.priority];
-                const isCritical = rec.priority === 'critical';
 
                 return (
                   <div
@@ -125,10 +126,6 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                     className={`group relative overflow-hidden rounded-2xl border bg-slate-900/28 p-5 space-y-3 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 ${ps.shadow}`}
                     style={{ animationDelay: `${idx * 75}ms` }}
                   >
-                    {isCritical && (
-                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-500/50 to-transparent animate-pulse" />
-                    )}
-
                     <div className="relative z-10 flex items-start gap-3.5">
                       <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 bg-slate-950/80 text-[11px] font-black text-slate-300 shadow-inner transition-transform duration-300 group-hover:scale-110">
                         {idx + 1}

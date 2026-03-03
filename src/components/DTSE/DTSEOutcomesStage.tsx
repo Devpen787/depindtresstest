@@ -137,6 +137,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
     alert: 'bg-rose-500/30 border border-rose-500/40',
     critical: 'bg-rose-400/70 border border-rose-300/80 shadow-[0_0_8px_rgba(251,113,133,0.45)]',
   } as const;
+  const triggeredFamilies = sequenceView?.pathway.filter((row) => row.triggerWeek !== null).length ?? 0;
 
   const solvencyTrajectory = (weeklySolvency ?? [])
     .map((value, index) => ({ week: index + 1, solvency: value }))
@@ -163,7 +164,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
           Stage 3 — Stress Results
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Read this stage as deterioration order under matched conditions. The main question is what breaks first relative to baseline, not which protocol scores highest on a universal scale.
+          Read this stage as deterioration order under matched conditions. Prioritize the first threshold breaks and the path of deterioration over raw magnitude.
         </p>
       </div>
 
@@ -221,11 +222,25 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
               </div>
 
               <div className="space-y-3">
-                <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Interpretive boundary</p>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                    DTSE compares drift from a matched baseline path. It does not forecast live-network truth or compress unlike protocols into a single winner score.
-                  </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Earliest trigger</p>
+                    <p className="mt-2 text-lg font-bold text-white">
+                      {sequenceView.earliestTriggerWeek ? `Week ${sequenceView.earliestTriggerWeek}` : 'Contained'}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{sequenceView.earliestTriggerLabel ?? 'No early breach detected.'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Triggered families</p>
+                    <p className="mt-2 text-lg font-bold text-white">{triggeredFamilies}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">Subsystems that materially diverged from baseline.</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Interpretive boundary</p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                      DTSE compares drift from a matched baseline path. It does not forecast live-network truth or compress unlike protocols into a single winner score.
+                    </p>
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 backdrop-blur-sm">
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">The DePIN Illusion</p>
@@ -263,7 +278,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
               <div data-cy="dtse-transmission-pathway" className="space-y-3">
                 {sequenceView.pathway.map((row) => (
                   <div key={row.familyId} className="rounded-xl border border-white/5 bg-slate-900/20 p-3.5">
-                    <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="grid gap-3 xl:grid-cols-[240px_1fr_260px] xl:items-start">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold text-slate-100">{row.label}</p>
@@ -273,24 +288,25 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                         </div>
                         <p className="mt-1 text-xs text-slate-400">{row.triggerLabel}</p>
                       </div>
-                      <p className="max-w-xl text-[11px] leading-relaxed text-slate-500">{row.detail}</p>
-                    </div>
-
-                    <div
-                      className="mt-3 grid gap-1"
-                      style={{ gridTemplateColumns: `repeat(${row.cells.length}, minmax(0, 1fr))` }}
-                    >
-                      {row.cells.map((cell) => (
+                      <div>
                         <div
-                          key={`${row.familyId}-${cell.week}`}
-                          title={`Week ${cell.week}`}
-                          className={`h-5 rounded-[4px] ${pathwaySeverityStyles[cell.severity]}`}
-                        />
-                      ))}
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-[10px] font-medium text-slate-500">
-                      <span>Week 1</span>
-                      <span>Week {row.cells.length}</span>
+                          className="grid gap-1"
+                          style={{ gridTemplateColumns: `repeat(${row.cells.length}, minmax(0, 1fr))` }}
+                        >
+                          {row.cells.map((cell) => (
+                            <div
+                              key={`${row.familyId}-${cell.week}`}
+                              title={`Week ${cell.week}`}
+                              className={`h-6 rounded-[4px] ${pathwaySeverityStyles[cell.severity]}`}
+                            />
+                          ))}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] font-medium text-slate-500">
+                          <span>Week 1</span>
+                          <span>Week {row.cells.length}</span>
+                        </div>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-slate-500">{row.detail}</p>
                     </div>
                   </div>
                 ))}
@@ -301,7 +317,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
       )}
 
       <section className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Threshold Status</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Secondary Readout</p>
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-4">

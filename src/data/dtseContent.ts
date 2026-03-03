@@ -8,6 +8,7 @@ import type {
     DTSEProtocolBrief,
 } from '../types/dtse';
 import type { ProtocolProfileV1 } from './protocols';
+import { buildLiveDTSERecommendations } from '../utils/dtseLiveRecommendations';
 
 // ---------------------------------------------------------------------------
 // DTSEProtocolPack — self-contained stress-test data for a single protocol
@@ -43,7 +44,6 @@ const METRIC_LABELS: Record<string, string> = {
     network_utilization: 'Network Utilization',
     tail_risk_score: 'Tail Risk Score',
     vampire_churn: 'Vampire Churn',
-    stress_resilience_index: 'Stress Resilience Index',
 };
 
 const UNIT_MAP: Record<string, string> = {
@@ -52,7 +52,6 @@ const UNIT_MAP: Record<string, string> = {
     weekly_retention_rate: '%',
     network_utilization: '%',
     tail_risk_score: 'score',
-    stress_resilience_index: 'score',
 };
 
 // ---------------------------------------------------------------------------
@@ -860,29 +859,6 @@ function inferSupplyStructure(profile: ProtocolProfileV1): DTSEProtocolBrief['su
     return 'Capped';
 }
 
-function deriveStressResilienceOutcome(outcomes: DTSEOutcome[]): DTSEOutcome {
-    const scoreByBand: Record<DTSEOutcome['band'], number> = {
-        healthy: 85,
-        watchlist: 62,
-        intervention: 38,
-    };
-    const avgScore = outcomes.length === 0
-        ? 60
-        : Math.round(outcomes.reduce((sum, outcome) => sum + scoreByBand[outcome.band], 0) / outcomes.length);
-    const band = avgScore >= 70 ? 'healthy' : avgScore >= 55 ? 'watchlist' : 'intervention';
-    return {
-        metric_id: 'stress_resilience_index',
-        value: avgScore,
-        band,
-        evidence_ref: 'derived_from_guardrail_bands',
-    };
-}
-
-function withDerivedOutcomes(outcomes: DTSEOutcome[]): DTSEOutcome[] {
-    const withoutDerived = outcomes.filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
-    return [...withoutDerived, deriveStressResilienceOutcome(withoutDerived)];
-}
-
 export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
     solvency_ratio: {
         metric_id: 'solvency_ratio',
@@ -893,7 +869,7 @@ export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
         interpretation: {
             healthy: 'Incentive spend is sufficiently covered by demand-linked value.',
             watchlist: 'Coverage is thin; prioritize emission discipline and demand quality.',
-            intervention: 'Sustainability breach; immediate tokenomics intervention required.',
+            intervention: 'Sustainability breach; compare lower-emission and stronger-sink variants before assuming the current design is durable.',
         },
     },
     payback_period: {
@@ -905,7 +881,7 @@ export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
         interpretation: {
             healthy: 'Provider economics are attractive for sustained participation.',
             watchlist: 'ROI horizon is stretched and may weaken conviction.',
-            intervention: 'Economics likely too weak for resilient supply growth.',
+            intervention: 'Economics likely too weak for resilient supply growth under the current assumptions.',
         },
     },
     weekly_retention_rate: {
@@ -917,7 +893,7 @@ export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
         interpretation: {
             healthy: 'Provider stickiness supports operational continuity.',
             watchlist: 'Retention softening signals emerging fragility.',
-            intervention: 'Churn pressure threatens service reliability.',
+            intervention: 'Churn pressure threatens service reliability and should be treated as a stress signal, not a deterministic forecast.',
         },
     },
     network_utilization: {
@@ -929,7 +905,7 @@ export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
         interpretation: {
             healthy: 'Capacity is productively monetized.',
             watchlist: 'Demand conversion is under target; tighten supply-demand matching.',
-            intervention: 'Severe underutilization; revisit growth and incentive posture.',
+            intervention: 'Severe underutilization; revisit demand conversion assumptions before reading raw node count as health.',
         },
     },
     tail_risk_score: {
@@ -941,7 +917,7 @@ export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
         interpretation: {
             healthy: 'Tail scenarios are manageable with current controls.',
             watchlist: 'Stress fragility is rising; add preventive controls.',
-            intervention: 'High downside concentration; escalation recommended.',
+            intervention: 'High downside concentration; compare downside-control variants under the same matched conditions.',
         },
     },
     vampire_churn: {
@@ -953,19 +929,7 @@ export const DTSE_METRIC_INSIGHTS: Record<string, DTSEMetricInsight> = {
         interpretation: {
             healthy: 'Competitive yield pressure is contained.',
             watchlist: 'Rotation risk is material and should be monitored.',
-            intervention: 'High migration pressure threatens supply continuity.',
-        },
-    },
-    stress_resilience_index: {
-        metric_id: 'stress_resilience_index',
-        definition: 'Derived composite score summarizing multi-metric resilience under stress.',
-        why_relevant: 'Provides a single directional signal to summarize cross-metric risk.',
-        decision_use: 'Executive summary metric; interpret with underlying primary metrics.',
-        target: 'Healthy ≥ 70',
-        interpretation: {
-            healthy: 'Cross-metric resilience is robust.',
-            watchlist: 'Mixed resilience profile; targeted remediation needed.',
-            intervention: 'System-level fragility is elevated.',
+            intervention: 'High migration pressure threatens supply continuity under external-yield stress.',
         },
     },
 };
@@ -979,12 +943,170 @@ export const DTSE_REASON_LABELS: Record<DTSEApplicabilityEntry['reasonCode'], st
     INTERPOLATION_RISK: 'Interpolation risk',
 };
 
+const CANONICAL_SIGNATURE_ORDER = [
+    'reward-demand-decoupling',
+    'profitability-induced-churn',
+    'liquidity-driven-compression',
+    'elastic-provider-exit',
+    'latent-capacity-degradation',
+] as const;
+
+const signatureSeverityRank: Record<DTSEFailureSignature['severity'], number> = {
+    critical: 0,
+    high: 1,
+    medium: 2,
+    low: 3,
+};
+
+const uniqueMetrics = (metrics: string[]): string[] => [...new Set(metrics)];
+
+function inferCanonicalSignatureId(signature: DTSEFailureSignature): typeof CANONICAL_SIGNATURE_ORDER[number] {
+    const text = `${signature.label} ${signature.pattern}`.toLowerCase();
+    const affected = new Set(signature.affected_metrics);
+
+    if (
+        affected.has('vampire_churn')
+        || text.includes('compet')
+        || text.includes('yield')
+        || text.includes('rotation')
+    ) {
+        return 'elastic-provider-exit';
+    }
+
+    if (
+        affected.has('payback_period')
+        || affected.has('weekly_retention_rate')
+        || text.includes('payback')
+        || text.includes('churn')
+        || text.includes('provider')
+    ) {
+        return 'profitability-induced-churn';
+    }
+
+    if (
+        affected.has('tail_risk_score')
+        || text.includes('liquidity')
+        || text.includes('price')
+        || text.includes('drawdown')
+        || text.includes('compression')
+    ) {
+        return 'liquidity-driven-compression';
+    }
+
+    if (
+        affected.has('network_utilization')
+        || text.includes('utilization')
+        || text.includes('demand')
+        || text.includes('coverage')
+        || text.includes('capacity')
+    ) {
+        return 'latent-capacity-degradation';
+    }
+
+    return 'reward-demand-decoupling';
+}
+
+function buildCanonicalSignatureTemplate(
+    id: typeof CANONICAL_SIGNATURE_ORDER[number],
+    severity: DTSEFailureSignature['severity'],
+    affectedMetrics: string[],
+    originalPattern: string,
+): DTSEFailureSignature {
+    switch (id) {
+        case 'reward-demand-decoupling':
+            return {
+                id,
+                label: 'Reward–Demand Decoupling',
+                pattern: 'Reward issuance remains too high relative to demand-linked sinks, so resilience depends more on token support than validated operating demand.',
+                severity,
+                affected_metrics: uniqueMetrics(affectedMetrics.length > 0 ? affectedMetrics : ['solvency_ratio', 'payback_period']),
+                why_it_matters: 'The token layer can look active while the demand layer is no longer carrying the incentive load.',
+                trigger_logic: `Fallback pack inference from the saved DTSE bundle: ${originalPattern}`,
+            };
+        case 'profitability-induced-churn':
+            return {
+                id,
+                label: 'Profitability-Induced Churn',
+                pattern: 'Provider economics weaken enough that participation quality and retention begin to degrade.',
+                severity,
+                affected_metrics: uniqueMetrics(affectedMetrics.length > 0 ? affectedMetrics : ['weekly_retention_rate', 'payback_period']),
+                why_it_matters: 'Once provider margins weaken, churn can amplify fragility before governance has a clean read on the failing cohort.',
+                trigger_logic: `Fallback pack inference from the saved DTSE bundle: ${originalPattern}`,
+            };
+        case 'liquidity-driven-compression':
+            return {
+                id,
+                label: 'Liquidity-Driven Compression',
+                pattern: 'Market stress compresses fiat-equivalent rewards faster than the network can adjust.',
+                severity,
+                affected_metrics: uniqueMetrics(affectedMetrics.length > 0 ? affectedMetrics : ['tail_risk_score', 'solvency_ratio']),
+                why_it_matters: 'Averages can look stable while downside liquidity conditions still make the design brittle.',
+                trigger_logic: `Fallback pack inference from the saved DTSE bundle: ${originalPattern}`,
+            };
+        case 'elastic-provider-exit':
+            return {
+                id,
+                label: 'Elastic Provider Exit',
+                pattern: 'External yields or competitive offers can pull supply away before internal demand visibly collapses.',
+                severity,
+                affected_metrics: uniqueMetrics(affectedMetrics.length > 0 ? affectedMetrics : ['vampire_churn', 'weekly_retention_rate']),
+                why_it_matters: 'Node count is not a leading indicator when supply is mobile and economically rational.',
+                trigger_logic: `Fallback pack inference from the saved DTSE bundle: ${originalPattern}`,
+            };
+        case 'latent-capacity-degradation':
+        default:
+            return {
+                id,
+                label: 'Latent Capacity Degradation',
+                pattern: 'Capacity appears present, but utilization and demand conversion weaken first relative to the matched baseline.',
+                severity,
+                affected_metrics: uniqueMetrics(affectedMetrics.length > 0 ? affectedMetrics : ['network_utilization', 'solvency_ratio']),
+                why_it_matters: 'Physical persistence can hide economic decay because hardware is sunk cost and exits often lag.',
+                trigger_logic: `Fallback pack inference from the saved DTSE bundle: ${originalPattern}`,
+            };
+    }
+}
+
+function normalizeFallbackFailureSignatures(signatures: DTSEFailureSignature[]): DTSEFailureSignature[] {
+    const canonicalById = new Map<string, DTSEFailureSignature>();
+
+    for (const signature of signatures) {
+        const canonicalId = inferCanonicalSignatureId(signature);
+        const current = canonicalById.get(canonicalId);
+        const candidate = buildCanonicalSignatureTemplate(
+            canonicalId,
+            signature.severity,
+            signature.affected_metrics,
+            signature.pattern,
+        );
+
+        if (!current || signatureSeverityRank[signature.severity] < signatureSeverityRank[current.severity]) {
+            canonicalById.set(canonicalId, candidate);
+            continue;
+        }
+
+        canonicalById.set(canonicalId, {
+            ...current,
+            affected_metrics: uniqueMetrics([...current.affected_metrics, ...signature.affected_metrics]),
+            trigger_logic: current.trigger_logic ?? candidate.trigger_logic,
+        });
+    }
+
+    return [...canonicalById.values()].sort((left, right) => {
+        const severityDiff = signatureSeverityRank[left.severity] - signatureSeverityRank[right.severity];
+        if (severityDiff !== 0) return severityDiff;
+        return CANONICAL_SIGNATURE_ORDER.indexOf(left.id as typeof CANONICAL_SIGNATURE_ORDER[number])
+            - CANONICAL_SIGNATURE_ORDER.indexOf(right.id as typeof CANONICAL_SIGNATURE_ORDER[number]);
+    });
+}
+
 export function buildDTSEProtocolPack(profile: ProtocolProfileV1): DTSEDashboardPack {
     const pack = getDTSEProtocolPack(profile.metadata.id);
-    const baseOutcomes = pack.runContext.outcomes ?? [];
-    const outcomes = withDerivedOutcomes(baseOutcomes);
-    const failureSignatures = pack.runContext.failure_signatures ?? [];
-    const recommendations = pack.runContext.recommendations ?? [];
+    const outcomes = (pack.runContext.outcomes ?? []).filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
+    const failureSignatures = normalizeFallbackFailureSignatures(pack.runContext.failure_signatures ?? []);
+    const recommendations = buildLiveDTSERecommendations(failureSignatures, outcomes, {
+        protocolName: profile.metadata.name,
+    });
     const protocolBriefTemplate = PROTOCOL_BRIEF_OVERRIDES[profile.metadata.id] ?? deriveDefaultProtocolBrief(profile);
 
     return {

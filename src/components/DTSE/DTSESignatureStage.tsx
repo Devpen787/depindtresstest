@@ -54,6 +54,8 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
     const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
   });
+  const leadSignature = sorted[0];
+  const activeCount = sorted.filter((sig) => sig.severity !== 'low').length;
 
   return (
     <div data-cy="dtse-signature-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -76,23 +78,41 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
         </div>
       ) : (
         <div className="space-y-4">
+          <section className="grid grid-cols-1 gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Autopsy summary</p>
+              <h3 className="mt-2 text-lg font-bold text-white">{leadSignature?.label}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                {leadSignature?.pattern}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Signatures</p>
+                <p className="mt-2 text-2xl font-black text-white">{sorted.length}</p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Active</p>
+                <p className="mt-2 text-2xl font-black text-white">{activeCount}</p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Lead severity</p>
+                <p className="mt-2 text-sm font-bold uppercase tracking-[0.16em] text-slate-200">{leadSignature?.severity ?? 'none'}</p>
+              </div>
+            </div>
+          </section>
+
           {sorted.map((sig, idx) => {
             const cfg = SEVERITY_CONFIG[sig.severity];
-            const isCritical = sig.severity === 'critical';
             return (
               <div
                 key={sig.id}
                 data-cy={`dtse-signature-${sig.id}`}
-                className={`relative overflow-hidden ${cfg.bg} border ${cfg.border} rounded-2xl p-6 ${cfg.shadow} transition-all duration-300 backdrop-blur-md group hover:-translate-y-0.5`}
+                className={`relative overflow-hidden ${cfg.bg} border ${cfg.border} rounded-2xl p-5 ${cfg.shadow} transition-all duration-300 backdrop-blur-md`}
                 style={{ animationDelay: `${idx * 75}ms` }}
               >
-                {/* Subtle animated background gradient line for critical items */}
-                {isCritical && (
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-rose-500/50 to-transparent animate-pulse" />
-                )}
-
                 <div className="flex items-start gap-4 relative z-10">
-                  <div className="mt-1 shrink-0 p-2 rounded-xl bg-slate-950/50 border border-white/5 shadow-inner">
+                  <div className="mt-0.5 shrink-0 p-2 rounded-xl bg-slate-950/50 border border-white/5 shadow-inner">
                     {cfg.icon}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -102,37 +122,36 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
                         {sig.severity}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-300 leading-relaxed font-medium mb-4 pr-4">{sig.pattern}</p>
+                    <p className="text-sm text-slate-300 leading-relaxed font-medium mb-4">{sig.pattern}</p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-1 gap-3 border-t border-white/5 pt-4 lg:grid-cols-[1fr_1fr_auto]">
                       {sig.why_it_matters && (
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Impact</p>
-                          <p className="text-xs text-slate-400 leading-relaxed font-medium pr-4">{sig.why_it_matters}</p>
+                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Why this matters</p>
+                          <p className="text-xs text-slate-400 leading-relaxed font-medium">{sig.why_it_matters}</p>
                         </div>
                       )}
                       {sig.trigger_logic && (
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Trigger Condition</p>
-                          <p className="text-xs text-slate-400 leading-relaxed font-mono pr-4">{sig.trigger_logic}</p>
+                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Triggered by</p>
+                          <p className="text-xs text-slate-400 leading-relaxed font-mono">{sig.trigger_logic}</p>
+                        </div>
+                      )}
+                      {sig.affected_metrics.length > 0 && (
+                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Trace</p>
+                          <div className="flex flex-wrap gap-2">
+                            {sig.affected_metrics.map((m) => (
+                              <span key={m} className="bg-slate-950/80 text-slate-400 text-[10px] font-mono font-medium px-2 py-1 rounded border border-white/5 shadow-inner">
+                                {metricLabels[m] ?? m}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-
-                {sig.affected_metrics.length > 0 && (
-                  <div className="flex items-center gap-3 pl-[4.5rem] mt-5 relative z-10">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/70">Trace:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {sig.affected_metrics.map((m) => (
-                        <span key={m} className="bg-slate-950/80 text-slate-400 text-[10px] font-mono font-medium px-2.5 py-1 rounded border border-white/5 shadow-inner">
-                          {metricLabels[m] ?? m}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
