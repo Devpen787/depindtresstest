@@ -64,7 +64,7 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
           Stage 4 — Failure Autopsy
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Classify the stress breakdown using thesis-aligned failure signatures.
+          Classify the breakdown using thesis-aligned failure signatures.
         </p>
       </div>
 
@@ -74,7 +74,7 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
             <Info size={24} className="text-emerald-400" />
           </div>
           <h3 className="text-sm font-bold text-slate-200 mb-1">No Failure Signature Triggered</h3>
-          <p className="text-xs text-slate-500">This run did not trigger a thesis-stage failure signature under the matched scenario assumptions.</p>
+          <p className="text-xs text-slate-500">This run did not trigger a thesis-stage failure signature under the matched scenario.</p>
         </div>
       ) : (
         <div className="space-y-4">

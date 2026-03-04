@@ -44,7 +44,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
           Stage 2 — Data Readiness
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Filter the metric set to ensure only high-confidence data enters the simulation.
+          Keep only the metrics that are fair to score in this run.
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
         <div className="absolute top-0 right-0 p-32 bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />
 
         <div className="flex items-center justify-between mb-6 relative z-10 border-b border-white/5 pb-4">
-          <h3 className="text-sm font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">Metric Applicability</h3>
+          <h3 className="text-sm font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">Included vs Excluded</h3>
           <div className="flex items-center gap-2 bg-slate-950/50 border border-slate-800 px-3 py-1.5 rounded-full shadow-inner">
             <span className="text-emerald-400 font-bold text-sm tracking-wide">{runnableCount}</span>
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">/ {totalCount} Runnable</span>
@@ -85,7 +85,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                       {metricLabels[entry.metricId] ?? entry.metricId}
                     </p>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                      {entry.details || (isRunnable ? 'High-fidelity data available for scoring.' : 'Excluded from simulation scoring.')}
+                      {entry.details || (isRunnable ? 'Included in DTSE scoring.' : 'Excluded from DTSE scoring.')}
                     </p>
                     <div className="grid grid-cols-1 gap-2 pt-2 border-t border-white/5 md:grid-cols-2 mt-2">
                       <p className="text-[11px] text-slate-500/90 leading-relaxed">
@@ -93,7 +93,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                         {metricInsights[entry.metricId]?.definition ?? 'No analytical definition.'}
                       </p>
                       <p className="text-[11px] text-slate-500/90 leading-relaxed">
-                        <span className="text-slate-400 font-bold tracking-wide">Signal:</span>{' '}
+                        <span className="text-slate-400 font-bold tracking-wide">Why it matters:</span>{' '}
                         {metricInsights[entry.metricId]?.why_relevant ?? 'No signal note available.'}
                       </p>
                     </div>
@@ -106,7 +106,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                       : 'bg-rose-950/40 border-rose-900/50 text-rose-400'
                     }`}>
                     <span className="text-[9px] font-black uppercase tracking-[0.2em]">
-                      {isRunnable ? 'Runnable' : 'Not Runnable'}
+                      {isRunnable ? 'Included' : 'Excluded'}
                     </span>
                   </div>
                   <div

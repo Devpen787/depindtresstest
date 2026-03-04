@@ -1,9 +1,10 @@
 import React from 'react';
-import { Download, ArrowRight, Zap } from 'lucide-react';
-import type { DTSERecommendation } from '../../types/dtse';
+import { Download, ArrowRight, Zap, Lightbulb } from 'lucide-react';
+import type { DTSEProtocolInsight, DTSERecommendation } from '../../types/dtse';
 
 interface DTSERecommendationsStageProps {
   recommendations: DTSERecommendation[];
+  insights: DTSEProtocolInsight[];
   onExport: () => void;
 }
 
@@ -32,6 +33,7 @@ const PRIORITY_STYLES: Record<DTSERecommendation['priority'], { badge: string; b
 
 export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> = ({
   recommendations,
+  insights,
   onExport,
 }) => {
   const sorted = [...recommendations].sort((a, b) => {
@@ -57,7 +59,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
           Stage 5 — Response Paths
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Interpretive response areas and tradeoffs, not model-issued prescriptions.
+          Response areas and tradeoffs for discussion, not model-issued prescriptions.
         </p>
       </div>
 
@@ -67,7 +69,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
             <Zap size={24} className="text-emerald-400" />
           </div>
           <h3 className="mb-1 text-sm font-bold text-slate-200">No Immediate Response Path</h3>
-          <p className="text-xs text-slate-500">The current run stays inside healthy guardrails, so DTSE remains in monitoring mode rather than surfacing a response path.</p>
+          <p className="text-xs text-slate-500">The current run stays inside healthy guardrails, so DTSE stays in monitoring mode.</p>
         </div>
       ) : (
         <>
@@ -80,7 +82,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                   {leadRecommendation ? leadRecommendation.action : 'No action required'}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                  Review areas: {uniqueOwners.join(', ')}
+                  Main areas to examine: {uniqueOwners.join(', ')}
                 </p>
               </div>
               <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
@@ -213,6 +215,61 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
             </div>
           </section>
         </>
+      )}
+
+      {insights.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Protocol Insights</p>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            {insights.map((insight) => (
+              <div
+                key={insight.id}
+                data-cy={`dtse-insight-${insight.id}`}
+                className="rounded-2xl border border-white/5 bg-slate-900/28 p-5 backdrop-blur-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2">
+                      <Lightbulb size={16} className="text-amber-300" />
+                    </div>
+                    <div>
+                      <p className="text-base font-black tracking-tight text-slate-100">{insight.title}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-300">{insight.observation}</p>
+                    </div>
+                  </div>
+                  <span className="rounded-md border border-white/5 bg-slate-950/50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-300">
+                    {insight.confidence}
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                  <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
+                    <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Why it matters</p>
+                    <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.implication}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
+                    <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Basis</p>
+                    <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.trigger ?? 'Protocol structure and current DTSE readout.'}</p>
+                  </div>
+                </div>
+                <details className="mt-3 rounded-xl border border-white/5 bg-slate-950/16 p-3">
+                  <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Provenance
+                  </summary>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {insight.provenance.map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-md border border-white/5 bg-slate-950/60 px-2.5 py-1 text-[10px] font-semibold text-slate-300"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

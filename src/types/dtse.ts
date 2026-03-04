@@ -128,6 +128,16 @@ export interface DTSERecommendation {
     peer_analog?: string;
 }
 
+export interface DTSEProtocolInsight {
+    id: string;
+    title: string;
+    observation: string;
+    implication: string;
+    trigger?: string;
+    confidence: 'model' | 'derived' | 'curated' | 'mixed';
+    provenance: string[];
+}
+
 export interface DTSEProtocolBrief {
     protocol_id: string;
     protocol_name: string;

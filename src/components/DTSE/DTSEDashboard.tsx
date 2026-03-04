@@ -16,6 +16,7 @@ import { buildLiveDTSERecommendations } from '../../utils/dtseLiveRecommendation
 import { buildLiveDTSEApplicability } from '../../utils/dtseLiveApplicability';
 import { inferDTSEStressChannel } from '../../utils/dtseStressChannel';
 import { buildDTSESequenceView } from '../../utils/dtseSequenceView';
+import { buildDTSEProtocolInsights } from '../../utils/dtseProtocolInsights';
 import { DTSEContextStage } from './DTSEContextStage';
 import { DTSEApplicabilityStage } from './DTSEApplicabilityStage';
 import { DTSEOutcomesStage, type DTSEThresholdConfig } from './DTSEOutcomesStage';
@@ -205,6 +206,16 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       peerNames: peerContext?.peerNames,
     });
   }, [displayedFailureSignatures, displayedOutcomes, liveOutputs, pack.recommendations, peerContext?.peerNames, selectedProfile.metadata.name]);
+  const displayedProtocolInsights = useMemo(() => (
+    buildDTSEProtocolInsights({
+      profile: selectedProfile,
+      protocolBrief: pack.protocolBrief,
+      outcomes: displayedOutcomes,
+      failureSignatures: displayedFailureSignatures,
+      sequenceView,
+      peerNames: peerContext?.peerNames,
+    })
+  ), [displayedFailureSignatures, displayedOutcomes, pack.protocolBrief, peerContext?.peerNames, selectedProfile, sequenceView]);
   const ctx = useMemo(() => {
     if (!params || !liveOutputs) {
       return pack.runContext;
@@ -351,6 +362,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     return (
       <DTSERecommendationsStage
         recommendations={displayedRecommendations}
+        insights={displayedProtocolInsights}
         onExport={handleExport}
       />
     );
@@ -364,6 +376,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       outcomes: displayedOutcomes,
       failureSignatures: displayedFailureSignatures,
       recommendations: displayedRecommendations,
+      protocolInsights: displayedProtocolInsights,
       exportedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -375,7 +388,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [ctx, displayedApplicability, displayedFailureSignatures, displayedOutcomes, displayedRecommendations, pack]);
+  }, [ctx, displayedApplicability, displayedFailureSignatures, displayedOutcomes, displayedProtocolInsights, displayedRecommendations, pack]);
 
   return (
     <div data-cy="dtse-dashboard-root" className="flex flex-col h-full relative overflow-hidden bg-slate-950">

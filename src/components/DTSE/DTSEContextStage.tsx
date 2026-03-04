@@ -147,7 +147,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   const attentionCount = bandCounts.watchlist + bandCounts.intervention;
   const verdictSummary = overallBand === 'healthy'
     ? `All ${coreOutcomes.length} core indicators are in healthy range.`
-    : `${attentionCount} of ${coreOutcomes.length} core indicators need attention.${driverLabels.length > 0 ? ` ${driverLabels.join(' and ')} are the main drivers.` : ''}`;
+    : `${attentionCount} of ${coreOutcomes.length} core indicators need attention.${driverLabels.length > 0 ? ` ${driverLabels.join(' and ')} drive most of the stress.` : ''}`;
   const verdictTitle = overallBand === 'healthy'
     ? 'Structure looks durable.'
     : overallBand === 'watchlist'
@@ -166,14 +166,14 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           Stage 1 — Protocol Context
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Enough protocol setup to understand what DTSE is stress-testing and how to read the next stages.
+          Enough context to understand what DTSE is testing and how to read the next stages.
         </p>
       </div>
 
       <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-300">Interpretation Boundary</p>
         <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
-          DTSE is a baseline-relative comparative evaluator. It is not a price predictor, not a universal ranking, and not a claim about live-network truth outside the modeled scenario envelope.
+          DTSE is baseline-relative and comparative. It does not predict price, assign a universal rank, or claim live-network truth outside the modeled scenario.
         </p>
       </div>
 
@@ -283,7 +283,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                   <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">What to watch next</p>
                     <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">
-                      Stage 2 checks which metrics are fair to score. Stage 3 then shows what breaks first under the matched stress path.
+                      Stage 2 shows which metrics are fair to score. Stage 3 shows what breaks first under stress.
                     </p>
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
             ))}
           </div>
           <p className="text-xs leading-relaxed text-slate-500">
-            These values come from CoinGecko and describe the current market state, not the simulation assumptions.
+            These values come from CoinGecko. They describe current market conditions, not model inputs.
           </p>
         </section>
       )}
@@ -338,7 +338,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           ))}
         </div>
         <p className="text-xs leading-relaxed text-slate-500">
-          These are the protocol assumptions used to frame the DTSE evaluation: supply baseline, issuance, burn pressure, and supply-side starting conditions.
+          These inputs frame the DTSE run: supply baseline, issuance, burn pressure, and starting supply conditions.
         </p>
       </section>
 

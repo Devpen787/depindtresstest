@@ -164,7 +164,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
           Stage 3 — Stress Results
         </h2>
         <p className="text-sm font-medium text-slate-400">
-          Read this stage as deterioration order under matched conditions. Prioritize the first threshold breaks and the path of deterioration over raw magnitude.
+          Read this as deterioration order under matched conditions. Focus on the first breaks and the path of deterioration, not raw magnitude.
         </p>
       </div>
 
@@ -179,7 +179,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Stress deviation vs baseline</h3>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-                      Zero marks the matched baseline. Negative drift shows where stress materially knocks the network off its natural path.
+                      Zero marks the matched baseline. Negative drift shows where stress pushes the network off its expected path.
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2 text-right">
@@ -238,7 +238,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Interpretive boundary</p>
                     <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                      DTSE compares drift from a matched baseline path. It does not forecast live-network truth or compress unlike protocols into a single winner score.
+                      DTSE compares drift from a matched baseline path. It does not forecast live-network truth or reduce unlike protocols to a single winner score.
                     </p>
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">What breaks first</h3>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-                    Each row shows when a subsystem first departs from the healthy or baseline envelope. Earlier rows usually absorb the shock before node count visibly reacts.
+                    Each row shows when a subsystem first leaves the healthy or baseline envelope. Earlier rows usually absorb the shock before node count visibly reacts.
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2">
@@ -350,7 +350,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   {excludedOutcomes.length > 0 ? ` · ${excludedOutcomes.length} excluded` : ''}
                 </p>
                 <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                  Keep this as a secondary readout. Sequence, timing, and baseline drift explain more than a compressed band count alone.
+                  Keep this secondary. Sequence, timing, and baseline drift explain more than band counts alone.
                 </p>
               </div>
             </div>
@@ -412,7 +412,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">Lower bars indicate more distance from the target range.</p>
+              <p className="mt-1 text-[11px] text-slate-500">Lower bars show more distance from the target range.</p>
             </div>
           )}
         </div>
