@@ -31,6 +31,36 @@ const PRIORITY_STYLES: Record<DTSERecommendation['priority'], { badge: string; b
   },
 };
 
+const INSIGHT_CONFIDENCE_META: Record<
+  DTSEProtocolInsight['confidence'],
+  { label: string; badge: string; badgeText: string; description: string }
+> = {
+  model: {
+    label: 'Model',
+    badge: 'bg-emerald-950/60 border-emerald-900/50',
+    badgeText: 'text-emerald-300',
+    description: 'Directly reflected in the current matched DTSE run.',
+  },
+  derived: {
+    label: 'Derived',
+    badge: 'bg-cyan-950/60 border-cyan-900/50',
+    badgeText: 'text-cyan-300',
+    description: 'Computed from current run outputs and DTSE thresholds.',
+  },
+  mixed: {
+    label: 'Mixed',
+    badge: 'bg-violet-950/60 border-violet-900/50',
+    badgeText: 'text-violet-300',
+    description: 'Current DTSE outputs interpreted with protocol-specific facts.',
+  },
+  curated: {
+    label: 'Curated',
+    badge: 'bg-amber-950/60 border-amber-900/50',
+    badgeText: 'text-amber-300',
+    description: 'Based on verified protocol facts or curated peer mapping.',
+  },
+};
+
 export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> = ({
   recommendations,
   insights,
@@ -227,45 +257,56 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                 data-cy={`dtse-insight-${insight.id}`}
                 className="rounded-2xl border border-white/5 bg-slate-900/28 p-5 backdrop-blur-md"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2">
-                      <Lightbulb size={16} className="text-amber-300" />
-                    </div>
-                    <div>
-                      <p className="text-base font-black tracking-tight text-slate-100">{insight.title}</p>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-300">{insight.observation}</p>
-                    </div>
-                  </div>
-                  <span className="rounded-md border border-white/5 bg-slate-950/50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-300">
-                    {insight.confidence}
-                  </span>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                  <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                    <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Why it matters</p>
-                    <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.implication}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                    <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Basis</p>
-                    <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.trigger ?? 'Protocol structure and current DTSE readout.'}</p>
-                  </div>
-                </div>
-                <details className="mt-3 rounded-xl border border-white/5 bg-slate-950/16 p-3">
-                  <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-                    Provenance
-                  </summary>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {insight.provenance.map((item) => (
-                      <span
-                        key={item}
-                        className="rounded-md border border-white/5 bg-slate-950/60 px-2.5 py-1 text-[10px] font-semibold text-slate-300"
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </details>
+                {(() => {
+                  const confidenceMeta = INSIGHT_CONFIDENCE_META[insight.confidence];
+
+                  return (
+                    <>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2">
+                            <Lightbulb size={16} className="text-amber-300" />
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-base font-black tracking-tight text-slate-100">{insight.title}</p>
+                              <span className={`${confidenceMeta.badge} ${confidenceMeta.badgeText} rounded-md border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em]`}>
+                                {confidenceMeta.label}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                              {confidenceMeta.description}
+                            </p>
+                            <p className="mt-2 text-sm leading-relaxed text-slate-300">{insight.observation}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
+                          <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Why it matters</p>
+                          <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.implication}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
+                          <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Primary basis</p>
+                          <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.trigger ?? 'Protocol structure and current DTSE readout.'}</p>
+                        </div>
+                      </div>
+                      <details className="mt-3 rounded-xl border border-white/5 bg-slate-950/16 p-3">
+                        <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                          Source Trace
+                        </summary>
+                        <ul className="mt-3 space-y-2">
+                          {insight.provenance.map((item) => (
+                            <li key={item} className="flex items-start gap-2 text-xs font-medium leading-relaxed text-slate-400">
+                              <span className="mt-0.5 text-slate-500">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>

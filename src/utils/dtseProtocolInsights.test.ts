@@ -112,7 +112,11 @@ describe('buildDTSEProtocolInsights', () => {
     expect(insights.some((insight) => insight.id === 'capped-supply-tradeoff')).toBe(true);
     expect(insights.some((insight) => insight.id === 'liquidity-exposure')).toBe(true);
     expect(insights.some((insight) => insight.id === 'comparative-anchor')).toBe(true);
+    expect(insights.find((insight) => insight.id === 'lagging-signal')?.title).toBe('Station count can lag the economic break');
     expect(insights.find((insight) => insight.id === 'lagging-signal')?.observation).toContain('Week 12');
     expect(insights.find((insight) => insight.id === 'lagging-signal')?.observation).toContain('Week 49');
+    expect(insights.find((insight) => insight.id === 'capped-supply-tradeoff')?.provenance).toContain('Brief: capped supply / Fixed Emissions w/ Partial Burn');
+    expect(insights.find((insight) => insight.id === 'liquidity-exposure')?.provenance).toContain('Signature: Liquidity-Driven Compression');
+    expect(insights.find((insight) => insight.id === 'comparative-anchor')?.provenance).toContain('Peer mapping: GEODNET, Helium');
   });
 });
