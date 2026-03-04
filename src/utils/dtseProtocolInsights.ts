@@ -152,6 +152,9 @@ export function buildDTSEProtocolInsights({
   const payback = metrics.payback_period?.value ?? 0;
   const retention = metrics.weekly_retention_rate?.value ?? 0;
   const tailRisk = metrics.tail_risk_score?.value ?? 0;
+  const solvencyBand = metrics.solvency_ratio?.band ?? 'healthy';
+  const tailRiskBand = metrics.tail_risk_score?.band ?? 'healthy';
+  const retentionBand = metrics.weekly_retention_rate?.band ?? 'healthy';
 
   const retentionRow = sequenceView?.pathway.find((row) => row.familyId === 'retention_churn');
   const earliestLabel = sequenceView?.earliestTriggerLabel;
@@ -214,7 +217,12 @@ export function buildDTSEProtocolInsights({
     });
   }
 
-  if (signatures['liquidity-driven-compression'] || tailRisk >= 35) {
+  const liquidityPressureActive = Boolean(signatures['liquidity-driven-compression'])
+    || tailRiskBand !== 'healthy'
+    || solvencyBand !== 'healthy'
+    || tailRisk >= 35;
+
+  if (liquidityPressureActive) {
     insights.push({
       id: 'liquidity-exposure',
       title: 'Market stress reaches providers quickly',
@@ -232,7 +240,10 @@ export function buildDTSEProtocolInsights({
     });
   }
 
-  if (signatures['elastic-provider-exit']) {
+  const elasticSupplyActive = Boolean(signatures['elastic-provider-exit'])
+    || retentionBand !== 'healthy';
+
+  if (elasticSupplyActive && signatures['elastic-provider-exit']) {
     insights.push({
       id: 'elastic-supply',
       title: 'Supply is more mobile than node count suggests',

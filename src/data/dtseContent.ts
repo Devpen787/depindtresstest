@@ -7,7 +7,8 @@ import type {
     DTSEMetricInsight,
     DTSEProtocolBrief,
 } from '../types/dtse';
-import type { ProtocolProfileV1 } from './protocols';
+import { DTSE_PEER_ANALOGS } from './dtsePeerAnalogs';
+import { PROTOCOL_PROFILES, type ProtocolProfileV1 } from './protocols';
 import { buildLiveDTSERecommendations } from '../utils/dtseLiveRecommendations';
 
 // ---------------------------------------------------------------------------
@@ -53,6 +54,8 @@ const UNIT_MAP: Record<string, string> = {
     network_utilization: '%',
     tail_risk_score: 'score',
 };
+
+const PROFILE_NAME_BY_ID = new Map(PROTOCOL_PROFILES.map((profile) => [profile.metadata.id, profile.metadata.name]));
 
 // ---------------------------------------------------------------------------
 // Standard applicability (all 6 metrics reportable unless overridden)
@@ -1100,12 +1103,33 @@ function normalizeFallbackFailureSignatures(signatures: DTSEFailureSignature[]):
     });
 }
 
+function filterFallbackFailureSignaturesByOutcomes(
+    signatures: DTSEFailureSignature[],
+    outcomes: DTSEOutcome[],
+): DTSEFailureSignature[] {
+    const stressedMetricIds = new Set(
+        outcomes
+            .filter((outcome) => outcome.band !== 'healthy')
+            .map((outcome) => outcome.metric_id),
+    );
+
+    const filtered = signatures.filter((signature) => (
+        signature.affected_metrics.some((metricId) => stressedMetricIds.has(metricId))
+    ));
+
+    return filtered.length > 0 ? filtered : signatures.slice(0, 1);
+}
+
 export function buildDTSEProtocolPack(profile: ProtocolProfileV1): DTSEDashboardPack {
     const pack = getDTSEProtocolPack(profile.metadata.id);
     const outcomes = (pack.runContext.outcomes ?? []).filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
-    const failureSignatures = normalizeFallbackFailureSignatures(pack.runContext.failure_signatures ?? []);
+    const normalizedFailureSignatures = normalizeFallbackFailureSignatures(pack.runContext.failure_signatures ?? []);
+    const failureSignatures = filterFallbackFailureSignaturesByOutcomes(normalizedFailureSignatures, outcomes);
+    const peerNames = DTSE_PEER_ANALOGS[profile.metadata.id]?.peer_ids
+        .map((peerId) => PROFILE_NAME_BY_ID.get(peerId) ?? peerId);
     const recommendations = buildLiveDTSERecommendations(failureSignatures, outcomes, {
         protocolName: profile.metadata.name,
+        peerNames,
     });
     const protocolBriefTemplate = PROTOCOL_BRIEF_OVERRIDES[profile.metadata.id] ?? deriveDefaultProtocolBrief(profile);
 

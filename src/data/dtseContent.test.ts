@@ -5,6 +5,7 @@ import {
     getDTSEProtocolPack,
     buildDTSEProtocolPack,
 } from './dtseContent';
+import { DTSE_PEER_ANALOGS } from './dtsePeerAnalogs';
 
 const STANDARD_METRICS = [
     'solvency_ratio',
@@ -76,6 +77,19 @@ describe('buildDTSEProtocolPack', () => {
                 'Latent Capacity Degradation',
             ].includes(signature.label))).toBe(true);
             expect(pack.recommendations.every((recommendation) => recommendation.action.startsWith('Possible response path:'))).toBe(true);
+
+            const stressedMetricIds = new Set(
+                pack.outcomes
+                    .filter((outcome) => outcome.band !== 'healthy')
+                    .map((outcome) => outcome.metric_id),
+            );
+            expect(pack.failureSignatures.every((signature) => (
+                signature.affected_metrics.some((metricId) => stressedMetricIds.has(metricId))
+            ))).toBe(true);
+
+            if (DTSE_PEER_ANALOGS[profile.metadata.id]) {
+                expect(pack.recommendations.some((recommendation) => Boolean(recommendation.peer_analog))).toBe(true);
+            }
 
             expect(Array.isArray(pack.runContext.weekly_solvency)).toBe(true);
             expect(pack.runContext.weekly_solvency?.length).toBe(pack.runContext.horizon_weeks);
