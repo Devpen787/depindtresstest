@@ -4,6 +4,7 @@ import type { ProtocolProfileV1 } from '../../data/protocols';
 import { PROTOCOL_PROFILES } from '../../data/protocols';
 import type { AggregateResult, DerivedMetrics, SimulationParams } from '../../model/types';
 import type { TokenMarketData } from '../../services/coingecko';
+import type { DTSEApplicabilityEntry, DTSEFailureSignature, DTSEOutcome, DTSEProtocolInsight, DTSERecommendation, DTSERunContext } from '../../types/dtse';
 import {
   buildDTSEProtocolPack,
   DTSE_METRIC_INSIGHTS,
@@ -92,6 +93,110 @@ const ctxLikeFallback = (scenarioGridId: string) => ({
   summary: 'Static DTSE pack loaded without a live runtime scenario mapping.',
   basis: scenarioGridId,
 });
+
+interface DTSEStakeholderBriefPayload {
+  runContext: DTSERunContext;
+  applicability: DTSEApplicabilityEntry[];
+  outcomes: DTSEOutcome[];
+  failureSignatures: DTSEFailureSignature[];
+  recommendations: DTSERecommendation[];
+  protocolInsights: DTSEProtocolInsight[];
+}
+
+const downloadTextFile = (filename: string, contents: string, mimeType: string) => {
+  const blob = new Blob([contents], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+};
+
+const buildDTSEStakeholderBriefMarkdown = (
+  payload: DTSEStakeholderBriefPayload,
+  metricLabels: Record<string, string>,
+  reasonLabels: Record<string, string>,
+): string => {
+  const bandCounts = payload.outcomes.reduce(
+    (counts, outcome) => {
+      counts[outcome.band] += 1;
+      return counts;
+    },
+    { healthy: 0, watchlist: 0, intervention: 0 } as Record<'healthy' | 'watchlist' | 'intervention', number>,
+  );
+  const overallBand = bandCounts.intervention > 0
+    ? 'Intervention'
+    : bandCounts.watchlist > 0
+      ? 'Watchlist'
+      : 'Healthy';
+
+  const applicabilityLines = payload.applicability.map((entry) => {
+    const verdictLabel = entry.verdict === 'R' ? 'Included' : 'Excluded (NR)';
+    const reasonLabel = reasonLabels[entry.reasonCode] ?? entry.reasonCode;
+    return `- **${metricLabels[entry.metricId] ?? entry.metricId}** — ${verdictLabel}; reason: ${reasonLabel}${entry.details ? `; note: ${entry.details}` : ''}`;
+  });
+
+  const outcomeLines = payload.outcomes.map((outcome) => (
+    `- **${metricLabels[outcome.metric_id] ?? outcome.metric_id}**: ${outcome.value.toLocaleString(undefined, { maximumFractionDigits: 2 })} (${outcome.band})`
+  ));
+
+  const signatureLines = payload.failureSignatures.length === 0
+    ? ['- No Stage 2 failure signature was triggered in this run.']
+    : payload.failureSignatures.map((signature) => (
+      `- **${signature.label}** (${signature.severity}) — ${signature.pattern}${signature.trigger_logic ? ` Trigger: ${signature.trigger_logic}` : ''}`
+    ));
+
+  const recommendationLines = payload.recommendations.length === 0
+    ? ['- No immediate response path flagged; continue monitoring under matched conditions.']
+    : payload.recommendations.map((recommendation) => (
+      `- **${recommendation.action}** [${recommendation.priority}] — ${recommendation.rationale}`
+    ));
+
+  const insightLines = payload.protocolInsights.length === 0
+    ? ['- No protocol-specific insight was generated for this run.']
+    : payload.protocolInsights.map((insight) => (
+      `- **${insight.title}** (${insight.confidence}) — ${insight.observation}`
+    ));
+
+  return [
+    '# DTSE Stakeholder Brief',
+    '',
+    `**Protocol:** ${payload.runContext.protocol_id}`,
+    `**Run ID:** ${payload.runContext.run_id}`,
+    `**Stress Channel:** ${payload.runContext.stress_channel?.label ?? payload.runContext.scenario_grid_id}`,
+    `**Generated (UTC):** ${payload.runContext.generated_at_utc}`,
+    '',
+    '## Interpretation Boundary',
+    'DTSE is baseline-relative and comparative. This brief does not forecast price, assign a universal rank, or claim live-network truth outside the modeled stress contract.',
+    '',
+    '## Executive Snapshot',
+    `- Overall posture: **${overallBand}**`,
+    `- Band mix: ${bandCounts.healthy} healthy · ${bandCounts.watchlist} watchlist · ${bandCounts.intervention} intervention`,
+    `- Evidence status: ${payload.runContext.evidence_status}`,
+    `- Simulation envelope: ${payload.runContext.horizon_weeks} weeks · ${payload.runContext.n_sims} sims`,
+    '',
+    '## Stage 2 — Applicability (Fair Scoring Gate)',
+    ...applicabilityLines,
+    '',
+    '## Stage 3 — Outcomes (Sequence Over Magnitude)',
+    ...outcomeLines,
+    '',
+    '## Stage 4 — Failure Signatures',
+    ...signatureLines,
+    '',
+    '## Stage 5 — Response Paths (Interpretive, Not Prescriptive)',
+    ...recommendationLines,
+    '',
+    '## Protocol Insights',
+    ...insightLines,
+    '',
+    '---',
+    'Prepared from DTSE app export artifacts (.json + .md) for stakeholder review.',
+  ].join('\n');
+};
 
 interface DTSEDashboardProps {
   activeProfile?: ProtocolProfileV1;
@@ -378,16 +483,18 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       protocolInsights: displayedProtocolInsights,
       exportedAt: new Date().toISOString(),
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dtse-export-${ctx.run_id}-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [ctx, displayedApplicability, displayedFailureSignatures, displayedOutcomes, displayedProtocolInsights, displayedRecommendations, pack]);
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const baseName = `dtse-export-${ctx.run_id}-${dateKey}`;
+
+    downloadTextFile(`${baseName}.json`, JSON.stringify(payload, null, 2), 'application/json');
+
+    const stakeholderBrief = buildDTSEStakeholderBriefMarkdown(
+      payload,
+      METRIC_LABELS,
+      DTSE_REASON_LABELS,
+    );
+    downloadTextFile(`${baseName}.md`, stakeholderBrief, 'text/markdown');
+  }, [ctx, displayedApplicability, displayedFailureSignatures, displayedOutcomes, displayedProtocolInsights, displayedRecommendations, pack.protocolBrief]);
 
   return (
     <div data-cy="dtse-dashboard-root" className="flex flex-col h-full relative overflow-hidden bg-slate-950">

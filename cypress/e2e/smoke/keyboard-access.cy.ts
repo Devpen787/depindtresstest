@@ -23,7 +23,10 @@ describe("Keyboard accessibility smoke", () => {
 
   it("supports keyboard activation for the canonical default journey", () => {
     cy.get('[role="tablist"][aria-label="Primary dashboard sections"]').should("exist");
-    cy.get('[data-cy="tab-benchmark"]').should("have.attr", "aria-selected", "true").focus().type("{rightarrow}");
+    cy.get('[data-cy="tab-dtse"]').should("have.attr", "aria-selected", "true").focus().type("{rightarrow}");
+    cy.get('[data-cy="tab-benchmark"]').should("have.attr", "aria-selected", "true");
+
+    cy.focused().type("{rightarrow}");
     cy.get('[data-cy="tab-diagnostic"]').should("have.attr", "aria-selected", "true");
 
     cy.focused().type("{rightarrow}");
@@ -64,6 +67,7 @@ describe("Keyboard accessibility smoke", () => {
   });
 
   it("exposes key ARIA semantics for tabs and menu controls", () => {
+    cy.get('[data-cy="tab-benchmark"]').click().should("have.attr", "aria-selected", "true");
     cy.get('[data-cy="tab-benchmark"]').should("have.attr", "role", "tab");
     cy.get('[data-cy="tab-benchmark"]').should("have.attr", "aria-controls").then((panelId) => {
       const id = String(panelId);

@@ -17,6 +17,21 @@ export interface SimulationScenario {
 
 export const SCENARIOS: SimulationScenario[] = [
     {
+        id: 'demand_contraction',
+        name: 'Demand Contraction',
+        iconName: 'TrendingDown',
+        description: 'Service-side demand decays from an initially strong base.',
+        thesisPoint: 'Tests whether utilization and burn conversion deteriorate before visible provider exits, reinforcing sequence-over-magnitude interpretation.',
+        focusChart: 'urban_density',
+        params: {
+            demandType: 'high-to-decay',
+            macro: 'bearish',
+            investorSellPct: 0,
+            growthCallEventPct: 0,
+            competitorYield: 0
+        }
+    },
+    {
         id: 'death_spiral',
         name: 'Liquidity Shock',
         iconName: 'TrendingDown',
@@ -33,8 +48,23 @@ export const SCENARIOS: SimulationScenario[] = [
         }
     },
     {
+        id: 'provider_cost_inflation',
+        name: 'Provider Cost Inflation',
+        iconName: 'Zap',
+        description: 'Provider operating costs rise materially while demand remains unchanged.',
+        thesisPoint: 'Shows how cost-side pressure can force churn risk before headline demand metrics visibly collapse.',
+        focusChart: 'urban_density',
+        params: {
+            providerCostPerWeek: 45,
+            investorSellPct: 0,
+            growthCallEventPct: 0,
+            competitorYield: 0,
+            macro: 'sideways'
+        }
+    },
+    {
         id: 'infinite_subsidy',
-        name: 'The Subsidy Trap',
+        name: 'Subsidy Trap (Legacy)',
         iconName: 'Infinity',
         description: 'High emissions with low organic demand.',
         thesisPoint: 'Observe the "Solvency Ratio" flatline below 0.5. The token price may rise temporarily, but the "Real Value" (Burn) never catches up, leading to an inevitable long-term collapse.',
@@ -52,7 +82,7 @@ export const SCENARIOS: SimulationScenario[] = [
     },
     {
         id: 'vampire_attack',
-        name: 'Vampire Attack',
+        name: 'Competitive-Yield Pressure',
         iconName: 'Swords',
         description: 'A competitor offers 200% higher yields.',
         thesisPoint: 'Aggressive competitor yields drain your supply. If your "Moat" (Retention) is low, you will lose maximum node density in weeks, destroying the network effect.',
@@ -68,7 +98,7 @@ export const SCENARIOS: SimulationScenario[] = [
     },
     {
         id: 'growth_shock',
-        name: 'Aggressive Expansion',
+        name: 'Aggressive Expansion (Legacy)',
         iconName: 'Zap',
         description: 'Viral marketing triggers +50% node growth in Week 20.',
         thesisPoint: 'Tests "Supply is King" thesis. If demand is laggy, this massive supply shock will crash token price (oversupply) unless the "Burn" (Usage) ramps up efficiently.',

@@ -23,6 +23,7 @@ import { SCENARIOS } from './src/data/scenarios';
 import { recordPerf } from './src/utils/perf';
 import { DecisionBriefPayload, DecisionBriefSurface } from './src/types/decisionBrief';
 import { buildDecisionBrief, downloadDecisionBrief, downloadDecisionBriefMarkdown } from './src/utils/decisionBrief';
+import { getScenarioDisplayLabel } from './src/utils/scenarioLabels';
 import { getMetricEvidence, withExtractionTimestamp } from './src/data/metricEvidence';
 import {
   OWNER_KPI_BAND_CLASSIFIERS,
@@ -364,9 +365,8 @@ const App: React.FC = () => {
 
   const briefInputs = React.useMemo(() => {
     const scenarioLabel = activeScenarioId
-      ? SCENARIOS.find((scenario) => scenario.id === activeScenarioId)?.name
-        ?? activeScenarioId.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-      : 'Default Scenario';
+      ? getScenarioDisplayLabel(activeScenarioId)
+      : getScenarioDisplayLabel('baseline');
 
     const latestPoint = sim.aggregated.length > 0 ? sim.aggregated[sim.aggregated.length - 1] : null;
     const latestSolvency = calculateOwnerSolvencyRatio(latestPoint);

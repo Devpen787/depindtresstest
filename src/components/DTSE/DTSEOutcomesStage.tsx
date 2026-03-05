@@ -18,6 +18,7 @@ import {
 import type { DTSEApplicabilityEntry, DTSEMetricInsight, DTSEOutcome } from '../../types/dtse';
 import type { GuardrailBand } from '../../constants/guardrails';
 import type { DTSESequenceView } from '../../utils/dtseSequenceView';
+import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 export interface DTSEThresholdConfig {
   healthyTarget: number;
@@ -167,6 +168,14 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
           Read this as deterioration order under matched conditions. Focus on the first breaks and the path of deterioration, not raw magnitude.
         </p>
       </div>
+
+      <DTSEProvenanceBadges
+        items={[
+          { kind: 'model', label: 'Simulation Outputs' },
+          { kind: 'derived', label: 'Threshold Classification' },
+          ...(sequenceView ? [{ kind: 'derived' as const, label: 'Baseline Drift View' }] : []),
+        ]}
+      />
 
       {sequenceView && (
         <>

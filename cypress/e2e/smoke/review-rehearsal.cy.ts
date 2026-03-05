@@ -26,7 +26,8 @@ describe("Onocoy review rehearsal", () => {
   it("completes the canonical first-review path with decision-brief closure", () => {
     const startedAt = Date.now();
 
-    cy.get('[data-cy="tab-benchmark"]').should("have.attr", "aria-selected", "true");
+    cy.get('[data-cy="tab-dtse"]').should("have.attr", "aria-selected", "true");
+    cy.get('[data-cy="tab-benchmark"]').click().should("have.attr", "aria-selected", "true");
     cy.get('[data-cy="benchmark-decision-brief"]').should("be.visible");
     cy.get('[data-cy="benchmark-decision-brief-repro"]').should("contain.text", "Hash #");
     cy.get('[data-cy="benchmark-decision-brief-export-help"]').should("be.visible");

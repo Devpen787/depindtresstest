@@ -40,6 +40,7 @@ import {
     toPaybackScore
 } from '../../audit/benchmarkViewMath';
 import ResearchView from './ResearchView';
+import { getScenarioDisplayLabel } from '../../utils/scenarioLabels';
 
 interface BenchmarkViewProps {
     params: SimulationParams;
@@ -337,16 +338,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({
     // 9. Scenario identification from canonical app-shell state
     const scenarioId = useMemo(() => activeScenarioId || 'baseline', [activeScenarioId]);
 
-    const scenarioName = useMemo(() => {
-        const names: Record<string, string> = {
-            baseline: 'Baseline',
-            death_spiral: 'Liquidity Shock',
-            infinite_subsidy: 'The Subsidy Trap',
-            vampire_attack: 'Vampire Attack',
-            growth_shock: 'Aggressive Expansion'
-        };
-        return names[scenarioId] || 'Baseline';
-    }, [scenarioId]);
+    const scenarioName = useMemo(() => getScenarioDisplayLabel(scenarioId), [scenarioId]);
 
     const aiInsights = useMemo(() => generateInsights(scenarioId, onocoyData, peerMedian), [scenarioId, onocoyData, peerMedian]);
 

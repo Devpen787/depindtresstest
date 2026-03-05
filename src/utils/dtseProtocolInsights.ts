@@ -17,6 +17,15 @@ interface BuildDTSEProtocolInsightsOptions {
   peerNames?: string[];
 }
 
+interface ProfileSpecificInsight {
+  title: string;
+  observation: string;
+  implication: string;
+  trigger: string;
+  confidence: DTSEProtocolInsight['confidence'];
+  provenance: string[];
+}
+
 const roundTo = (value: number, digits = 1): number => {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
@@ -115,6 +124,152 @@ const VERIFIED_PROJECT_ID_BY_PROFILE: Record<string, string> = {
   nosana_v1: 'nosana',
 };
 
+const PROFILE_SPECIFIC_INSIGHTS: Record<string, ProfileSpecificInsight> = {
+  ono_v3_calibrated: {
+    title: 'Coverage density and reward discipline move together',
+    observation: 'Onocoy depends on high-quality GNSS coverage density; emissions can look stable while local station economics thin out in weaker demand pockets.',
+    implication: 'Review utilization, payback, and regional reward discipline together before using node count as proof of resilience.',
+    trigger: 'Prioritize review when utilization and payback deteriorate at the same time.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: GNSS correction surface',
+      'Mechanism context: fixed emissions with partial burn',
+    ],
+  },
+  helium_bme_v1: {
+    title: 'Traffic conversion is the core resilience hinge',
+    observation: 'Helium’s burn-and-mint loop depends on real service traffic converting into demand-side sinks quickly enough to offset issuance.',
+    implication: 'Read utilization, burn-linked demand, and solvency as one contract; headline hotspot count is secondary.',
+    trigger: 'Escalate when utilization weakens while solvency drifts toward watchlist.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: wireless location-based network',
+      'Mechanism context: burn-and-mint equilibrium',
+    ],
+  },
+  adaptive_elastic_v1: {
+    title: 'Elastic GPU supply can overshoot durable demand',
+    observation: 'Render’s supply adjusts quickly, so reward pressure can persist even when paid workload quality softens.',
+    implication: 'Use payback and retention as early checks for whether supply elasticity is helping or amplifying stress.',
+    trigger: 'Escalate when payback extends while retention enters watchlist.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: distributed GPU compute',
+      'Mechanism context: burn-and-mint plus work rewards',
+    ],
+  },
+  filecoin_v1: {
+    title: 'Collateral protects quality but can delay adaptation',
+    observation: 'Filecoin’s collateral-heavy structure improves commitment quality but can slow healthy rebalancing during stress windows.',
+    implication: 'Interpret retention with payback and utilization to distinguish durable commitment from trapped economics.',
+    trigger: 'Escalate when payback stretches while utilization softens.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: proof-of-storage network',
+      'Mechanism context: collateralized provider participation',
+    ],
+  },
+  akash_v1: {
+    title: 'Capacity health depends on buyer consistency',
+    observation: 'Akash capacity can remain visibly available while revenue quality shifts across workloads and price bands.',
+    implication: 'Prioritize utilization and solvency progression over raw provider counts when evaluating durability.',
+    trigger: 'Escalate when utilization and solvency trend down together.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: open compute marketplace',
+      'Mechanism context: market-priced workload allocation',
+    ],
+  },
+  hivemapper_v1: {
+    title: 'Map freshness economics drive long-run retention',
+    observation: 'Hivemapper’s provider behavior hinges on whether reward emissions keep pace with genuine map-demand value.',
+    implication: 'Interpret retention and utilization together; strong contributor activity without demand conversion can hide fragility.',
+    trigger: 'Escalate when retention softens while utilization remains below healthy.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: drive-to-earn mapping network',
+      'Mechanism context: emissions-linked contribution rewards',
+    ],
+  },
+  dimo_v1: {
+    title: 'Vehicle participation quality matters more than volume',
+    observation: 'DIMO can maintain visible participant counts even when monetizable telemetry quality compresses under stress.',
+    implication: 'Use solvency, utilization, and retention sequencing to separate durable demand from participation inertia.',
+    trigger: 'Escalate when solvency and utilization deteriorate before retention reacts.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: vehicle data network',
+      'Mechanism context: tokenized participation incentives',
+    ],
+  },
+  grass_v1: {
+    title: 'Low switching cost increases exit elasticity',
+    observation: 'Grass relies on low-friction bandwidth supply, which can reprice or churn quickly when external yields improve.',
+    implication: 'Treat retention and tail-risk shifts as first-class early warnings, not secondary metrics.',
+    trigger: 'Escalate when retention and tail risk both move toward watchlist.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: bandwidth sharing surface',
+      'Mechanism context: low-capex provider base',
+    ],
+  },
+  ionet_v1: {
+    title: 'Heterogeneous GPU supply raises quality variance risk',
+    observation: 'io.net aggregates mixed GPU tiers, so usable capacity can deviate from headline supply under stressed incentives.',
+    implication: 'Read utilization with solvency and payback to confirm that available hardware is economically durable.',
+    trigger: 'Escalate when utilization weakens while payback lengthens.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: heterogeneous GPU marketplace',
+      'Mechanism context: device-tiered reward structure',
+    ],
+  },
+  nosana_v1: {
+    title: 'Job continuity, not node count, defines resilience',
+    observation: 'Nosana’s operational risk appears first in workload continuity and reward durability, not in raw node visibility.',
+    implication: 'Use retention and utilization drift to detect emerging fragility before supply visibly contracts.',
+    trigger: 'Escalate when utilization and retention both slip from healthy bands.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: decentralized AI compute jobs',
+      'Mechanism context: reward-linked job execution',
+    ],
+  },
+  geodnet_v1: {
+    title: 'Regional saturation can mask network fragility',
+    observation: 'Geodnet’s location-based rewards can look robust in aggregate while marginal regional ROI deteriorates.',
+    implication: 'Pair utilization and payback with density-aware interpretation to avoid false confidence from aggregate node growth.',
+    trigger: 'Escalate when payback worsens in parallel with soft utilization.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: GNSS correction network',
+      'Mechanism context: location-conditioned rewards',
+    ],
+  },
+  aleph_v1: {
+    title: 'Service-mix balance determines stress absorption',
+    observation: 'Aleph’s multi-service surface can hide weak segments if aggregate demand appears stable.',
+    implication: 'Use solvency and tail risk to check whether aggregate stability is masking concentration risk.',
+    trigger: 'Escalate when tail risk rises despite stable top-line utilization.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: decentralized cloud/storage mix',
+      'Mechanism context: multi-surface token utility',
+    ],
+  },
+  xnet_v1: {
+    title: 'Coverage economics can degrade before visible exits',
+    observation: 'XNET’s wireless deployment economics can weaken under stress before node-level participation visibly drops.',
+    implication: 'Use solvency, utilization, and retention sequence timing to detect stress early rather than waiting for node contraction.',
+    trigger: 'Escalate when solvency and utilization breach watchlist ahead of retention changes.',
+    confidence: 'mixed',
+    provenance: [
+      'Profile context: wireless infrastructure network',
+      'Mechanism context: infrastructure-heavy deployment economics',
+    ],
+  },
+};
+
 const outcomeByMetric = (outcomes: DTSEOutcome[]): Record<string, DTSEOutcome> => (
   outcomes.reduce<Record<string, DTSEOutcome>>((acc, outcome) => {
     acc[outcome.metric_id] = outcome;
@@ -162,6 +317,22 @@ export function buildDTSEProtocolInsights({
   const retentionWeek = retentionRow?.triggerWeek ?? null;
   const providerUnit = formatUnitLabel(protocolBrief.active_providers_unit);
   const notes = stripTrailingPeriod(protocolBrief.notes);
+  const profileSpecificInsight = PROFILE_SPECIFIC_INSIGHTS[profile.metadata.id];
+
+  if (profileSpecificInsight) {
+    insights.push({
+      id: `profile-context-${profile.metadata.id}`,
+      title: profileSpecificInsight.title,
+      observation: profileSpecificInsight.observation,
+      implication: profileSpecificInsight.implication,
+      trigger: profileSpecificInsight.trigger,
+      confidence: profileSpecificInsight.confidence,
+      provenance: [
+        ...profileSpecificInsight.provenance,
+        `Protocol: ${protocolBrief.protocol_name}`,
+      ],
+    });
+  }
 
   if (earliestLabel && hasNumber(earliestWeek)) {
     const lagText = hasNumber(retentionWeek) && retentionWeek > earliestWeek

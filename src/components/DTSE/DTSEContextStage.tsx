@@ -3,6 +3,7 @@ import { Server, ArrowRightLeft, Coins, Sparkles, Layers3, BadgeDollarSign, Fact
 import type { LucideIcon } from 'lucide-react';
 import type { DTSERunContext, DTSEProtocolBrief, DTSEOutcome, DTSEStressChannel } from '../../types/dtse';
 import type { TokenMarketData } from '../../services/coingecko';
+import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSEPeerContext {
   peerNames: string[];
@@ -169,6 +170,14 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           Enough context to understand what DTSE is testing and how to read the next stages.
         </p>
       </div>
+
+      <DTSEProvenanceBadges
+        items={[
+          { kind: 'model', label: 'Run Contract' },
+          { kind: 'curated', label: 'Protocol Facts' },
+          ...(marketData ? [{ kind: 'live_market' as const, label: 'Market Snapshot' }] : []),
+        ]}
+      />
 
       <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-300">Interpretation Boundary</p>

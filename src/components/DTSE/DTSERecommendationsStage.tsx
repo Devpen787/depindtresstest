@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, ArrowRight, Zap, Lightbulb } from 'lucide-react';
 import type { DTSEProtocolInsight, DTSERecommendation } from '../../types/dtse';
+import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSERecommendationsStageProps {
   recommendations: DTSERecommendation[];
@@ -92,6 +93,14 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
           Response areas and tradeoffs for discussion, not model-issued prescriptions.
         </p>
       </div>
+
+      <DTSEProvenanceBadges
+        items={[
+          { kind: 'derived', label: 'Interpretive Guidance' },
+          { kind: 'curated', label: 'Peer Context' },
+          { kind: 'mixed', label: 'Run + Protocol Facts' },
+        ]}
+      />
 
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-slate-900/40 p-12 text-center shadow-inner backdrop-blur-md">

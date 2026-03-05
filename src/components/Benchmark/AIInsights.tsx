@@ -72,6 +72,10 @@ export const generateInsights = (
             main: 'Lower token price sensitivity gives Onocoy more runway than competitors with aggressive emission schedules.',
             rec: 'Monitor investor unlock schedules. Consider adding POL (Protocol-Owned Liquidity) to stabilize price during volatile periods.'
         },
+        liquidity_shock: {
+            main: 'Lower token price sensitivity gives Onocoy more runway than competitors with aggressive emission schedules.',
+            rec: 'Monitor investor unlock schedules. Consider adding POL (Protocol-Owned Liquidity) to stabilize price during volatile periods.'
+        },
         infinite_subsidy: {
             main: 'High emissions relative to burn create long-term solvency risk. "Solvency Ratio" may flatline below sustainable levels.',
             rec: 'Reduce emission rate by 15-20% to extend runway. Implement burn incentives to improve tokenomics balance.'
@@ -80,9 +84,21 @@ export const generateInsights = (
             main: 'Aggressive competitor yields threaten node retention. Focus on differentiators beyond APY.',
             rec: 'Strengthen non-yield value props (coverage quality, API reliability). Consider matching yields temporarily while building moat.'
         },
+        competitive_yield_pressure: {
+            main: 'Aggressive competitor yields threaten node retention. Focus on differentiators beyond APY.',
+            rec: 'Strengthen non-yield value props (coverage quality, API reliability). Consider matching yields temporarily while building moat.'
+        },
         growth_shock: {
             main: 'Network capacity headroom allows Onocoy to capture demand surge without emergency scaling.',
             rec: 'Pre-position marketing for potential viral adoption windows. Ensure treasury has reserves for accelerated emissions if growth exceeds projections.'
+        },
+        demand_contraction: {
+            main: 'Weakening demand conversion stresses utilization before node count visibly reacts.',
+            rec: 'Prioritize demand-side revenue quality and reduce supply-side overextension until utilization re-enters healthy bands.'
+        },
+        provider_cost_inflation: {
+            main: 'Higher provider operating costs compress margins quickly and can trigger delayed churn cascades.',
+            rec: 'Run cost-defense scenarios (reward retargeting, opex-aware incentives) before relying on retention as the first trigger.'
         }
     };
 

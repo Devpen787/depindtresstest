@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, AlertOctagon, Info, ShieldAlert } from 'lucide-react';
 import type { DTSEFailureSignature } from '../../types/dtse';
+import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSESignatureStageProps {
   signatures: DTSEFailureSignature[];
@@ -67,6 +68,13 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
           Classify the breakdown using thesis-aligned failure signatures.
         </p>
       </div>
+
+      <DTSEProvenanceBadges
+        items={[
+          { kind: 'derived', label: 'Failure Classification' },
+          { kind: 'model', label: 'Metric Trigger Trace' },
+        ]}
+      />
 
       {sorted.length === 0 ? (
         <div className="bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-12 text-center shadow-inner flex flex-col items-center justify-center">

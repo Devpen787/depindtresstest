@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, XCircle, Info, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
 import type { DTSEApplicabilityEntry, DTSEMetricInsight } from '../../types/dtse';
+import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSEApplicabilityStageProps {
   entries: DTSEApplicabilityEntry[];
@@ -47,6 +48,14 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
           Keep only the metrics that are fair to score in this run.
         </p>
       </div>
+
+      <DTSEProvenanceBadges
+        items={[
+          { kind: 'model', label: 'Evidence Gate' },
+          { kind: 'derived', label: 'Applicability Verdicts' },
+          { kind: 'curated', label: 'Reason Catalog' },
+        ]}
+      />
 
       <div className="bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-32 bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />

@@ -5,7 +5,8 @@ describe("Global state sync", () => {
   });
 
   it("keeps canonical scenario/protocol state consistent across owner tabs", () => {
-    cy.get('[data-cy="tab-benchmark"]').should("have.attr", "aria-selected", "true");
+    cy.get('[data-cy="tab-dtse"]').should("have.attr", "aria-selected", "true");
+    cy.get('[data-cy="tab-benchmark"]').click().should("have.attr", "aria-selected", "true");
     cy.get('[data-cy="global-context-state"]')
       .should("have.attr", "data-scenario-id", "baseline")
       .invoke("attr", "data-protocol-id")
@@ -15,15 +16,15 @@ describe("Global state sync", () => {
     cy.get('[data-cy="scenario-preset-vampire_attack"]').click();
 
     cy.get('[data-cy="global-context-state"]').should("have.attr", "data-scenario-id", "vampire_attack");
-    cy.get('[data-cy="benchmark-decision-brief"]').should("contain.text", "Vampire Attack");
+    cy.get('[data-cy="benchmark-decision-brief"]').should("contain.text", "Competitive-Yield Pressure");
 
     cy.get('[data-cy="tab-diagnostic"]').click().should("have.attr", "aria-selected", "true");
     cy.get('[data-cy="global-context-state"]').should("have.attr", "data-scenario-id", "vampire_attack");
-    cy.get('[data-cy="diagnostic-decision-brief"]').should("contain.text", "Vampire Attack");
+    cy.get('[data-cy="diagnostic-decision-brief"]').should("contain.text", "Competitive-Yield Pressure");
 
     cy.get('[data-cy="tab-thesis"]').click().should("have.attr", "aria-selected", "true");
     cy.get('[data-cy="global-context-state"]').should("have.attr", "data-scenario-id", "vampire_attack");
-    cy.get('[data-cy="strategy-decision-brief"]').should("contain.text", "Vampire Attack");
+    cy.get('[data-cy="strategy-decision-brief"]').should("contain.text", "Competitive-Yield Pressure");
 
     cy.get("@protocolBefore").then((protocolBefore) => {
       const initialProtocol = String(protocolBefore);

@@ -110,14 +110,19 @@ export const ThesisDashboard: React.FC<ThesisDashboardProps> = ({
         if (!scenario) return;
 
         // map scenario params to dashboard inputs
-        if (scenario.id === 'death_spiral') {
+        if (scenario.id === 'death_spiral' || scenario.id === 'liquidity_shock') {
             setMarketStress(-50);
             setCompetitorYield(0);
-        } else if (scenario.id === 'vampire_attack') {
+        } else if (scenario.id === 'vampire_attack' || scenario.id === 'competitive_yield_pressure') {
             setMarketStress(-10);
             setCompetitorYield(200);
+        } else if (scenario.id === 'demand_contraction') {
+            setMarketStress(-35);
+            setCompetitorYield(0);
+        } else if (scenario.id === 'provider_cost_inflation') {
+            setMarketStress(-15);
+            setCompetitorYield(0);
         } else if (scenario.id === 'growth_shock') {
-            // New Scenario: Reset stress, focus on Supply Shock logic (which we will add)
             setMarketStress(0);
             setCompetitorYield(0);
         } else {
