@@ -1,7 +1,6 @@
 import React from 'react';
 import { Download, ArrowRight, Zap, Lightbulb } from 'lucide-react';
 import type { DTSEProtocolInsight, DTSERecommendation } from '../../types/dtse';
-import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSERecommendationsStageProps {
   recommendations: DTSERecommendation[];
@@ -94,14 +93,6 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
         </p>
       </div>
 
-      <DTSEProvenanceBadges
-        items={[
-          { kind: 'derived', label: 'Interpretive Guidance' },
-          { kind: 'curated', label: 'Peer Context' },
-          { kind: 'mixed', label: 'Run + Protocol Facts' },
-        ]}
-      />
-
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-slate-900/40 p-12 text-center shadow-inner backdrop-blur-md">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
@@ -113,10 +104,10 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
       ) : (
         <>
           <section className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Response Posture</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Response Posture</p>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-300">Lead response path</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Lead response path</p>
                 <h3 className="mt-2 text-xl font-black tracking-tight text-white">
                   {leadRecommendation ? leadRecommendation.action : 'No action required'}
                 </h3>
@@ -127,8 +118,8 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
               <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Export</p>
-                    <p className="mt-1 text-sm text-slate-400">Capture this run for discussion or review.</p>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Export</p>
+                    <p className="mt-1 text-sm text-slate-300">Capture this run for discussion or review.</p>
                   </div>
                   <button
                     data-cy="dtse-export-btn"
@@ -140,7 +131,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                   </button>
                 </div>
                 <details className="mt-4 rounded-xl border border-white/5 bg-slate-950/20 p-3">
-                  <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                  <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-slate-300">
                     Priority Mix
                   </summary>
                   <p className="mt-2 text-xs text-slate-400">Use this as a discussion filter, not a fixed execution queue.</p>
@@ -150,7 +141,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                       return (
                         <div key={priority} className={`rounded-xl border px-3.5 py-2.5 text-center ${ps.badge}`}>
                           <p className={`text-lg font-black ${ps.badgeText}`}>{priorityCounts[priority]}</p>
-                          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{priority}</p>
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{priority}</p>
                         </div>
                       );
                     })}
@@ -161,7 +152,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
           </section>
 
           <section className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Interpretive Paths</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Interpretive Paths</p>
             <div className="space-y-3">
               {sorted.map((rec, idx) => {
                 const ps = PRIORITY_STYLES[rec.priority];
@@ -174,13 +165,13 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                     style={{ animationDelay: `${idx * 75}ms` }}
                   >
                     <div className="relative z-10 flex items-start gap-3.5">
-                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 bg-slate-950/80 text-[11px] font-black text-slate-300 shadow-inner transition-transform duration-300 group-hover:scale-110">
+                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-950/80 text-xs font-black text-slate-300 shadow-inner transition-transform duration-300 group-hover:scale-110">
                         {idx + 1}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="mb-1.5 flex flex-wrap items-center gap-3">
                           <h3 className="text-base font-black tracking-tight text-slate-100">{rec.action}</h3>
-                          <span className={`${ps.badge} ${ps.badgeText} rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] shadow-inner`}>
+                          <span className={`${ps.badge} ${ps.badgeText} rounded border px-2.5 py-1 text-xs font-black uppercase tracking-[0.2em] shadow-inner`}>
                             {rec.priority}
                           </span>
                         </div>
@@ -190,59 +181,50 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
 
                     <div className="relative z-10 space-y-3 pl-11">
                       {rec.expected_effect && (
-                        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-3 px-3.5">
+                        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-3 px-3.5">
                           <ArrowRight size={12} className="text-indigo-400" />
-                          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-300">Expected effect</span>
-                          <span className="text-xs font-semibold text-slate-200">{rec.expected_effect}</span>
+                          <span className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">Expected effect</span>
+                          <span className="text-sm font-semibold text-slate-200">{rec.expected_effect}</span>
                         </div>
                       )}
 
-                      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                        {rec.success_metric && (
-                          <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">What To Compare</p>
-                            <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.success_metric}</p>
-                          </div>
-                        )}
-                        {rec.dependency && (
-                          <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Boundary</p>
-                            <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.dependency}</p>
-                          </div>
-                        )}
-                        {(rec.risk_if_delayed || rec.peer_analog) && (
-                          <div className="rounded-xl border border-white/5 bg-slate-950/18 p-3 md:col-span-2">
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                              {rec.risk_if_delayed && (
-                                <div>
-                                  <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-rose-500/70">Why It Matters</p>
-                                  <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.risk_if_delayed}</p>
-                                </div>
-                              )}
-                              {rec.peer_analog && (
-                                <div>
-                                  <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/70">Comparable Context</p>
-                                  <p className="text-xs font-medium leading-relaxed text-slate-400">{rec.peer_analog}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <details className="rounded-xl border border-white/5 bg-slate-950/16 p-3">
-                        <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-                          Implementation Details
+                      <details className="rounded-xl border border-white/10 bg-slate-950/20 p-3.5">
+                        <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-slate-300">
+                          Context and tradeoffs
                         </summary>
-                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Review area</span>
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Review area</span>
                             <span className="font-semibold text-slate-200">{rec.owner}</span>
                           </div>
                           {rec.timeframe && (
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Window</span>
+                              <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Window</span>
                               <span className="font-semibold text-slate-200">{rec.timeframe}</span>
+                            </div>
+                          )}
+                          {rec.success_metric && (
+                            <div className="md:col-span-2">
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">What to compare</p>
+                              <p className="mt-1 text-sm leading-relaxed text-slate-300">{rec.success_metric}</p>
+                            </div>
+                          )}
+                          {rec.dependency && (
+                            <div className="md:col-span-2">
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Boundary</p>
+                              <p className="mt-1 text-sm leading-relaxed text-slate-300">{rec.dependency}</p>
+                            </div>
+                          )}
+                          {rec.risk_if_delayed && (
+                            <div className="md:col-span-2">
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-rose-300">Risk if delayed</p>
+                              <p className="mt-1 text-sm leading-relaxed text-slate-300">{rec.risk_if_delayed}</p>
+                            </div>
+                          )}
+                          {rec.peer_analog && (
+                            <div className="md:col-span-2">
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Comparable context</p>
+                              <p className="mt-1 text-sm leading-relaxed text-slate-300">{rec.peer_analog}</p>
                             </div>
                           )}
                         </div>
@@ -258,67 +240,74 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
 
       {insights.length > 0 && (
         <section className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Protocol Insights</p>
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            {insights.map((insight) => (
-              <div
-                key={insight.id}
-                data-cy={`dtse-insight-${insight.id}`}
-                className="rounded-2xl border border-white/5 bg-slate-900/28 p-5 backdrop-blur-md"
-              >
-                {(() => {
-                  const confidenceMeta = INSIGHT_CONFIDENCE_META[insight.confidence];
+          <details className="rounded-2xl border border-white/10 bg-slate-900/35 p-4 backdrop-blur-sm">
+            <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
+              Protocol insights (optional)
+            </summary>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              Use these as protocol-specific context for discussion.
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {insights.map((insight) => (
+                <div
+                  key={insight.id}
+                  data-cy={`dtse-insight-${insight.id}`}
+                  className="rounded-2xl border border-white/10 bg-slate-900/28 p-5 backdrop-blur-md"
+                >
+                  {(() => {
+                    const confidenceMeta = INSIGHT_CONFIDENCE_META[insight.confidence];
 
-                  return (
-                    <>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2">
-                            <Lightbulb size={16} className="text-amber-300" />
-                          </div>
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-base font-black tracking-tight text-slate-100">{insight.title}</p>
-                              <span className={`${confidenceMeta.badge} ${confidenceMeta.badgeText} rounded-md border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em]`}>
-                                {confidenceMeta.label}
-                              </span>
+                    return (
+                      <>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2">
+                              <Lightbulb size={16} className="text-amber-300" />
                             </div>
-                            <p className="mt-1 text-[11px] font-semibold text-slate-500">
-                              {confidenceMeta.description}
-                            </p>
-                            <p className="mt-2 text-sm leading-relaxed text-slate-300">{insight.observation}</p>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-base font-black tracking-tight text-slate-100">{insight.title}</p>
+                                <span className={`${confidenceMeta.badge} ${confidenceMeta.badgeText} rounded-md border px-2.5 py-1 text-xs font-black uppercase tracking-[0.16em]`}>
+                                  {confidenceMeta.label}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs font-semibold text-slate-300">
+                                {confidenceMeta.description}
+                              </p>
+                              <p className="mt-2 text-sm leading-relaxed text-slate-300">{insight.observation}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                          <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Why it matters</p>
-                          <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.implication}</p>
+                        <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                          <div className="rounded-xl border border-white/10 bg-slate-950/20 p-3.5">
+                            <p className="mb-0.5 text-xs font-black uppercase tracking-[0.2em] text-slate-300">Why it matters</p>
+                            <p className="text-sm font-medium leading-relaxed text-slate-300">{insight.implication}</p>
+                          </div>
+                          <div className="rounded-xl border border-white/10 bg-slate-950/20 p-3.5">
+                            <p className="mb-0.5 text-xs font-black uppercase tracking-[0.2em] text-slate-300">Primary basis</p>
+                            <p className="text-sm font-medium leading-relaxed text-slate-300">{insight.trigger ?? 'Protocol structure and current DTSE readout.'}</p>
+                          </div>
                         </div>
-                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3.5">
-                          <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Primary basis</p>
-                          <p className="text-xs font-medium leading-relaxed text-slate-400">{insight.trigger ?? 'Protocol structure and current DTSE readout.'}</p>
-                        </div>
-                      </div>
-                      <details className="mt-3 rounded-xl border border-white/5 bg-slate-950/16 p-3">
-                        <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-                          Source Trace
-                        </summary>
-                        <ul className="mt-3 space-y-2">
-                          {insight.provenance.map((item) => (
-                            <li key={item} className="flex items-start gap-2 text-xs font-medium leading-relaxed text-slate-400">
-                              <span className="mt-0.5 text-slate-500">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    </>
-                  );
-                })()}
-              </div>
-            ))}
-          </div>
+                        <details className="mt-3 rounded-xl border border-white/10 bg-slate-950/16 p-3">
+                          <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-slate-300">
+                            Source Trace
+                          </summary>
+                          <ul className="mt-3 space-y-2">
+                            {insight.provenance.map((item) => (
+                              <li key={item} className="flex items-start gap-2 text-sm font-medium leading-relaxed text-slate-300">
+                                <span className="mt-0.5 text-slate-400">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      </>
+                    );
+                  })()}
+                </div>
+              ))}
+            </div>
+          </details>
         </section>
       )}
     </div>

@@ -18,7 +18,6 @@ import {
 import type { DTSEApplicabilityEntry, DTSEMetricInsight, DTSEOutcome } from '../../types/dtse';
 import type { GuardrailBand } from '../../constants/guardrails';
 import type { DTSESequenceView } from '../../utils/dtseSequenceView';
-import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 export interface DTSEThresholdConfig {
   healthyTarget: number;
@@ -169,34 +168,26 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
         </p>
       </div>
 
-      <DTSEProvenanceBadges
-        items={[
-          { kind: 'model', label: 'Simulation Outputs' },
-          { kind: 'derived', label: 'Threshold Classification' },
-          ...(sequenceView ? [{ kind: 'derived' as const, label: 'Baseline Drift View' }] : []),
-        ]}
-      />
-
       {sequenceView && (
         <>
           <section className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Baseline Drift</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Baseline Drift</p>
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.75fr]">
-              <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Stress deviation vs baseline</h3>
-                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Stress deviation vs baseline</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
                       Zero marks the matched baseline. Negative drift shows where stress pushes the network off its expected path.
                     </p>
                   </div>
-                  <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2 text-right">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Earliest break</p>
+                  <div className="rounded-xl border border-white/10 bg-slate-900/35 px-3 py-2 text-right">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Earliest break</p>
                     <p className="mt-1 text-sm font-semibold text-slate-200">
                       {sequenceView.earliestTriggerWeek ? `Week ${sequenceView.earliestTriggerWeek}` : 'Contained'}
                     </p>
-                    <p className="mt-1 text-[11px] text-slate-500">{sequenceView.earliestTriggerLabel ?? 'No early threshold breach detected'}</p>
+                    <p className="mt-1 text-xs text-slate-300">{sequenceView.earliestTriggerLabel ?? 'No early threshold breach detected'}</p>
                   </div>
                 </div>
                 <div data-cy="dtse-baseline-drift-chart" className="h-[280px] w-full">
@@ -232,27 +223,27 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
 
               <div className="space-y-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Earliest trigger</p>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Earliest trigger</p>
                     <p className="mt-2 text-lg font-bold text-white">
                       {sequenceView.earliestTriggerWeek ? `Week ${sequenceView.earliestTriggerWeek}` : 'Contained'}
                     </p>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{sequenceView.earliestTriggerLabel ?? 'No early breach detected.'}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-300">{sequenceView.earliestTriggerLabel ?? 'No early breach detected.'}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Triggered families</p>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Triggered families</p>
                     <p className="mt-2 text-lg font-bold text-white">{triggeredFamilies}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-500">Subsystems that materially diverged from baseline.</p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-300">Subsystems that materially diverged from baseline.</p>
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Interpretive boundary</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Interpretive boundary</p>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-300">
                       DTSE compares drift from a matched baseline path. It does not forecast live-network truth or reduce unlike protocols to a single winner score.
                     </p>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 backdrop-blur-sm">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">The DePIN Illusion</p>
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/8 p-4 backdrop-blur-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-300">The DePIN Illusion</p>
                   <p className="mt-2 text-sm leading-relaxed text-slate-300">
                     {sequenceView.illusionWarning}
                   </p>
@@ -262,18 +253,18 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
           </section>
 
           <section className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Transmission Pathway</p>
-            <div className="rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Transmission Pathway</p>
+            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">What breaks first</h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">What breaks first</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
                     Each row shows when a subsystem first leaves the healthy or baseline envelope. Earlier rows usually absorb the shock before node count visibly reacts.
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Legend</p>
-                  <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+                <div className="rounded-xl border border-white/10 bg-slate-900/35 px-3 py-2">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Legend</p>
+                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-300">
                     <span className={`h-2.5 w-2.5 rounded-sm ${pathwaySeverityStyles.watch}`} />
                     Watch
                     <span className={`ml-2 h-2.5 w-2.5 rounded-sm ${pathwaySeverityStyles.alert}`} />
@@ -286,16 +277,16 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
 
               <div data-cy="dtse-transmission-pathway" className="space-y-3">
                 {sequenceView.pathway.map((row) => (
-                  <div key={row.familyId} className="rounded-xl border border-white/5 bg-slate-900/20 p-3.5">
+                  <div key={row.familyId} className="rounded-xl border border-white/10 bg-slate-900/20 p-3.5">
                     <div className="grid gap-3 xl:grid-cols-[240px_1fr_260px] xl:items-start">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold text-slate-100">{row.label}</p>
-                          <span className="rounded-full border border-white/5 bg-slate-900/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          <span className="rounded-full border border-white/10 bg-slate-900/60 px-2 py-0.5 text-xs font-black uppercase tracking-[0.18em] text-slate-300">
                             {row.triggerWeek ? `Week ${row.triggerWeek}` : 'Contained'}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-slate-400">{row.triggerLabel}</p>
+                        <p className="mt-1 text-sm text-slate-300">{row.triggerLabel}</p>
                       </div>
                       <div>
                         <div
@@ -310,12 +301,12 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                             />
                           ))}
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-[10px] font-medium text-slate-500">
+                        <div className="mt-2 flex items-center justify-between text-xs font-medium text-slate-300">
                           <span>Week 1</span>
                           <span>Week {row.cells.length}</span>
                         </div>
                       </div>
-                      <p className="text-[11px] leading-relaxed text-slate-500">{row.detail}</p>
+                      <p className="text-xs leading-relaxed text-slate-300">{row.detail}</p>
                     </div>
                   </div>
                 ))}
@@ -326,15 +317,21 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
       )}
 
       <section className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Secondary Readout</p>
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4 backdrop-blur-sm">
+        <details className="rounded-2xl border border-white/10 bg-slate-900/35 p-4 backdrop-blur-sm">
+          <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
+            Supplementary readout (band snapshot + threshold chart)
+          </summary>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">
+            Keep this secondary. Sequence, timing, and baseline drift should drive interpretation first.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-4">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Band snapshot</p>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Band snapshot</p>
                   <h3 className="mt-2 text-base font-bold text-white">Where guardrails are holding or slipping</h3>
                 </div>
-              <div className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-300">
+              <div className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-indigo-300">
                 {trajectorySource === 'model' ? 'Current run' : 'Saved run'}
               </div>
             </div>
@@ -346,36 +343,36 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   <div key={band} className={`relative overflow-hidden rounded-xl border p-4 text-center backdrop-blur-sm ${s.bg} ${s.border} ${s.shadow}`}>
                     <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${s.glow} opacity-50`} />
                     <div className={`text-4xl font-black tracking-tighter ${s.text} drop-shadow-md`}>{bandCounts[band]}</div>
-                    <div className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{band}</div>
+                    <div className="mt-2 text-xs font-black uppercase tracking-[0.2em] text-slate-300">{band}</div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-4 rounded-xl border border-white/5 bg-slate-900/25 p-3.5">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Coverage</p>
+            <div className="mt-4 rounded-xl border border-white/10 bg-slate-900/35 p-3.5">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Coverage</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-300">
                   {scoredOutcomes.length} scored metric{scoredOutcomes.length === 1 ? '' : 's'}
                   {excludedOutcomes.length > 0 ? ` · ${excludedOutcomes.length} excluded` : ''}
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                <p className="mt-2 text-sm leading-relaxed text-slate-300">
                   Keep this secondary. Sequence, timing, and baseline drift explain more than band counts alone.
                 </p>
               </div>
             </div>
 
           {chartData.length > 0 && (
-            <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-950/45 p-4 backdrop-blur-sm">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Threshold chart</h3>
-                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
+                  <h3 className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Threshold chart</h3>
+                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
                     `100%` marks the healthy threshold for each metric.
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2 text-right">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Reference</p>
+                <div className="rounded-xl border border-white/10 bg-slate-900/45 px-3 py-2 text-right">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Reference</p>
                   <p className="mt-1 text-sm font-semibold text-slate-200">100% = healthy</p>
                 </div>
               </div>
@@ -421,24 +418,31 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">Lower bars show more distance from the target range.</p>
+              <p className="mt-1 text-xs text-slate-300">Lower bars show more distance from the target range.</p>
             </div>
           )}
-        </div>
+          </div>
+        </details>
       </section>
 
       {hasTrajectory && (
         <section className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Solvency</p>
-          <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-950/40 p-4 backdrop-blur-sm">
+          <details className="rounded-2xl border border-white/10 bg-slate-900/35 p-4 backdrop-blur-sm">
+            <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
+              Supplementary solvency trajectory
+            </summary>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              Use this only after baseline drift and transmission order.
+            </p>
+            <div className="mt-4 relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-4 backdrop-blur-sm">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Solvency trajectory (52 weeks)</h3>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">Weekly solvency trend.</p>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Solvency trajectory (52 weeks)</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">Weekly solvency trend.</p>
               </div>
-              <div className="rounded-xl border border-white/5 bg-slate-900/35 px-3 py-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Healthy line</p>
+              <div className="rounded-xl border border-white/10 bg-slate-900/35 px-3 py-2">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Healthy line</p>
                 <p className="mt-1 text-sm font-semibold text-slate-200">1.3x</p>
               </div>
             </div>
@@ -492,15 +496,16 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-xs text-slate-300">
               {trajectorySource === 'model' ? 'Based on the current run.' : 'Based on the saved scenario data.'}
             </p>
-          </div>
+            </div>
+          </details>
         </section>
       )}
 
       <section className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Metrics</p>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Metrics</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {scoredOutcomes.map((outcome, idx) => {
             const s = BAND_STYLES[outcome.band];
@@ -515,7 +520,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
               <div
                 key={outcome.metric_id}
                 data-cy={`dtse-outcome-${outcome.metric_id}`}
-                className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-slate-900/28 p-4 space-y-3 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/10 ${s.shadow}`}
+                className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/45 p-4 space-y-3 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/20 ${s.shadow}`}
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
                 <div className={`absolute -right-10 -top-10 h-24 w-24 bg-gradient-to-br ${s.glow} blur-2xl opacity-10 transition-opacity duration-500 group-hover:opacity-20`} />
@@ -531,34 +536,29 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
                   <span className={`text-3xl font-black tracking-tight ${s.text} drop-shadow-sm`}>
                     {typeof outcome.value === 'number' ? outcome.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : outcome.value}
                   </span>
-                  {unit && <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{unit}</span>}
+                  {unit && <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{unit}</span>}
                 </div>
 
                 <div className="relative z-10 flex items-center gap-2 border-b border-white/5 pb-2.5">
                   <span className={`h-2 w-2 rounded-full ${s.dot}`} />
-                  <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${s.text}`}>{outcome.band}</span>
+                  <span className={`text-xs font-black uppercase tracking-[0.2em] ${s.text}`}>{outcome.band}</span>
                   {isDerived && (
                     <>
                       <span className="px-1 text-slate-600">·</span>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Derived</span>
-                    </>
-                  )}
-                </div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Derived</span>
+                  </>
+                )}
+              </div>
 
-                {thresholdConfig && (
-                  <p className="relative z-10 -mt-1 text-[11px] leading-relaxed text-slate-500/95">
-                    <span className="font-semibold text-slate-400">Healthy threshold:</span>{' '}
+              {thresholdConfig && (
+                  <p className="relative z-10 -mt-1 text-xs leading-relaxed text-slate-200">
+                    <span className="font-semibold text-slate-100">Healthy threshold:</span>{' '}
                     {thresholdConfig.direction === 'higher' ? '≥' : '≤'} {thresholdConfig.label}
                   </p>
                 )}
 
                 <div className="relative z-10 space-y-1.5 pt-0.5">
-                  {insight && (
-                    <p className="text-[11px] font-medium leading-relaxed text-slate-500/90">
-                      <span className="font-bold tracking-wide text-slate-400">Target:</span> {insight.target}
-                    </p>
-                  )}
-                  <p className="text-[11px] font-medium leading-relaxed text-slate-400">{interpretation}</p>
+                  <p className="text-sm font-medium leading-relaxed text-slate-200">{interpretation}</p>
                 </div>
               </div>
             );
@@ -568,25 +568,32 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
 
       {excludedOutcomes.length > 0 && (
         <section className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Excluded</p>
-          <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-950/35 p-4 backdrop-blur-sm">
+          <details className="rounded-2xl border border-white/10 bg-slate-900/35 p-4 backdrop-blur-sm">
+            <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
+              Excluded metrics
+            </summary>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              These metrics are excluded to avoid unfair scoring under the current evidence.
+            </p>
+            <div className="mt-4 relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/35 p-4 backdrop-blur-sm">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
-            <h3 className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">Excluded from scoring</h3>
+            <h3 className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-slate-300">Excluded from scoring</h3>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {excludedOutcomes.map((outcome) => {
                 const label = metricLabels[outcome.metric_id] ?? outcome.metric_id;
                 const applicability = applicabilityByMetric[outcome.metric_id];
                 return (
-                  <div key={outcome.metric_id} className="rounded-xl border border-white/5 bg-slate-900/20 p-3.5 transition-colors hover:bg-slate-900/35">
+                  <div key={outcome.metric_id} className="rounded-xl border border-white/10 bg-slate-900/20 p-3.5 transition-colors hover:bg-slate-900/35">
                     <p className="text-xs font-bold tracking-wide text-slate-300">{label}</p>
-                    <p className="mt-1.5 text-[11px] font-medium leading-relaxed text-slate-500">
+                    <p className="mt-1.5 text-sm font-medium leading-relaxed text-slate-300">
                       {applicability?.details ?? 'Excluded from scoring.'}
                     </p>
                   </div>
                 );
               })}
             </div>
-          </div>
+            </div>
+          </details>
         </section>
       )}
     </div>

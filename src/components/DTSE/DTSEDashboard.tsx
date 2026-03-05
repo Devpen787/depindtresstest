@@ -518,7 +518,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
               <div className="min-w-[180px]">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Protocol</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Protocol</span>
                 <div className="mt-1">
                   <select
                     data-cy="dtse-protocol-select"
@@ -536,7 +536,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
               </div>
 
               <div className="min-w-[220px]">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Stress Channel</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Stress Channel</span>
                 <div className="mt-1">
                   <select
                     data-cy="dtse-stress-select"
@@ -554,16 +554,13 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2 xl:mt-5">
-                <span className="rounded-lg border border-white/5 bg-slate-900/70 px-3 py-1.5 text-[11px] font-semibold text-slate-200">
-                  {ctx.stress_channel?.label ?? 'Saved DTSE bundle'}
-                </span>
-                <span className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] ${ctx.evidence_status === 'complete'
+                <span className={`rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] ${ctx.evidence_status === 'complete'
                     ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
                     : ctx.evidence_status === 'partial'
                       ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
                       : 'border-rose-500/20 bg-rose-500/10 text-rose-300'
                   }`}>
-                  {ctx.evidence_status}
+                  {ctx.evidence_status} evidence
                 </span>
               </div>
             </div>
@@ -574,7 +571,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                   <button
                     data-cy="dtse-view-mode-guided"
                     onClick={() => setViewMode('guided')}
-                    className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${viewMode === 'guided'
+                    className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wide transition-all ${viewMode === 'guided'
                         ? 'bg-indigo-600 text-white'
                         : 'text-slate-400 hover:text-slate-200'
                       }`}
@@ -584,7 +581,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                   <button
                     data-cy="dtse-view-mode-overview"
                     onClick={handleSwitchToOverview}
-                    className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${viewMode === 'overview'
+                    className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wide transition-all ${viewMode === 'overview'
                         ? 'bg-indigo-600 text-white'
                         : 'text-slate-400 hover:text-slate-200'
                       }`}
@@ -592,17 +589,6 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                     Overview
                   </button>
                 </div>
-                <details className="group rounded-lg border border-white/5 bg-slate-900/70 px-3 py-1.5 text-[11px] text-slate-400">
-                  <summary className="cursor-pointer list-none font-semibold text-slate-300">
-                    Details
-                  </summary>
-                  <div className="mt-2 space-y-1.5 border-t border-white/5 pt-2 text-[10px] text-slate-500">
-                    <p><span className="font-semibold text-slate-400">Horizon:</span> {ctx.horizon_weeks}w · {ctx.n_sims} sims</p>
-                    <p><span className="font-semibold text-slate-400">Basis:</span> {ctx.stress_channel?.basis ?? ctx.scenario_grid_id}</p>
-                    <p><span className="font-semibold text-slate-400">Model:</span> {ctx.model_version}</p>
-                    <p className="font-mono">{ctx.run_id}</p>
-                  </div>
-                </details>
               </div>
             </div>
           </div>
@@ -631,14 +617,14 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                   data-cy={`dtse-stage-${idx + 1}`}
                   onClick={() => activateStage(idx)}
                   onKeyDown={(e) => handleStageKeyDown(e, idx)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${currentStage === idx
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap border ${currentStage === idx
                       ? 'bg-indigo-500/20 border-indigo-400/50 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
                       : idx < currentStage
                         ? 'bg-slate-800/40 border-white/5 text-slate-300 hover:bg-slate-700/50'
                         : 'bg-slate-900/40 border-transparent text-slate-500 hover:text-slate-400 hover:bg-slate-800/30'
                     }`}
                 >
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${currentStage === idx
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${currentStage === idx
                       ? 'bg-white/20'
                       : idx < currentStage
                         ? 'bg-indigo-600/40 text-indigo-300'
@@ -674,10 +660,10 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                   className="rounded-xl border border-white/10 bg-slate-900/40 backdrop-blur-xl shadow-2xl p-4"
                 >
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-indigo-900/60 text-[10px] font-black text-indigo-300">
+                    <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-indigo-900/60 text-xs font-black text-indigo-300">
                       {idx + 1}
                     </span>
-                    <h2 className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">{label}</h2>
+                    <h2 className="text-sm font-black uppercase tracking-[0.14em] text-slate-300">{label}</h2>
                   </div>
                   {renderStageContent(idx)}
                 </section>
@@ -703,7 +689,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
               Previous
             </button>
 
-            <span className="text-[10px] text-slate-600 font-mono">
+            <span className="text-xs text-slate-400 font-mono">
               Stage {currentStage + 1} of {STAGE_COUNT}
             </span>
 
@@ -723,11 +709,11 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
           </div>
         ) : (
           <div className="shrink-0 border-t border-white/5 bg-slate-900/40 backdrop-blur-xl px-6 py-3 flex items-center justify-between">
-            <span className="text-[10px] text-slate-500 uppercase tracking-[0.14em]">Overview mode: all stages visible</span>
+            <span className="text-xs text-slate-300 uppercase tracking-[0.14em]">Overview mode: all stages visible</span>
             <button
               data-cy="dtse-switch-guided-footer"
               onClick={() => setViewMode('guided')}
-              className="px-3 py-1 rounded text-[10px] font-bold uppercase tracking-[0.12em] bg-slate-800/40 border border-white/10 text-slate-300 hover:bg-slate-700/60 hover:text-white transition-all"
+              className="px-3 py-1 rounded text-xs font-bold uppercase tracking-[0.12em] bg-slate-800/40 border border-white/10 text-slate-300 hover:bg-slate-700/60 hover:text-white transition-all"
             >
               Back to Guided
             </button>

@@ -36,13 +36,13 @@ interface DTSEProvenanceBadgesProps {
 
 export const DTSEProvenanceBadges: React.FC<DTSEProvenanceBadgesProps> = ({ items }) => (
   <div className="flex flex-wrap items-center gap-2">
-    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Provenance</span>
+    <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Provenance</span>
     {items.map((item) => {
       const style = PROVENANCE_STYLES[item.kind];
       return (
         <span
           key={`${item.kind}-${item.label}`}
-          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${style.chip}`}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-black uppercase tracking-[0.16em] ${style.chip}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
           {item.label}

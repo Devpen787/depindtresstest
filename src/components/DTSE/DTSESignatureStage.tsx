@@ -1,7 +1,6 @@
 import React from 'react';
 import { AlertTriangle, AlertOctagon, Info, ShieldAlert } from 'lucide-react';
 import type { DTSEFailureSignature } from '../../types/dtse';
-import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSESignatureStageProps {
   signatures: DTSEFailureSignature[];
@@ -69,46 +68,39 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
         </p>
       </div>
 
-      <DTSEProvenanceBadges
-        items={[
-          { kind: 'derived', label: 'Failure Classification' },
-          { kind: 'model', label: 'Metric Trigger Trace' },
-        ]}
-      />
-
       {sorted.length === 0 ? (
-        <div className="bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-12 text-center shadow-inner flex flex-col items-center justify-center">
+        <div className="bg-slate-900/45 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center shadow-inner flex flex-col items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4 border border-emerald-500/20">
             <Info size={24} className="text-emerald-400" />
           </div>
           <h3 className="text-sm font-bold text-slate-200 mb-1">No Failure Signature Triggered</h3>
-          <p className="text-xs text-slate-500">This run did not trigger a thesis-stage failure signature under the matched scenario.</p>
+          <p className="text-sm text-slate-300">This run did not trigger a thesis-stage failure signature under the matched scenario.</p>
         </div>
       ) : (
         <div className="space-y-4">
           <section className="space-y-3">
-            <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Autopsy summary</p>
+            <div className="rounded-2xl border border-white/10 bg-slate-900/45 p-4 backdrop-blur-md">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Autopsy summary</p>
               <h3 className="mt-2 text-lg font-bold text-white">{leadSignature?.label}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              <p className="mt-2 text-sm leading-relaxed text-slate-200">
                 {leadSignature?.pattern}
               </p>
             </div>
-            <details className="rounded-2xl border border-white/5 bg-slate-900/35 p-4 backdrop-blur-md">
-              <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+            <details className="rounded-2xl border border-white/10 bg-slate-900/45 p-4 backdrop-blur-md">
+              <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.16em] text-slate-300">
                 Diagnostic Details
               </summary>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Signatures</p>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Signatures</p>
                   <p className="mt-2 text-2xl font-black text-white">{sorted.length}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Active</p>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Active</p>
                   <p className="mt-2 text-2xl font-black text-white">{activeCount}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Lead severity</p>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Lead severity</p>
                   <p className="mt-2 text-sm font-bold uppercase tracking-[0.16em] text-slate-200">{leadSignature?.severity ?? 'none'}</p>
                 </div>
               </div>
@@ -131,7 +123,7 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-3 mb-2">
                       <h3 className="text-base font-black tracking-tight text-slate-100">{sig.label}</h3>
-                      <span className={`${cfg.badge} border ${cfg.badgeText} text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded shadow-inner`}>
+                      <span className={`${cfg.badge} border ${cfg.badgeText} text-xs font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded shadow-inner`}>
                         {sig.severity}
                       </span>
                     </div>
@@ -139,23 +131,23 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
 
                     <div className="grid grid-cols-1 gap-3 border-t border-white/5 pt-4 lg:grid-cols-[1fr_1fr_auto]">
                       {sig.why_it_matters && (
-                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Why this matters</p>
-                          <p className="text-xs text-slate-400 leading-relaxed font-medium">{sig.why_it_matters}</p>
+                        <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300 mb-1">Why this matters</p>
+                          <p className="text-sm text-slate-200 leading-relaxed font-medium">{sig.why_it_matters}</p>
                         </div>
                       )}
                       {sig.trigger_logic && (
-                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Triggered by</p>
-                          <p className="text-xs text-slate-400 leading-relaxed font-mono">{sig.trigger_logic}</p>
+                        <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300 mb-1">Triggered by</p>
+                          <p className="text-sm text-slate-200 leading-relaxed font-mono">{sig.trigger_logic}</p>
                         </div>
                       )}
                       {sig.affected_metrics.length > 0 && (
-                        <div className="rounded-xl border border-white/5 bg-slate-950/20 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Trace</p>
+                        <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300 mb-2">Trace</p>
                           <div className="flex flex-wrap gap-2">
                             {sig.affected_metrics.map((m) => (
-                              <span key={m} className="bg-slate-950/80 text-slate-400 text-[10px] font-mono font-medium px-2 py-1 rounded border border-white/5 shadow-inner">
+                              <span key={m} className="bg-slate-950/80 text-slate-200 text-xs font-mono font-medium px-2 py-1 rounded border border-white/10 shadow-inner">
                                 {metricLabels[m] ?? m}
                               </span>
                             ))}

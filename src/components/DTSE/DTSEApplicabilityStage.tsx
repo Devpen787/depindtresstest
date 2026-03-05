@@ -1,7 +1,6 @@
 import React from 'react';
 import { CheckCircle2, XCircle, Info, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
 import type { DTSEApplicabilityEntry, DTSEMetricInsight } from '../../types/dtse';
-import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSEApplicabilityStageProps {
   entries: DTSEApplicabilityEntry[];
@@ -49,22 +48,14 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
         </p>
       </div>
 
-      <DTSEProvenanceBadges
-        items={[
-          { kind: 'model', label: 'Evidence Gate' },
-          { kind: 'derived', label: 'Applicability Verdicts' },
-          { kind: 'curated', label: 'Reason Catalog' },
-        ]}
-      />
-
-      <div className="bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-32 bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />
 
         <div className="flex items-center justify-between mb-6 relative z-10 border-b border-white/5 pb-4">
           <h3 className="text-sm font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">Included vs Excluded</h3>
           <div className="flex items-center gap-2 bg-slate-950/50 border border-slate-800 px-3 py-1.5 rounded-full shadow-inner">
             <span className="text-emerald-400 font-bold text-sm tracking-wide">{runnableCount}</span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">/ {totalCount} Runnable</span>
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">/ {totalCount} Runnable</span>
           </div>
         </div>
 
@@ -77,8 +68,8 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                 key={entry.metricId}
                 data-cy={`dtse-applicability-${entry.metricId}`}
                 className={`flex flex-col md:flex-row md:items-start justify-between p-4 rounded-xl border transition-all duration-300 hover:-translate-y-0.5 shadow-lg group ${isRunnable
-                    ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]'
-                    : 'bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40 hover:shadow-[0_0_20px_rgba(225,29,72,0.1)]'
+                    ? 'bg-emerald-500/10 border-emerald-500/25 hover:border-emerald-400/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]'
+                    : 'bg-rose-500/10 border-rose-500/25 hover:border-rose-400/50 hover:shadow-[0_0_20px_rgba(225,29,72,0.1)]'
                   }`}
               >
                 <div className="flex items-start gap-3.5">
@@ -93,19 +84,24 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                     <p className="text-sm font-bold text-slate-200 tracking-wide">
                       {metricLabels[entry.metricId] ?? entry.metricId}
                     </p>
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                    <p className="text-sm text-slate-200 leading-relaxed font-medium">
                       {entry.details || (isRunnable ? 'Included in DTSE scoring.' : 'Excluded from DTSE scoring.')}
                     </p>
-                    <div className="grid grid-cols-1 gap-2 pt-2 border-t border-white/5 md:grid-cols-2 mt-2">
-                      <p className="text-[11px] text-slate-500/90 leading-relaxed">
-                        <span className="text-slate-400 font-bold tracking-wide">Measures:</span>{' '}
-                        {metricInsights[entry.metricId]?.definition ?? 'No analytical definition.'}
-                      </p>
-                      <p className="text-[11px] text-slate-500/90 leading-relaxed">
-                        <span className="text-slate-400 font-bold tracking-wide">Why it matters:</span>{' '}
-                        {metricInsights[entry.metricId]?.why_relevant ?? 'No signal note available.'}
-                      </p>
-                    </div>
+                    <details className="mt-2 rounded-lg border border-white/10 bg-slate-950/35 p-3">
+                      <summary className="cursor-pointer list-none text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
+                        Why this metric matters
+                      </summary>
+                      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          <span className="font-bold tracking-wide text-slate-100">Measures:</span>{' '}
+                          {metricInsights[entry.metricId]?.definition ?? 'No analytical definition.'}
+                        </p>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          <span className="font-bold tracking-wide text-slate-100">Why it matters:</span>{' '}
+                          {metricInsights[entry.metricId]?.why_relevant ?? 'No signal note available.'}
+                        </p>
+                      </div>
+                    </details>
                   </div>
                 </div>
 
@@ -114,7 +110,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                       ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400'
                       : 'bg-rose-950/40 border-rose-900/50 text-rose-400'
                     }`}>
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">
+                    <span className="text-xs font-black uppercase tracking-[0.18em]">
                       {isRunnable ? 'Included' : 'Excluded'}
                     </span>
                   </div>
@@ -123,7 +119,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border shadow-inner ${evidenceSignal.className}`}
                   >
                     <evidenceSignal.Icon size={12} />
-                    <span className="text-[10px] font-semibold tracking-wide">
+                    <span className="text-xs font-semibold tracking-wide">
                       {reasonLabels[entry.reasonCode] ?? entry.reasonCode}
                     </span>
                   </div>
@@ -133,15 +129,15 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
           })}
         </div>
 
-        <details className="mt-8 rounded-xl border border-white/5 bg-slate-950/30 p-4 relative z-10 transition-all duration-300 hover:border-white/10">
+        <details className="mt-8 rounded-xl border border-white/10 bg-slate-950/30 p-4 relative z-10 transition-all duration-300 hover:border-white/15">
           <summary className="flex cursor-pointer list-none items-center gap-2">
             <Info size={14} className="text-indigo-400" />
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400/80">Evidence Legend</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Reason Codes</p>
           </summary>
           <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(reasonLabels).map(([key, label]) => (
-              <p key={key} className="text-[11px] text-slate-500/80 font-medium">
-                <span className="mr-1.5 rounded border border-slate-800 bg-slate-900 px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-slate-400">
+              <p key={key} className="text-xs text-slate-300 font-medium">
+                <span className="mr-1.5 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 font-mono text-xs tracking-wider text-slate-200">
                   {key}
                 </span>
                 {label}
