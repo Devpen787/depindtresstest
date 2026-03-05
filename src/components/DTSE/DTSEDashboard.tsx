@@ -178,8 +178,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     if (!params || !liveOutputs) {
       return pack.failureSignatures;
     }
-    const liveSignatures = buildLiveDTSEFailureSignatures(liveAggregated, params, displayedOutcomes);
-    return liveSignatures.length > 0 ? liveSignatures : pack.failureSignatures;
+    return buildLiveDTSEFailureSignatures(liveAggregated, params, displayedOutcomes);
   }, [displayedOutcomes, liveAggregated, liveOutputs, pack.failureSignatures, params]);
   const peerContext = useMemo(() => {
     const analog = DTSE_PEER_ANALOGS[selectedProfile.metadata.id];

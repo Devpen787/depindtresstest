@@ -15,6 +15,11 @@ const byMetricId = (outcomes: DTSEOutcome[]): Record<string, DTSEOutcome> => (
   }, {})
 );
 
+const hasVisibleStress = (
+  outcomesByMetric: Record<string, DTSEOutcome>,
+  metricIds: string[],
+): boolean => metricIds.some((metricId) => outcomesByMetric[metricId]?.band && outcomesByMetric[metricId].band !== 'healthy');
+
 export function buildLiveDTSEFailureSignatures(
   aggregated: AggregateResult[],
   params: SimulationParams,
@@ -56,7 +61,11 @@ export function buildLiveDTSEFailureSignatures(
 
   const signatures: DTSEFailureSignature[] = [];
 
-  if (solvency < SOLVENCY_GUARDRAILS.healthyRatio && (payback > 24 || burnToMint < 0.8)) {
+  if (
+    hasVisibleStress(latestByMetric, ['solvency_ratio', 'payback_period', 'tail_risk_score'])
+    && solvency < SOLVENCY_GUARDRAILS.healthyRatio
+    && (payback > 24 || burnToMint < 0.8)
+  ) {
     signatures.push({
       id: 'reward-demand-decoupling',
       label: 'Reward–Demand Decoupling',
@@ -68,7 +77,10 @@ export function buildLiveDTSEFailureSignatures(
     });
   }
 
-  if (priceCompressionPct >= 20 || risk.drawdown >= 40 || tailRisk >= 35) {
+  if (
+    hasVisibleStress(latestByMetric, ['tail_risk_score', 'solvency_ratio'])
+    && (priceCompressionPct >= 20 || risk.drawdown >= 40 || tailRisk >= 35)
+  ) {
     signatures.push({
       id: 'liquidity-driven-compression',
       label: 'Liquidity-Driven Compression',
@@ -80,7 +92,11 @@ export function buildLiveDTSEFailureSignatures(
     });
   }
 
-  if (params.competitorYield > 0 && (avgVampireChurn >= 2 || retention < 92)) {
+  if (
+    hasVisibleStress(latestByMetric, ['weekly_retention_rate', 'network_utilization'])
+    && params.competitorYield > 0
+    && (avgVampireChurn >= 2 || retention < 92)
+  ) {
     signatures.push({
       id: 'elastic-provider-exit',
       label: 'Elastic Provider Exit',
@@ -92,19 +108,25 @@ export function buildLiveDTSEFailureSignatures(
     });
   }
 
-  if (retention < 92 || avgTrailingChurn >= (CHURN_GUARDRAILS.panicPctPerWeek * 0.6) || panicWeeks > 0) {
+  if (
+    hasVisibleStress(latestByMetric, ['weekly_retention_rate', 'tail_risk_score', 'payback_period'])
+    && (retention < 92 || avgTrailingChurn >= (CHURN_GUARDRAILS.panicPctPerWeek * 0.6) || panicWeeks > 0)
+  ) {
     signatures.push({
       id: 'profitability-induced-churn',
       label: 'Profitability-Induced Churn',
       pattern: 'Provider economics weaken enough that operators begin powering down or deferring participation, translating cost pressure into supply instability.',
       severity: retention < 90 || panicWeeks >= 2 ? 'high' : 'medium',
-      affected_metrics: ['weekly_retention_rate', 'tail_risk_score'],
+      affected_metrics: ['payback_period', 'weekly_retention_rate', 'tail_risk_score'],
       why_it_matters: 'Once operating economics fall below provider tolerance, churn becomes an endogenous amplifier of network fragility.',
       trigger_logic: `Triggered because weekly retention is ${roundTo(retention, 1)}%, trailing average churn is ${roundTo(avgTrailingChurn, 1)}% per week, payback is ${roundTo(payback, 1)} months, and panic-threshold churn was hit in ${panicWeeks} week(s).`,
     });
   }
 
-  if (utilization < 35 || utilitySummary.overprovisioned || providerRetentionPct >= 80) {
+  if (
+    hasVisibleStress(latestByMetric, ['network_utilization', 'solvency_ratio'])
+    && (utilization < 35 || utilitySummary.overprovisioned || providerRetentionPct >= 80)
+  ) {
     signatures.push({
       id: 'latent-capacity-degradation',
       label: 'Latent Capacity Degradation',

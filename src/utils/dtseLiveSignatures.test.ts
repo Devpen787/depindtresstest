@@ -128,6 +128,63 @@ describe('dtseLiveSignatures', () => {
     expect(signatures[3].affected_metrics).toContain('network_utilization');
   });
 
+  it('does not emit live signatures that are unsupported by surfaced stage 3 stress', () => {
+    const aggregated: AggregateResult[] = [
+      buildPoint({
+        price: metric(1.0),
+        demandServed: metric(100),
+        capacity: metric(100),
+        utilisation: metric(100),
+        churnCount: metric(6),
+        solvencyScore: metric(1.6),
+        minted: metric(90),
+        burned: metric(90),
+      }, 0),
+      buildPoint({
+        price: metric(1.0),
+        demandServed: metric(100),
+        capacity: metric(100),
+        utilisation: metric(100),
+        churnCount: metric(6),
+        solvencyScore: metric(1.6),
+        minted: metric(90),
+        burned: metric(90),
+      }, 1),
+      buildPoint({
+        price: metric(1.0),
+        demandServed: metric(100),
+        capacity: metric(100),
+        utilisation: metric(100),
+        churnCount: metric(6),
+        solvencyScore: metric(1.6),
+        minted: metric(90),
+        burned: metric(90),
+      }, 2),
+      buildPoint({
+        price: metric(1.0),
+        demandServed: metric(100),
+        capacity: metric(100),
+        utilisation: metric(100),
+        churnCount: metric(6),
+        solvencyScore: metric(1.6),
+        minted: metric(90),
+        burned: metric(90),
+      }, 3),
+    ];
+
+    const outcomes: DTSEOutcome[] = [
+      { metric_id: 'solvency_ratio', value: 3.0, band: 'healthy' },
+      { metric_id: 'payback_period', value: 1.9, band: 'healthy' },
+      { metric_id: 'weekly_retention_rate', value: 96, band: 'healthy' },
+      { metric_id: 'network_utilization', value: 100, band: 'healthy' },
+      { metric_id: 'tail_risk_score', value: 28, band: 'healthy' },
+    ];
+
+    const signatures = buildLiveDTSEFailureSignatures(aggregated, params, outcomes);
+
+    expect(signatures).toEqual([]);
+  });
+
   it('returns no signatures for an empty run', () => {
     expect(buildLiveDTSEFailureSignatures([], params, [])).toEqual([]);
   });
