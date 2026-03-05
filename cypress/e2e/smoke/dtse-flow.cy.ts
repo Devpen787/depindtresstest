@@ -16,6 +16,14 @@ describe("DTSE flow smoke", () => {
     cy.get('[data-cy="dtse-context-stage"]').should("contain.text", "Hivemapper");
   });
 
+  it("allows stress-channel switching from DTSE header", () => {
+    cy.get('[data-cy="dtse-stress-select"]').should("be.visible").select("demand_contraction");
+    cy.contains("Demand Contraction").should("exist");
+
+    cy.get('[data-cy="dtse-stress-select"]').select("competitive_yield_pressure");
+    cy.contains("Competitive-Yield Pressure").should("exist");
+  });
+
   it("can progress through stages via next button", () => {
     cy.get('[data-cy="dtse-dashboard-root"]').should("be.visible");
     cy.get('[data-cy="dtse-stage-panel-1"]').should("be.visible");

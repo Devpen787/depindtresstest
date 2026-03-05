@@ -24,6 +24,7 @@ import { recordPerf } from './src/utils/perf';
 import { DecisionBriefPayload, DecisionBriefSurface } from './src/types/decisionBrief';
 import { buildDecisionBrief, downloadDecisionBrief, downloadDecisionBriefMarkdown } from './src/utils/decisionBrief';
 import { getScenarioDisplayLabel } from './src/utils/scenarioLabels';
+import type { DTSEStressChannel } from './src/types/dtse';
 import { getMetricEvidence, withExtractionTimestamp } from './src/data/metricEvidence';
 import {
   OWNER_KPI_BAND_CLASSIFIERS,
@@ -551,6 +552,67 @@ const App: React.FC = () => {
     applyGlobalScenario(undefined, scenarioId);
   }, [applyGlobalScenario]);
 
+  const handleDTSEStressChannelChange = useCallback((channelId: DTSEStressChannel['id']) => {
+    const baseOpex = sim.activeProfile.parameters.provider_economics.opex_weekly.value;
+    const baseDemand = sim.activeProfile.parameters.demand_regime.value;
+    const baselineUpdate = {
+      scenario: 'baseline' as const,
+      competitorYield: 0,
+      investorSellPct: 0,
+      macro: 'sideways' as const,
+      demandType: baseDemand,
+      providerCostPerWeek: baseOpex,
+    };
+
+    let scenarioIdForState: string = 'baseline';
+    let updates: Partial<typeof sim.params> = baselineUpdate;
+
+    switch (channelId) {
+      case 'demand_contraction':
+        scenarioIdForState = 'demand_contraction';
+        updates = {
+          ...baselineUpdate,
+          demandType: 'high-to-decay',
+          macro: 'bearish',
+        };
+        break;
+      case 'liquidity_shock':
+        scenarioIdForState = 'death_spiral';
+        updates = {
+          ...baselineUpdate,
+          investorSellPct: 0.35,
+          investorUnlockWeek: 20,
+          macro: 'bearish',
+        };
+        break;
+      case 'competitive_yield_pressure':
+        scenarioIdForState = 'vampire_attack';
+        updates = {
+          ...baselineUpdate,
+          competitorYield: 1.5,
+        };
+        break;
+      case 'provider_cost_inflation':
+        scenarioIdForState = 'provider_cost_inflation';
+        updates = {
+          ...baselineUpdate,
+          providerCostPerWeek: Number((baseOpex * 1.25).toFixed(2)),
+        };
+        break;
+      case 'baseline_neutral':
+      default:
+        scenarioIdForState = 'baseline';
+        updates = baselineUpdate;
+        break;
+    }
+
+    setActiveScenarioId(scenarioIdForState);
+    sim.setParams((prev) => ({ ...prev, ...updates }));
+    if (!sim.autoRun) {
+      sim.runSimulation();
+    }
+  }, [sim.activeProfile, sim.autoRun, sim.runSimulation, sim.setParams]);
+
   const exportDisabled = !activeBrief;
   const handleExport = () => {
     if (!activeBriefSurface || !activeBrief) return;
@@ -766,6 +828,7 @@ const App: React.FC = () => {
               activeProfile={sim.activeProfile}
               profiles={PROTOCOL_PROFILES}
               onSelectProtocol={sim.loadProfile}
+              onSelectStressChannel={handleDTSEStressChannelChange}
               liveData={liveData}
               params={sim.params}
               aggregated={sim.aggregated}

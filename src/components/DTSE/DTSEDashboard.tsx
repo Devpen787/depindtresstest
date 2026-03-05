@@ -4,7 +4,7 @@ import type { ProtocolProfileV1 } from '../../data/protocols';
 import { PROTOCOL_PROFILES } from '../../data/protocols';
 import type { AggregateResult, DerivedMetrics, SimulationParams } from '../../model/types';
 import type { TokenMarketData } from '../../services/coingecko';
-import type { DTSEApplicabilityEntry, DTSEFailureSignature, DTSEOutcome, DTSEProtocolInsight, DTSERecommendation, DTSERunContext } from '../../types/dtse';
+import type { DTSEApplicabilityEntry, DTSEFailureSignature, DTSEOutcome, DTSEProtocolInsight, DTSERecommendation, DTSERunContext, DTSEStressChannel } from '../../types/dtse';
 import {
   buildDTSEProtocolPack,
   DTSE_METRIC_INSIGHTS,
@@ -41,6 +41,14 @@ const STAGE_LABELS: string[] = [
   'Response Paths',
 ];
 type DTSEViewMode = 'guided' | 'overview';
+
+const STRESS_CHANNEL_OPTIONS: Array<{ id: DTSEStressChannel['id']; label: string }> = [
+  { id: 'baseline_neutral', label: 'Baseline Neutral' },
+  { id: 'demand_contraction', label: 'Demand Contraction' },
+  { id: 'liquidity_shock', label: 'Liquidity Shock' },
+  { id: 'competitive_yield_pressure', label: 'Competitive-Yield Pressure' },
+  { id: 'provider_cost_inflation', label: 'Provider Cost Inflation' },
+];
 
 const METRIC_LABELS: Record<string, string> = {
   solvency_ratio: 'Solvency Ratio',
@@ -202,6 +210,7 @@ interface DTSEDashboardProps {
   activeProfile?: ProtocolProfileV1;
   profiles?: ProtocolProfileV1[];
   onSelectProtocol?: (profile: ProtocolProfileV1) => void;
+  onSelectStressChannel?: (channelId: DTSEStressChannel['id']) => void;
   liveData?: Record<string, TokenMarketData | null>;
   params?: SimulationParams;
   aggregated?: AggregateResult[];
@@ -216,6 +225,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
   activeProfile,
   profiles,
   onSelectProtocol,
+  onSelectStressChannel,
   liveData,
   params,
   aggregated,
@@ -519,6 +529,24 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                     {availableProfiles.map((profile) => (
                       <option key={profile.metadata.id} value={profile.metadata.id}>
                         {profile.metadata.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="min-w-[220px]">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Stress Channel</span>
+                <div className="mt-1">
+                  <select
+                    data-cy="dtse-stress-select"
+                    value={stressChannel.id}
+                    onChange={(event) => onSelectStressChannel?.(event.target.value as DTSEStressChannel['id'])}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {STRESS_CHANNEL_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
                       </option>
                     ))}
                   </select>
