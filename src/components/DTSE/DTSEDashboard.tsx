@@ -239,6 +239,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
   const fallbackProfile = (availableProfiles[0] ?? PROTOCOL_PROFILES[0]) as ProtocolProfileV1;
   const [currentStage, setCurrentStage] = useState(0);
   const [viewMode, setViewMode] = useState<DTSEViewMode>('guided');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedProtocolId, setSelectedProtocolId] = useState(
     activeProfile?.metadata.id ?? fallbackProfile.metadata.id
   );
@@ -427,12 +428,11 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
           metricLabels={METRIC_LABELS}
           peerContext={peerContext}
           stressChannel={ctx.stress_channel}
+          showAdvanced={showAdvanced}
           modelVersion={ctx.model_version}
           generatedAt={ctx.generated_at_utc}
-          scenarioGridId={ctx.scenario_grid_id}
           horizonWeeks={ctx.horizon_weeks}
           nSims={ctx.n_sims}
-          evidenceStatus={ctx.evidence_status}
         />
       );
     }
@@ -444,6 +444,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
           metricLabels={METRIC_LABELS}
           metricInsights={DTSE_METRIC_INSIGHTS}
           reasonLabels={DTSE_REASON_LABELS}
+          showAdvanced={showAdvanced}
         />
       );
     }
@@ -469,6 +470,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
         <DTSESignatureStage
           signatures={displayedFailureSignatures}
           metricLabels={METRIC_LABELS}
+          showAdvanced={showAdvanced}
         />
       );
     }
@@ -478,6 +480,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
         recommendations={displayedRecommendations}
         insights={displayedProtocolInsights}
         onExport={handleExport}
+        showAdvanced={showAdvanced}
       />
     );
   };
@@ -553,16 +556,18 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 xl:mt-5">
-                <span className={`rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] ${ctx.evidence_status === 'complete'
-                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
-                    : ctx.evidence_status === 'partial'
-                      ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
-                      : 'border-rose-500/20 bg-rose-500/10 text-rose-300'
-                  }`}>
-                  {ctx.evidence_status} evidence
-                </span>
-              </div>
+              {showAdvanced && (
+                <div className="flex flex-wrap items-center gap-2 xl:mt-5">
+                  <span className={`rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] ${ctx.evidence_status === 'complete'
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                      : ctx.evidence_status === 'partial'
+                        ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+                        : 'border-rose-500/20 bg-rose-500/10 text-rose-300'
+                    }`}>
+                    {ctx.evidence_status} evidence
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2 xl:items-end">
@@ -589,6 +594,16 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                     Overview
                   </button>
                 </div>
+                <button
+                  data-cy="dtse-toggle-advanced"
+                  onClick={() => setShowAdvanced((current) => !current)}
+                  className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wide transition-all border ${showAdvanced
+                    ? 'border-cyan-400/40 bg-cyan-500/15 text-cyan-200'
+                    : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:text-slate-200'
+                    }`}
+                >
+                  Advanced {showAdvanced ? 'On' : 'Off'}
+                </button>
               </div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import type { DTSEFailureSignature } from '../../types/dtse';
 interface DTSESignatureStageProps {
   signatures: DTSEFailureSignature[];
   metricLabels: Record<string, string>;
+  showAdvanced?: boolean;
 }
 
 const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
@@ -49,7 +50,7 @@ const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
   },
 };
 
-export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatures, metricLabels }) => {
+export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatures, metricLabels, showAdvanced = false }) => {
   const sorted = [...signatures].sort((a, b) => {
     const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
@@ -85,26 +86,10 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
               <p className="mt-2 text-sm leading-relaxed text-slate-200">
                 {leadSignature?.pattern}
               </p>
+              <p className="mt-3 text-xs text-slate-300">
+                {activeCount} active signature{activeCount === 1 ? '' : 's'} detected in this run.
+              </p>
             </div>
-            <details className="rounded-2xl border border-white/10 bg-slate-900/45 p-4 backdrop-blur-md">
-              <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.16em] text-slate-300">
-                Diagnostic Details
-              </summary>
-              <div className="mt-3 grid grid-cols-3 gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Signatures</p>
-                  <p className="mt-2 text-2xl font-black text-white">{sorted.length}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Active</p>
-                  <p className="mt-2 text-2xl font-black text-white">{activeCount}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">Lead severity</p>
-                  <p className="mt-2 text-sm font-bold uppercase tracking-[0.16em] text-slate-200">{leadSignature?.severity ?? 'none'}</p>
-                </div>
-              </div>
-            </details>
           </section>
 
           {sorted.map((sig, idx) => {
@@ -136,7 +121,7 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
                           <p className="text-sm text-slate-200 leading-relaxed font-medium">{sig.why_it_matters}</p>
                         </div>
                       )}
-                      {sig.trigger_logic && (
+                      {showAdvanced && sig.trigger_logic && (
                         <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3">
                           <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300 mb-1">Triggered by</p>
                           <p className="text-sm text-slate-200 leading-relaxed font-mono">{sig.trigger_logic}</p>
@@ -144,7 +129,7 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
                       )}
                       {sig.affected_metrics.length > 0 && (
                         <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3">
-                          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300 mb-2">Trace</p>
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300 mb-2">Linked metrics</p>
                           <div className="flex flex-wrap gap-2">
                             {sig.affected_metrics.map((m) => (
                               <span key={m} className="bg-slate-950/80 text-slate-200 text-xs font-mono font-medium px-2 py-1 rounded border border-white/10 shadow-inner">

@@ -6,6 +6,7 @@ interface DTSERecommendationsStageProps {
   recommendations: DTSERecommendation[];
   insights: DTSEProtocolInsight[];
   onExport: () => void;
+  showAdvanced?: boolean;
 }
 
 const PRIORITY_STYLES: Record<DTSERecommendation['priority'], { badge: string; badgeText: string; shadow: string }> = {
@@ -65,6 +66,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
   recommendations,
   insights,
   onExport,
+  showAdvanced = false,
 }) => {
   const sorted = [...recommendations].sort((a, b) => {
     const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -130,23 +132,9 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                     <span>Export</span>
                   </button>
                 </div>
-                <details className="mt-4 rounded-xl border border-white/5 bg-slate-950/20 p-3">
-                  <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-slate-300">
-                    Priority Mix
-                  </summary>
-                  <p className="mt-2 text-xs text-slate-400">Use this as a discussion filter, not a fixed execution queue.</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                    {(['critical', 'high', 'medium', 'low'] as DTSERecommendation['priority'][]).map((priority) => {
-                      const ps = PRIORITY_STYLES[priority];
-                      return (
-                        <div key={priority} className={`rounded-xl border px-3.5 py-2.5 text-center ${ps.badge}`}>
-                          <p className={`text-lg font-black ${ps.badgeText}`}>{priorityCounts[priority]}</p>
-                          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{priority}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </details>
+                <p className="mt-4 text-sm text-slate-300">
+                  {priorityCounts.critical + priorityCounts.high} high-priority and {priorityCounts.medium + priorityCounts.low} medium/low-priority discussion items in this run.
+                </p>
               </div>
             </div>
           </section>
@@ -194,7 +182,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                         </summary>
                         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Review area</span>
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Who should review</span>
                             <span className="font-semibold text-slate-200">{rec.owner}</span>
                           </div>
                           {rec.timeframe && (
@@ -211,7 +199,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                           )}
                           {rec.dependency && (
                             <div className="md:col-span-2">
-                              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Boundary</p>
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Constraint</p>
                               <p className="mt-1 text-sm leading-relaxed text-slate-300">{rec.dependency}</p>
                             </div>
                           )}
@@ -223,7 +211,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                           )}
                           {rec.peer_analog && (
                             <div className="md:col-span-2">
-                              <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Comparable context</p>
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Peer example</p>
                               <p className="mt-1 text-sm leading-relaxed text-slate-300">{rec.peer_analog}</p>
                             </div>
                           )}
@@ -267,13 +255,17 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="text-base font-black tracking-tight text-slate-100">{insight.title}</p>
-                                <span className={`${confidenceMeta.badge} ${confidenceMeta.badgeText} rounded-md border px-2.5 py-1 text-xs font-black uppercase tracking-[0.16em]`}>
-                                  {confidenceMeta.label}
-                                </span>
+                                {showAdvanced && (
+                                  <span className={`${confidenceMeta.badge} ${confidenceMeta.badgeText} rounded-md border px-2.5 py-1 text-xs font-black uppercase tracking-[0.16em]`}>
+                                    {confidenceMeta.label}
+                                  </span>
+                                )}
                               </div>
-                              <p className="mt-1 text-xs font-semibold text-slate-300">
-                                {confidenceMeta.description}
-                              </p>
+                              {showAdvanced && (
+                                <p className="mt-1 text-xs font-semibold text-slate-300">
+                                  {confidenceMeta.description}
+                                </p>
+                              )}
                               <p className="mt-2 text-sm leading-relaxed text-slate-300">{insight.observation}</p>
                             </div>
                           </div>
@@ -288,19 +280,21 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                             <p className="text-sm font-medium leading-relaxed text-slate-300">{insight.trigger ?? 'Protocol structure and current DTSE readout.'}</p>
                           </div>
                         </div>
-                        <details className="mt-3 rounded-xl border border-white/10 bg-slate-950/16 p-3">
-                          <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-slate-300">
-                            Source Trace
-                          </summary>
-                          <ul className="mt-3 space-y-2">
-                            {insight.provenance.map((item) => (
-                              <li key={item} className="flex items-start gap-2 text-sm font-medium leading-relaxed text-slate-300">
-                                <span className="mt-0.5 text-slate-400">•</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </details>
+                        {showAdvanced && (
+                          <details className="mt-3 rounded-xl border border-white/10 bg-slate-950/16 p-3">
+                            <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-slate-300">
+                              Source trace
+                            </summary>
+                            <ul className="mt-3 space-y-2">
+                              {insight.provenance.map((item) => (
+                                <li key={item} className="flex items-start gap-2 text-sm font-medium leading-relaxed text-slate-300">
+                                  <span className="mt-0.5 text-slate-400">•</span>
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
                       </>
                     );
                   })()}

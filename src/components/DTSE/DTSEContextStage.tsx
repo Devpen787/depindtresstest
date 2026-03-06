@@ -1,9 +1,8 @@
 import React from 'react';
 import { Server, ArrowRightLeft, Coins, Sparkles, Layers3, BadgeDollarSign, Factory, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { DTSERunContext, DTSEProtocolBrief, DTSEOutcome, DTSEStressChannel } from '../../types/dtse';
+import type { DTSEProtocolBrief, DTSEOutcome, DTSEStressChannel } from '../../types/dtse';
 import type { TokenMarketData } from '../../services/coingecko';
-import { DTSEProvenanceBadges } from './DTSEProvenanceBadge';
 
 interface DTSEPeerContext {
   peerNames: string[];
@@ -18,12 +17,11 @@ interface DTSEContextStageProps {
   metricLabels: Record<string, string>;
   peerContext?: DTSEPeerContext;
   stressChannel?: DTSEStressChannel;
+  showAdvanced?: boolean;
   modelVersion: string;
   generatedAt: string;
-  scenarioGridId: string;
   horizonWeeks: number;
   nSims: number;
-  evidenceStatus: DTSERunContext['evidence_status'];
 }
 
 export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
@@ -33,12 +31,11 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   metricLabels,
   peerContext,
   stressChannel,
+  showAdvanced = false,
   modelVersion,
   generatedAt,
-  scenarioGridId,
   horizonWeeks,
   nSims,
-  evidenceStatus,
 }) => {
   const formatCompactNumber = (value: number): string => new Intl.NumberFormat('en-US', {
     notation: 'compact',
@@ -50,10 +47,6 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value);
-  const formatExactNumber = (value: number): string => new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 0,
-  }).format(value);
-
   const marketStats = marketData ? [
     {
       label: 'Price',
@@ -64,48 +57,50 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
     {
       label: 'Market Cap',
       value: formatUsdCompact(marketData.marketCap),
-      detail: `${formatCompactNumber(marketData.circulatingSupply)} circulating`,
+      detail: 'Live market value',
       icon: Layers3,
     },
     {
-      label: 'FDV',
-      value: formatUsdCompact((marketData.maxSupply ?? marketData.totalSupply ?? 0) * marketData.currentPrice),
-      detail: `${formatCompactNumber(marketData.maxSupply ?? marketData.totalSupply ?? 0)} max / total supply`,
+      label: 'Circulating Supply',
+      value: `${formatCompactNumber(marketData.circulatingSupply)} ${marketData.symbol}`,
+      detail: 'Live circulating supply',
       icon: Factory,
     },
     {
-      label: '24h Volume',
-      value: formatUsdCompact(marketData.totalVolume),
-      detail: marketData.lastUpdated
-        ? `Updated ${new Date(marketData.lastUpdated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-        : 'CoinGecko',
+      label: 'Supply Cap',
+      value: marketData.maxSupply && marketData.maxSupply > 0
+        ? `${formatCompactNumber(marketData.maxSupply)} ${marketData.symbol}`
+        : 'Not reported',
+      detail: marketData.maxSupply && marketData.maxSupply > 0
+        ? 'Max supply (live market data)'
+        : 'No max supply reported by market source',
       icon: Coins,
     },
   ] : [];
 
   const modelStats = [
     {
-      label: 'Modeled Supply',
+      label: 'Starting Token Stock',
       value: `${formatCompactNumber(protocolBrief.supply_count)} ${protocolBrief.supply_unit}`,
-      detail: protocolBrief.supply_structure,
+      detail: 'Simulation assumption (not live token cap)',
       icon: Layers3,
     },
     {
-      label: 'Weekly Emissions',
+      label: 'Weekly Emission Input',
       value: `${formatCompactNumber(protocolBrief.weekly_emissions)} ${protocolBrief.weekly_emissions_unit}`,
-      detail: `${protocolBrief.burn_fraction_pct.toFixed(0)}% burn-linked`,
+      detail: `${protocolBrief.burn_fraction_pct.toFixed(0)}% burn-linked in model`,
       icon: Flame,
     },
     {
-      label: 'Initial Supply Side',
+      label: 'Starting Provider Count',
       value: `${formatCompactNumber(protocolBrief.active_providers)} ${protocolBrief.active_providers_unit}`,
-      detail: protocolBrief.mechanism,
+      detail: 'Simulation start state',
       icon: Factory,
     },
     {
-      label: 'Supply Structure',
+      label: 'Model Structure',
       value: protocolBrief.supply_structure,
-      detail: `Baseline price ${formatUsdCompact(protocolBrief.token_price_usd)} · max ${formatExactNumber(protocolBrief.supply_count)}`,
+      detail: `Baseline price input ${formatUsdCompact(protocolBrief.token_price_usd)}`,
       icon: BadgeDollarSign,
     },
   ];
@@ -159,6 +154,9 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
     : peerContext?.confidence === 'medium'
       ? 'bg-amber-950/40 border-amber-900/60 text-amber-300'
       : 'bg-slate-900/70 border-slate-700/70 text-slate-300';
+  const tokenRoleSummary = protocolBrief.token_utility.length > 0
+    ? protocolBrief.token_utility.join(' • ')
+    : 'No token-role detail available.';
 
   return (
     <div data-cy="dtse-context-stage" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -171,14 +169,6 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
         </p>
       </div>
 
-      <DTSEProvenanceBadges
-        items={[
-          { kind: 'model', label: 'Run Contract' },
-          { kind: 'curated', label: 'Protocol Facts' },
-          ...(marketData ? [{ kind: 'live_market' as const, label: 'Market Snapshot' }] : []),
-        ]}
-      />
-
       <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
         <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Interpretation Boundary</p>
         <p className="mt-1.5 text-sm leading-relaxed text-slate-200">
@@ -188,7 +178,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
 
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Scenario Contract</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Stress setup</p>
           <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-200">
             Matched Conditions
           </span>
@@ -197,27 +187,28 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
           <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 backdrop-blur-sm">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Stress Channel</p>
             <p className="mt-2 text-lg font-black tracking-tight text-slate-100">{stressChannel?.label ?? 'Saved DTSE Bundle'}</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">{stressChannel?.summary ?? 'This view is using a saved DTSE bundle without a live stress-channel mapping.'}</p>
-            <p className="mt-3 text-sm leading-relaxed text-slate-400">{stressChannel?.basis ?? scenarioGridId}</p>
-            <details className="mt-4 rounded-xl border border-white/5 bg-slate-950/25 px-3.5 py-3 text-sm text-slate-400">
-              <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.16em] text-slate-300">
-                Method Details
-              </summary>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Model</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-200">{modelVersion}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">{stressChannel?.summary ?? 'This view is using a saved DTSE bundle under predefined stress conditions.'}</p>
+            {showAdvanced && (
+              <details className="mt-4 rounded-xl border border-white/5 bg-slate-950/25 px-3.5 py-3 text-sm text-slate-400">
+                <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.16em] text-slate-300">
+                  Run details
+                </summary>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Model</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-200">{modelVersion}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Run Envelope</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-200">{horizonWeeks} weeks · {nSims} sims</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Generated</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-200">{new Date(generatedAt).toLocaleDateString()}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Run Envelope</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-200">{horizonWeeks} weeks · {nSims} sims</p>
-                </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Generated</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-200">{new Date(generatedAt).toLocaleDateString()} · {evidenceStatus.toUpperCase()} evidence</p>
-                </div>
-              </div>
-            </details>
+              </details>
+            )}
           </div>
         </div>
       </section>
@@ -310,10 +301,10 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
       <section className="space-y-2">
         <details className="rounded-2xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-sm">
           <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
-            Supplementary data (market snapshot + model inputs)
+            Supplementary data (market snapshot + simulation assumptions)
           </summary>
           <p className="mt-2 text-sm leading-relaxed text-slate-300">
-            Use this for deeper context only. Core interpretation should still come from applicability, sequence, and failure signatures.
+            Use this for deeper context only. Market cards are live; model cards are simulation assumptions.
           </p>
 
           <div className="mt-4 space-y-5">
@@ -338,12 +329,12 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
             )}
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Model Inputs</p>
-                <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-300">
-                  Model
-                </span>
-              </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Model Inputs</p>
+                  <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-300">
+                    Simulation
+                  </span>
+                </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {modelStats.map(({ label, value, detail, icon }) => (
                   <div key={label} className="rounded-xl border border-white/10 bg-slate-900/45 p-4 backdrop-blur-sm">
@@ -394,8 +385,8 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {[
-                { icon: ArrowRightLeft, label: 'Demand Signal', text: protocolBrief.demand_signal },
-                { icon: Server, label: 'Supply Signal', text: protocolBrief.supply_signal },
+                { icon: ArrowRightLeft, label: 'Demand Side', text: protocolBrief.demand_signal },
+                { icon: Server, label: 'Supply Side', text: protocolBrief.supply_signal },
               ].map((block) => (
                 <div key={block.label} className="rounded-xl border border-white/10 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-slate-900/35">
                   <CardHeader icon={block.icon} label={block.label} />
@@ -404,12 +395,8 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
               ))}
 
               <div className="rounded-xl border border-white/10 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-slate-900/35">
-                <CardHeader icon={Coins} label="Token Utility" />
-                <ul className="list-inside list-disc space-y-1.5 marker:text-cyan-500/50">
-                  {protocolBrief.token_utility.map((item) => (
-                    <li key={item} className="text-sm leading-relaxed text-slate-300">{item}</li>
-                  ))}
-                </ul>
+                <CardHeader icon={Coins} label="Token Role" />
+                <p className="text-sm leading-relaxed text-slate-300">{tokenRoleSummary}</p>
               </div>
             </div>
           </div>
