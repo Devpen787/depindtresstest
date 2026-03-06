@@ -942,7 +942,7 @@ export const DTSE_REASON_LABELS: Record<DTSEApplicabilityEntry['reasonCode'], st
     DATA_MISSING: 'Data missing',
     SOURCE_GRADE_INSUFFICIENT: 'Source quality insufficient',
     MANUAL_OVERRIDE: 'Manual override',
-    PROXY_ACCEPTED: 'Proxy accepted',
+    PROXY_ACCEPTED: 'Using proxy',
     INTERPOLATION_RISK: 'Interpolation risk',
 };
 
@@ -1131,7 +1131,18 @@ export function buildDTSEProtocolPack(profile: ProtocolProfileV1): DTSEDashboard
         protocolName: profile.metadata.name,
         peerNames,
     });
-    const protocolBriefTemplate = PROTOCOL_BRIEF_OVERRIDES[profile.metadata.id] ?? deriveDefaultProtocolBrief(profile);
+    const defaultProtocolBrief = deriveDefaultProtocolBrief(profile);
+    const protocolBriefTemplate = {
+        ...defaultProtocolBrief,
+        ...(PROTOCOL_BRIEF_OVERRIDES[profile.metadata.id] ?? {}),
+    };
+    const inferredStructure = inferSupplyStructure(profile);
+    const supplyCount = profile.parameters.supply.value;
+    const tokenPriceUsd = protocolBriefTemplate.token_price_usd ?? profile.parameters.initial_price.value;
+    const weeklyEmissions = profile.parameters.emissions.value;
+    const burnFractionPct = profile.parameters.burn_fraction.value * 100;
+    const activeProviders = profile.parameters.initial_active_providers.value;
+    const activeProvidersUnit = profile.metadata.model_type === 'location_based' ? 'nodes' : 'providers';
 
     return {
         runContext: {
@@ -1147,6 +1158,16 @@ export function buildDTSEProtocolPack(profile: ProtocolProfileV1): DTSEDashboard
             protocol_name: profile.metadata.name,
             chain: CHAIN_LABELS[profile.metadata.chain] ?? profile.metadata.chain,
             ...protocolBriefTemplate,
+            supply_count: supplyCount,
+            supply_unit: profile.parameters.supply.unit,
+            supply_structure: inferredStructure,
+            token_price_usd: tokenPriceUsd,
+            market_cap_usd: supplyCount * tokenPriceUsd,
+            weekly_emissions: weeklyEmissions,
+            weekly_emissions_unit: profile.parameters.emissions.unit,
+            burn_fraction_pct: burnFractionPct,
+            active_providers: activeProviders,
+            active_providers_unit: protocolBriefTemplate.active_providers_unit || activeProvidersUnit,
         },
         applicability: pack.applicability,
         outcomes,

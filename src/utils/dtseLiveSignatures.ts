@@ -53,7 +53,8 @@ export function buildLiveDTSEFailureSignatures(
     .filter((value) => Number.isFinite(value));
   const firstPrice = priceSeries[0] ?? 0;
   const lastPrice = priceSeries[priceSeries.length - 1] ?? 0;
-  const priceCompressionPct = firstPrice > 0 ? ((firstPrice - lastPrice) / firstPrice) * 100 : 0;
+  const rawCompression = firstPrice > 0 ? ((firstPrice - lastPrice) / firstPrice) * 100 : 0;
+  const priceCompressionPct = Math.min(999, Math.max(-999, rawCompression));
   const avgVampireChurn = aggregated.reduce((sum, point) => sum + (point.vampireChurn?.mean ?? 0), 0) / aggregated.length;
   const initialProviders = aggregated[0]?.providers?.mean ?? 0;
   const currentProviders = latestPoint?.providers?.mean ?? 0;

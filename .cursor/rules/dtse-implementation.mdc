@@ -1,0 +1,38 @@
+---
+description: DTSE tab implementation — commands, paths, and plan reference
+globs: src/components/DTSE/**/*,src/utils/dtse*.ts,src/data/dtse*.ts
+alwaysApply: false
+---
+
+# DTSE Implementation
+
+When implementing DTSE improvements, follow this rule.
+
+## Commands
+
+| Command | Use |
+|---------|-----|
+| `npm run test` | Unit tests (Vitest) |
+| `npm run build` | Build + TypeScript check |
+| `npm run test:e2e` | E2E (Cypress; starts server on 4173) |
+| `npm run dev` | Dev server (port 3000) |
+
+## Key paths
+
+| Path | Purpose |
+|------|---------|
+| `src/components/DTSE/` | DTSE stage components (DTSEDashboard, DTSEContextStage, etc.) |
+| `src/utils/dtseLiveSignatures.ts` | Live failure signatures; price compression clamp at line 56 |
+| `src/data/dtseContent.ts` | Protocol briefs, PROTOCOL_BRIEF_OVERRIDES, deriveDefaultProtocolBrief |
+
+## Plan and rules
+
+- **Plan:** `docs/DTSE_IMPROVEMENT_PLAN.md` — phases, checklist, proof, live check
+- **UI rules:** `docs/DTSE_DASHBOARD_UI_UX_RULES_V1.md`
+- **Audit:** `docs/DTSE_NOISE_VS_SIGNAL_AUDIT.md`
+
+## Before claiming done
+
+1. Run `npm run test`, `npm run build`, `npm run test:e2e` — all must pass.
+2. Use **verification-before-completion** or **depin-verification-before-completion** skill.
+3. Before PR: use Source Control → Agent Review to compare against main.

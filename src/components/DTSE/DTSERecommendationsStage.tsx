@@ -7,6 +7,7 @@ interface DTSERecommendationsStageProps {
   insights: DTSEProtocolInsight[];
   onExport: () => void;
   showAdvanced?: boolean;
+  exportFeedback?: boolean;
 }
 
 const PRIORITY_STYLES: Record<DTSERecommendation['priority'], { badge: string; badgeText: string; shadow: string }> = {
@@ -67,6 +68,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
   insights,
   onExport,
   showAdvanced = false,
+  exportFeedback = false,
 }) => {
   const sorted = [...recommendations].sort((a, b) => {
     const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -87,11 +89,11 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
   return (
     <div data-cy="dtse-recommendations-stage" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
+        <h2 className="text-sm font-bold text-slate-400">
           Stage 5 — Response Paths
         </h2>
-        <p className="text-sm font-medium text-slate-400">
-          Response areas and tradeoffs for discussion, not model-issued prescriptions.
+        <p className="text-sm text-slate-500">
+          Areas to discuss and tradeoffs to consider, not prescriptions.
         </p>
       </div>
 
@@ -106,12 +108,16 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
       ) : (
         <>
           <section className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Response Posture</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Summary</p>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Lead response path</p>
-                <h3 className="mt-2 text-xl font-black tracking-tight text-white">
-                  {leadRecommendation ? leadRecommendation.action : 'No action required'}
+                <h3 className="mt-2 text-xl font-black tracking-tight text-white line-clamp-2" title={leadRecommendation?.action}>
+                  {leadRecommendation
+                    ? (leadRecommendation.action.length > 100
+                      ? `${leadRecommendation.action.slice(0, 97)}...`
+                      : leadRecommendation.action)
+                    : 'No action required'}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">
                   Main areas to examine: {uniqueOwners.join(', ')}
@@ -121,7 +127,9 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Export</p>
-                    <p className="mt-1 text-sm text-slate-300">Capture this run for discussion or review.</p>
+                    <p className="mt-1 text-sm text-slate-300">
+                      {exportFeedback ? 'Downloaded' : 'Capture this run for discussion or review.'}
+                    </p>
                   </div>
                   <button
                     data-cy="dtse-export-btn"
@@ -140,7 +148,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
           </section>
 
           <section className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Interpretive Paths</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Recommendations</p>
             <div className="space-y-3">
               {sorted.map((rec, idx) => {
                 const ps = PRIORITY_STYLES[rec.priority];
@@ -153,7 +161,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                     style={{ animationDelay: `${idx * 75}ms` }}
                   >
                     <div className="relative z-10 flex items-start gap-3.5">
-                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-950/80 text-xs font-black text-slate-300 shadow-inner transition-transform duration-300 group-hover:scale-110">
+                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-950/80 text-xs font-black text-slate-300 shadow-inner transition-transform duration-300">
                         {idx + 1}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -176,9 +184,12 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                         </div>
                       )}
 
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+                        <span><span className="font-bold uppercase tracking-[0.14em] text-slate-400">Who:</span> {rec.owner}</span>
+                      </div>
                       <details className="rounded-xl border border-white/10 bg-slate-950/20 p-3.5">
                         <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-slate-300">
-                          Context and tradeoffs
+                          More context
                         </summary>
                         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div className="flex items-center gap-2">

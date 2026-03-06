@@ -61,11 +61,11 @@ export const DTSESignatureStage: React.FC<DTSESignatureStageProps> = ({ signatur
   return (
     <div data-cy="dtse-signature-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
+        <h2 className="text-sm font-bold text-slate-400">
           Stage 4 — Failure Autopsy
         </h2>
-        <p className="text-sm font-medium text-slate-400">
-          Classify the breakdown using thesis-aligned failure signatures.
+        <p className="text-sm text-slate-500">
+          What went wrong and how it fits the thesis failure patterns.
         </p>
       </div>
 

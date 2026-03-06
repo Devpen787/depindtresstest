@@ -8,6 +8,7 @@ import type { DTSEApplicabilityEntry, DTSEFailureSignature, DTSEOutcome, DTSEPro
 import {
   buildDTSEProtocolPack,
   DTSE_METRIC_INSIGHTS,
+  DTSE_PROTOCOL_PACKS,
   DTSE_REASON_LABELS,
 } from '../../data/dtseContent';
 import { DTSE_PEER_ANALOGS } from '../../data/dtsePeerAnalogs';
@@ -219,6 +220,7 @@ interface DTSEDashboardProps {
   derivedMetrics?: DerivedMetrics | null;
   simulationRunId?: number;
   useNewModel?: boolean;
+  loading?: boolean;
 }
 
 export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
@@ -234,25 +236,37 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
   derivedMetrics,
   simulationRunId = 0,
   useNewModel = true,
+  loading = false,
 }) => {
   const availableProfiles = profiles && profiles.length > 0 ? profiles : PROTOCOL_PROFILES;
-  const fallbackProfile = (availableProfiles[0] ?? PROTOCOL_PROFILES[0]) as ProtocolProfileV1;
+  const dtseProfiles = useMemo(
+    () => availableProfiles.filter((p) => p.metadata.id in DTSE_PROTOCOL_PACKS),
+    [availableProfiles],
+  );
+  const fallbackProfile = (dtseProfiles[0] ?? availableProfiles[0] ?? PROTOCOL_PROFILES[0]) as ProtocolProfileV1;
   const [currentStage, setCurrentStage] = useState(0);
   const [viewMode, setViewMode] = useState<DTSEViewMode>('guided');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState(false);
   const [selectedProtocolId, setSelectedProtocolId] = useState(
     activeProfile?.metadata.id ?? fallbackProfile.metadata.id
   );
 
   useEffect(() => {
-    if (activeProfile?.metadata.id) {
+    if (activeProfile?.metadata.id && activeProfile.metadata.id in DTSE_PROTOCOL_PACKS) {
       setSelectedProtocolId(activeProfile.metadata.id);
     }
   }, [activeProfile?.metadata.id]);
 
+  useEffect(() => {
+    if (selectedProtocolId && !(selectedProtocolId in DTSE_PROTOCOL_PACKS)) {
+      setSelectedProtocolId(fallbackProfile.metadata.id);
+    }
+  }, [selectedProtocolId, fallbackProfile.metadata.id]);
+
   const selectedProfile = useMemo(
-    () => availableProfiles.find((profile) => profile.metadata.id === selectedProtocolId) ?? fallbackProfile,
-    [availableProfiles, fallbackProfile, selectedProtocolId]
+    () => dtseProfiles.find((profile) => profile.metadata.id === selectedProtocolId) ?? fallbackProfile,
+    [dtseProfiles, fallbackProfile, selectedProtocolId],
   );
 
   const pack = useMemo(() => buildDTSEProtocolPack(selectedProfile), [selectedProfile]);
@@ -351,11 +365,11 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
   const handleProtocolChange = useCallback((nextId: string) => {
     setSelectedProtocolId(nextId);
     setCurrentStage(0);
-    const profile = availableProfiles.find((candidate) => candidate.metadata.id === nextId);
+    const profile = dtseProfiles.find((candidate) => candidate.metadata.id === nextId);
     if (profile && onSelectProtocol) {
       onSelectProtocol(profile);
     }
-  }, [availableProfiles, onSelectProtocol]);
+  }, [dtseProfiles, onSelectProtocol]);
 
   const scrollToOverviewStage = useCallback((stageIdx: number) => {
     document.getElementById(`dtse-overview-section-${stageIdx}`)?.scrollIntoView({
@@ -452,6 +466,9 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     if (stageIdx === 2) {
       return (
         <DTSEOutcomesStage
+          isLoading={loading}
+          hasStressSeries={liveAggregated.length > 0}
+          hasBaselineSeries={liveBaselineAggregated.length > 0}
           outcomes={displayedOutcomes}
           weeklySolvency={ctx.weekly_solvency}
           trajectorySource={liveOutputs ? 'model' : 'frozen'}
@@ -461,6 +478,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
             metricInsights={DTSE_METRIC_INSIGHTS}
             thresholdConfigMap={METRIC_THRESHOLD_CONFIG}
             sequenceView={sequenceView ?? undefined}
+            showAdvanced={showAdvanced}
           />
       );
     }
@@ -481,6 +499,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
         insights={displayedProtocolInsights}
         onExport={handleExport}
         showAdvanced={showAdvanced}
+        exportFeedback={exportFeedback}
       />
     );
   };
@@ -507,21 +526,24 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
       DTSE_REASON_LABELS,
     );
     downloadTextFile(`${baseName}.md`, stakeholderBrief, 'text/markdown');
+
+    setExportFeedback(true);
+    window.setTimeout(() => setExportFeedback(false), 3000);
   }, [ctx, displayedApplicability, displayedFailureSignatures, displayedOutcomes, displayedProtocolInsights, displayedRecommendations, pack.protocolBrief]);
 
   return (
     <div data-cy="dtse-dashboard-root" className="flex flex-col h-full relative overflow-hidden bg-slate-950">
-      {/* Decorative background blurs for depth */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] rounded-full bg-emerald-900/10 blur-[100px] pointer-events-none" />
+      {/* Decorative background blurs for depth (reduced per Phase 5 UI review) */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] rounded-full bg-emerald-900/5 blur-[100px] pointer-events-none" />
 
       <div className="relative flex flex-col h-full z-10">
         {/* Persistent run context strip */}
-        <div className="shrink-0 border-b border-white/5 bg-slate-900/35 backdrop-blur-xl px-6 py-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <div className="shrink-0 border-b border-white/5 bg-slate-900/25 backdrop-blur-xl px-6 py-2.5">
+          <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
               <div className="min-w-[180px]">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Protocol</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Protocol</span>
                 <div className="mt-1">
                   <select
                     data-cy="dtse-protocol-select"
@@ -529,7 +551,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                     onChange={(event) => handleProtocolChange(event.target.value)}
                     className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    {availableProfiles.map((profile) => (
+                    {dtseProfiles.map((profile) => (
                       <option key={profile.metadata.id} value={profile.metadata.id}>
                         {profile.metadata.name}
                       </option>
@@ -539,7 +561,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
               </div>
 
               <div className="min-w-[220px]">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Stress Channel</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Stress Channel</span>
                 <div className="mt-1">
                   <select
                     data-cy="dtse-stress-select"
@@ -602,7 +624,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
                     : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:text-slate-200'
                     }`}
                 >
-                  Advanced {showAdvanced ? 'On' : 'Off'}
+                  More {showAdvanced ? 'On' : 'Off'}
                 </button>
               </div>
             </div>
@@ -655,7 +677,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
         </div>
 
         {/* Stage content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        <div id="dtse-stage-content" className="flex-1 overflow-y-auto custom-scrollbar p-6" tabIndex={-1}>
           {viewMode === 'guided' ? (
             <div
               id={`dtse-stage-panel-${currentStage}`}
@@ -704,10 +726,6 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
               Previous
             </button>
 
-            <span className="text-xs text-slate-400 font-mono">
-              Stage {currentStage + 1} of {STAGE_COUNT}
-            </span>
-
             <button
               data-cy="dtse-next-stage"
               onClick={goNext}
@@ -724,7 +742,7 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
           </div>
         ) : (
           <div className="shrink-0 border-t border-white/5 bg-slate-900/40 backdrop-blur-xl px-6 py-3 flex items-center justify-between">
-            <span className="text-xs text-slate-300 uppercase tracking-[0.14em]">Overview mode: all stages visible</span>
+            <span className="text-xs text-slate-300 uppercase tracking-[0.14em]">All stages</span>
             <button
               data-cy="dtse-switch-guided-footer"
               onClick={() => setViewMode('guided')}

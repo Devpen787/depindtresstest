@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Info, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
+import { CheckCircle2, XCircle, Info } from 'lucide-react';
 import type { DTSEApplicabilityEntry, DTSEMetricInsight } from '../../types/dtse';
 
 interface DTSEApplicabilityStageProps {
@@ -20,25 +20,6 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
   const runnableCount = entries.filter((e) => e.verdict === 'R').length;
   const totalCount = entries.length;
 
-  const getEvidenceSignal = (entry: DTSEApplicabilityEntry) => {
-    if (entry.verdict === 'NR') {
-      return {
-        Icon: ShieldAlert,
-        className: 'bg-rose-950/40 border-rose-900/60 text-rose-300',
-      };
-    }
-    if (entry.reasonCode === 'PROXY_ACCEPTED' || entry.reasonCode === 'INTERPOLATION_RISK') {
-      return {
-        Icon: ShieldQuestion,
-        className: 'bg-amber-950/40 border-amber-900/60 text-amber-300',
-      };
-    }
-    return {
-      Icon: ShieldCheck,
-      className: 'bg-emerald-950/40 border-emerald-900/60 text-emerald-300',
-    };
-  };
-
   const buildMetricIntent = (metricId: string) => {
     const definition = metricInsights[metricId]?.definition;
     const relevance = metricInsights[metricId]?.why_relevant;
@@ -51,29 +32,33 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
   return (
     <div data-cy="dtse-applicability-stage" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
+        <h2 className="text-sm font-bold text-slate-400">
           Stage 2 — Data Readiness
         </h2>
-        <p className="text-sm font-medium text-slate-400">
-          Keep only the metrics that are fair to score in this run.
+        <p className="text-sm text-slate-500">
+          Which metrics we can fairly score in this run.
         </p>
       </div>
 
       <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-32 bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 right-0 p-32 bg-indigo-500/[0.03] blur-[100px] rounded-full pointer-events-none" />
 
         <div className="flex items-center justify-between mb-6 relative z-10 border-b border-white/5 pb-4">
           <h3 className="text-sm font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">Applicability Decisions</h3>
           <div className="flex items-center gap-2 bg-slate-950/50 border border-slate-800 px-3 py-1.5 rounded-full shadow-inner">
             <span className="text-emerald-400 font-bold text-sm tracking-wide">{runnableCount}</span>
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">/ {totalCount} Runnable</span>
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">/ {totalCount} Included</span>
           </div>
         </div>
 
         <div className="space-y-3 relative z-10">
           {entries.map((entry) => {
             const isRunnable = entry.verdict === 'R';
-            const evidenceSignal = getEvidenceSignal(entry);
+            const reasonTone = entry.verdict === 'NR'
+              ? 'text-rose-300'
+              : (entry.reasonCode === 'PROXY_ACCEPTED' || entry.reasonCode === 'INTERPOLATION_RISK')
+                ? 'text-amber-300'
+                : 'text-slate-300';
             return (
               <div
                 key={entry.metricId}
@@ -100,7 +85,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                     </p>
                     <details className="mt-2 rounded-lg border border-white/10 bg-slate-950/35 p-3">
                       <summary className="cursor-pointer list-none text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
-                        Metric intent
+                        Details
                       </summary>
                       <p className="mt-2 text-sm leading-relaxed text-slate-300">
                         {buildMetricIntent(entry.metricId)}
@@ -109,7 +94,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-4 md:mt-0 flex shrink-0 items-center justify-end gap-3 pl-10 md:pl-0">
+                <div className="mt-4 md:mt-0 flex shrink-0 flex-col items-end justify-center gap-1.5 pl-10 md:pl-0">
                   <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border shadow-inner ${isRunnable
                       ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400'
                       : 'bg-rose-950/40 border-rose-900/50 text-rose-400'
@@ -118,15 +103,12 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
                       {isRunnable ? 'Included' : 'Excluded'}
                     </span>
                   </div>
-                  <div
-                    title={entry.reasonCode}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border shadow-inner ${evidenceSignal.className}`}
-                  >
-                    <evidenceSignal.Icon size={12} />
-                    <span className="text-xs font-semibold tracking-wide">
-                      {reasonLabels[entry.reasonCode] ?? entry.reasonCode}
-                    </span>
-                  </div>
+                  <p className={`text-xs font-semibold tracking-wide ${reasonTone}`}>
+                    {reasonLabels[entry.reasonCode] ?? entry.reasonCode}
+                  </p>
+                  {showAdvanced && (
+                    <p className="text-[11px] font-mono text-slate-500">{entry.reasonCode}</p>
+                  )}
                 </div>
               </div>
             );

@@ -161,28 +161,23 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   return (
     <div data-cy="dtse-context-stage" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
+        <h2 className="text-sm font-bold text-slate-400">
           Stage 1 — Protocol Context
         </h2>
-        <p className="text-sm font-medium text-slate-400">
-          Enough context to understand what DTSE is testing and how to read the next stages.
+        <p className="text-sm text-slate-500">
+          Context to understand what DTSE is testing and how to read the next stages.
         </p>
       </div>
 
       <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Interpretation Boundary</p>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">How to read this</p>
         <p className="mt-1.5 text-sm leading-relaxed text-slate-200">
           DTSE is baseline-relative and comparative. It does not predict price, assign a universal rank, or claim live-network truth outside the modeled scenario.
         </p>
       </div>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Stress setup</p>
-          <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-200">
-            Matched Conditions
-          </span>
-        </div>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Scenario in this run</p>
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.75fr]">
           <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 backdrop-blur-sm">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Stress Channel</p>
@@ -195,11 +190,11 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                 </summary>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Model</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Model</p>
                     <p className="mt-1 text-sm font-semibold text-slate-200">{modelVersion}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Run Envelope</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Run Envelope</p>
                     <p className="mt-1 text-sm font-semibold text-slate-200">{horizonWeeks} weeks · {nSims} sims</p>
                   </div>
                   <div>
@@ -218,10 +213,9 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
 
         <div data-cy="dtse-overall-verdict" className={`relative overflow-hidden rounded-2xl border p-5 backdrop-blur-md ${bandClass}`}>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-white/5 via-transparent to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-r from-white/[0.02] via-transparent to-transparent" />
             <div className="relative z-10 space-y-5">
               <div className="space-y-2">
-                <p className="text-xs font-black uppercase tracking-[0.22em]">Overall assessment</p>
                 <h3 className="max-w-xl text-2xl font-black tracking-tight text-slate-100">{verdictTitle}</h3>
                 <p className="max-w-2xl text-sm font-semibold leading-relaxed text-slate-100">{verdictSummary}</p>
               </div>
@@ -264,10 +258,10 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                       {protocolBrief.chain}
                     </span>
                   </div>
-                  <h3 className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-3xl font-black tracking-tight text-transparent">
+                  <h3 className="text-3xl font-black tracking-tight text-white">
                     {protocolBrief.protocol_name}
                   </h3>
-                  <p className="mt-1 text-xs font-mono text-slate-500">{protocolBrief.protocol_id}</p>
+                  {showAdvanced && <p className="mt-1 text-xs font-mono text-slate-500">{protocolBrief.protocol_id}</p>}
                 </div>
 
                 <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
@@ -275,50 +269,79 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                   <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.depin_surface}</p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Mechanism</p>
-                    <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.mechanism}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">What to watch next</p>
-                    <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">
-                      Stage 2 shows which metrics are fair to score. Stage 3 shows what breaks first under stress.
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Mechanism</p>
+                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.mechanism}</p>
                 </div>
 
                 <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3.5">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Notes</p>
                   <p className="mt-2 text-sm leading-relaxed text-slate-300">{protocolBrief.notes}</p>
                 </div>
+
+                {showAdvanced && (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Evidence posture</p>
+                      <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">
+                        Stage 2 shows which metrics are fair to score. Stage 3 shows what breaks first under stress.
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Matched conditions</p>
+                      <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">
+                        Compare stress output against a scenario-matched baseline before drawing conclusions.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="space-y-2">
-        <details className="rounded-2xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-sm">
-          <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
-            Supplementary data (market snapshot + simulation assumptions)
-          </summary>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">
-            Use this for deeper context only. Market cards are live; model cards are simulation assumptions.
-          </p>
+      {showAdvanced && (
+        <section className="space-y-2">
+          <details className="rounded-2xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-sm">
+            <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
+              Supplementary data (market snapshot + simulation assumptions)
+            </summary>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              Use this for deeper context only. Market cards are live; model cards are simulation assumptions.
+            </p>
 
-          <div className="mt-4 space-y-5">
-            {marketStats.length > 0 && (
+            <div className="mt-4 space-y-5">
+              {marketStats.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Market Snapshot</p>
+                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-emerald-300">
+                      Live Market
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {marketStats.map(({ label, value, detail, icon }) => (
+                      <div key={label} className="rounded-xl border border-emerald-500/20 bg-slate-900/45 p-4 backdrop-blur-sm">
+                        <CardHeader icon={icon} label={label} />
+                        <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
+                        <p className="mt-1.5 text-sm font-medium leading-relaxed text-slate-300">{detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Market Snapshot</p>
-                  <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-emerald-300">
-                    Live Market
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Model Inputs</p>
+                  <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-300">
+                    Simulation
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {marketStats.map(({ label, value, detail, icon }) => (
-                    <div key={label} className="rounded-xl border border-emerald-500/20 bg-slate-900/45 p-4 backdrop-blur-sm">
+                  {modelStats.map(({ label, value, detail, icon }) => (
+                    <div key={label} className="rounded-xl border border-white/10 bg-slate-900/45 p-4 backdrop-blur-sm">
                       <CardHeader icon={icon} label={label} />
                       <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
                       <p className="mt-1.5 text-sm font-medium leading-relaxed text-slate-300">{detail}</p>
@@ -326,28 +349,10 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                   ))}
                 </div>
               </div>
-            )}
-
-            <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Model Inputs</p>
-                  <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-300">
-                    Simulation
-                  </span>
-                </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {modelStats.map(({ label, value, detail, icon }) => (
-                  <div key={label} className="rounded-xl border border-white/10 bg-slate-900/45 p-4 backdrop-blur-sm">
-                    <CardHeader icon={icon} label={label} />
-                    <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
-                    <p className="mt-1.5 text-sm font-medium leading-relaxed text-slate-300">{detail}</p>
-                  </div>
-                ))}
-              </div>
             </div>
-          </div>
-        </details>
-      </section>
+          </details>
+        </section>
+      )}
 
       <section className="space-y-2">
         <details className="rounded-2xl border border-white/10 bg-slate-900/35 p-4 backdrop-blur-sm">
