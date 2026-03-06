@@ -14,12 +14,12 @@ const PRIORITY_STYLES: Record<DTSERecommendation['priority'], { badge: string; b
   critical: {
     badge: 'bg-rose-950/60 border-rose-900/50',
     badgeText: 'text-rose-400',
-    shadow: 'shadow-[0_0_20px_rgba(225,29,72,0.1)] hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] border-rose-500/30',
+    shadow: 'shadow-[0_0_12px_rgba(225,29,72,0.06)] hover:shadow-[0_0_16px_rgba(225,29,72,0.08)] border-rose-500/30',
   },
   high: {
     badge: 'bg-orange-950/60 border-orange-900/50',
     badgeText: 'text-orange-400',
-    shadow: 'shadow-[0_0_15px_rgba(249,115,22,0.05)] hover:shadow-[0_0_25px_rgba(249,115,22,0.1)] border-orange-500/30',
+    shadow: 'shadow-[0_0_10px_rgba(249,115,22,0.04)] hover:shadow-[0_0_14px_rgba(249,115,22,0.06)] border-orange-500/30',
   },
   medium: {
     badge: 'bg-amber-950/60 border-amber-900/50',
@@ -108,7 +108,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
       ) : (
         <>
           <section className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Summary</p>
+            <p className="text-xs font-bold text-slate-300">Summary</p>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-2xl border border-white/5 bg-slate-900/35 p-5 backdrop-blur-md">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Lead response path</p>
@@ -134,7 +134,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                   <button
                     data-cy="dtse-export-btn"
                     onClick={onExport}
-                    className="flex items-center gap-2 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-2 text-xs font-black tracking-wide text-indigo-100 transition-colors hover:bg-indigo-500/15"
+                    className="flex items-center gap-2 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-5 py-3 min-h-[44px] text-xs font-black tracking-wide text-indigo-100 transition-colors hover:bg-indigo-500/15"
                   >
                     <Download size={14} />
                     <span>Export</span>
@@ -148,7 +148,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
           </section>
 
           <section className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Recommendations</p>
+            <p className="text-xs font-bold text-slate-400">Recommendations</p>
             <div className="space-y-3">
               {sorted.map((rec, idx) => {
                 const ps = PRIORITY_STYLES[rec.priority];
@@ -157,7 +157,7 @@ export const DTSERecommendationsStage: React.FC<DTSERecommendationsStageProps> =
                   <div
                     key={rec.id}
                     data-cy={`dtse-rec-${rec.id}`}
-                    className={`group relative overflow-hidden rounded-2xl border bg-slate-900/28 p-5 space-y-3 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 ${ps.shadow}`}
+                    className={`group relative overflow-hidden rounded-2xl border bg-slate-900/28 p-5 space-y-3 backdrop-blur-md transition-all duration-300 ${ps.shadow}`}
                     style={{ animationDelay: `${idx * 75}ms` }}
                   >
                     <div className="relative z-10 flex items-start gap-3.5">

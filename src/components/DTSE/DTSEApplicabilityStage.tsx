@@ -47,7 +47,7 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
           <h3 className="text-sm font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">Applicability Decisions</h3>
           <div className="flex items-center gap-2 bg-slate-950/50 border border-slate-800 px-3 py-1.5 rounded-full shadow-inner">
             <span className="text-emerald-400 font-bold text-sm tracking-wide">{runnableCount}</span>
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">/ {totalCount} Included</span>
+            <span className="text-xs font-bold text-slate-300">/ {totalCount} included</span>
           </div>
         </div>
 
@@ -63,17 +63,17 @@ export const DTSEApplicabilityStage: React.FC<DTSEApplicabilityStageProps> = ({
               <div
                 key={entry.metricId}
                 data-cy={`dtse-applicability-${entry.metricId}`}
-                className={`flex flex-col md:flex-row md:items-start justify-between p-4 rounded-xl border transition-all duration-300 hover:-translate-y-0.5 shadow-lg group ${isRunnable
-                    ? 'bg-emerald-500/10 border-emerald-500/25 hover:border-emerald-400/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]'
-                    : 'bg-rose-500/10 border-rose-500/25 hover:border-rose-400/50 hover:shadow-[0_0_20px_rgba(225,29,72,0.1)]'
+                className={`flex flex-col md:flex-row md:items-start justify-between p-4 rounded-lg border transition-all duration-300 shadow-lg group ${isRunnable
+                    ? 'bg-emerald-500/10 border-emerald-500/25 hover:border-emerald-400/50 hover:shadow-[0_0_12px_rgba(16,185,129,0.06)]'
+                    : 'bg-rose-500/10 border-rose-500/25 hover:border-rose-400/50 hover:shadow-[0_0_12px_rgba(225,29,72,0.06)]'
                   }`}
               >
                 <div className="flex items-start gap-3.5">
                   <div className="mt-0.5 shrink-0">
                     {isRunnable ? (
-                      <CheckCircle2 size={18} className="text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                      <CheckCircle2 size={18} className="text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.3)]" />
                     ) : (
-                      <XCircle size={18} className="text-rose-400 drop-shadow-[0_0_8px_rgba(225,29,72,0.5)]" />
+                      <XCircle size={18} className="text-rose-400 drop-shadow-[0_0_4px_rgba(225,29,72,0.3)]" />
                     )}
                   </div>
                   <div className="space-y-1.5">

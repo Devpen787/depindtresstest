@@ -251,24 +251,24 @@ After fixing ONOCOY $0, verify all 14 protocols for baseline price and other obv
 - [x] "Advanced" → "More" or "Details" (run strip) — if consistent with rest of app.
 - [x] Milestones line (Stage 3 Advanced) — consider removing if redundant with trigger week.
 - [x] **UI: Reduce font-black on secondary labels** — Use `font-bold` for labels like "Scenario in this run", "Model", "Run Envelope". Reserve `font-black` for primary headings and numbers.
-- [ ] **UI: Sentence case for secondary labels** — Replace `uppercase tracking-[0.2em]` with sentence case where appropriate (see §13).
+- [x] **UI: Sentence case for secondary labels** — Replace `uppercase tracking-[0.2em]` with sentence case where appropriate (see §13).
 - [x] **UI: Remove or reduce decorative blurs** — Dashboard top/bottom; Applicability orb. Remove or reduce opacity to ~5%.
-- [ ] **UI: Tone down glow/shadow** — Reduce `drop-shadow` on icons; soften `shadow-[0_0_20px_rgba(...)]` on hover.
+- [x] **UI: Tone down glow/shadow** — Reduce `drop-shadow` on icons; soften `shadow-[0_0_20px_rgba(...)]` on hover.
 - [x] **UI: Simplify gradients** — Protocol name, assessment card top gradient.
-- [ ] **UI: Touch targets** — Audit buttons/links; ensure min 44×44px for primary actions.
+- [x] **UI: Touch targets** — Audit buttons/links; ensure min 44×44px for primary actions.
 
 ### Phase 6: UI refinement (optional)
 
-- [ ] **UI: Rounded corners** — Use `rounded-lg` for nested cards.
-- [ ] **UI: Hover effects** — Reduce to primary cards only; remove `group-hover:scale-110`.
-- [ ] **UI: Colour palette** — Document and tighten; reduce ad-hoc cyan/violet.
+- [x] **UI: Rounded corners** — Use `rounded-lg` for nested cards.
+- [x] **UI: Hover effects** — Reduce to primary cards only; remove `group-hover:scale-110`.
+- [x] **UI: Colour palette** — Document and tighten; added to DTSE_DASHBOARD_UI_UX_RULES_V1 §10.
 
 ### Phase 7: Design system (optional)
 
 *Higher effort. Do after Phase 6 if aiming for "as good as we can do".*
 
-- [ ] **Typography scale** — Define H1/H2/H3/body/caption with consistent sizes and weights. Document in DTSE_UI_UX_RULES or design doc. Apply across DTSE.
-- [ ] **Design tokens** — Centralise colours, spacing, radii (e.g. CSS variables or Tailwind config). Prevents future drift.
+- [x] **Typography scale** — Define H1/H2/H3/body/caption. Document in DTSE_DASHBOARD_UI_UX_RULES_V1 §9.
+- [x] **Design tokens** — Centralise colours, spacing, radii. Document in DTSE_DASHBOARD_UI_UX_RULES_V1 §11.
 - [ ] **Animation audit** — Audit `animate-in`, `fade-in`, `slide-in`, `transition-all`. Ensure consistency; add `prefers-reduced-motion` support.
 - [ ] **Loading / empty states** — Polish "Loading stress charts"; consider skeleton vs spinner. Improve empty-state copy (Stage 4, 5) for tone and clarity.
 - [ ] **Accessibility audit** — WCAG contrast ratios, focus-visible states, screen reader labels (aria-label, aria-describedby). Run axe or similar.

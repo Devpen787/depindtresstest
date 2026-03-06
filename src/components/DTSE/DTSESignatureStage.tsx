@@ -17,7 +17,7 @@ const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
   shadow: string;
 }> = {
   critical: {
-    icon: <AlertOctagon size={20} className="text-rose-400 drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]" />,
+    icon: <AlertOctagon size={20} className="text-rose-400 drop-shadow-[0_0_4px_rgba(225,29,72,0.4)]" />,
     bg: 'bg-rose-500/5',
     border: 'border-rose-500/30',
     badge: 'bg-rose-950/60 border-rose-900/50',
@@ -25,7 +25,7 @@ const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
     shadow: 'shadow-[0_0_30px_rgba(225,29,72,0.1)] hover:shadow-[0_0_40px_rgba(225,29,72,0.15)]',
   },
   high: {
-    icon: <ShieldAlert size={20} className="text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" />,
+    icon: <ShieldAlert size={20} className="text-orange-400 drop-shadow-[0_0_4px_rgba(249,115,22,0.4)]" />,
     bg: 'bg-orange-500/5',
     border: 'border-orange-500/20',
     badge: 'bg-orange-950/60 border-orange-900/50',
@@ -33,7 +33,7 @@ const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
     shadow: 'shadow-[0_0_20px_rgba(249,115,22,0.05)] hover:shadow-[0_0_30px_rgba(249,115,22,0.1)]',
   },
   medium: {
-    icon: <AlertTriangle size={20} className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />,
+    icon: <AlertTriangle size={20} className="text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.4)]" />,
     bg: 'bg-amber-500/5',
     border: 'border-amber-500/20',
     badge: 'bg-amber-950/60 border-amber-900/50',
@@ -41,7 +41,7 @@ const SEVERITY_CONFIG: Record<DTSEFailureSignature['severity'], {
     shadow: 'shadow-lg hover:shadow-xl hover:shadow-amber-500/10',
   },
   low: {
-    icon: <Info size={20} className="text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />,
+    icon: <Info size={20} className="text-indigo-400 drop-shadow-[0_0_4px_rgba(99,102,241,0.3)]" />,
     bg: 'bg-slate-900/40',
     border: 'border-white/5',
     badge: 'bg-slate-900 border-slate-800',

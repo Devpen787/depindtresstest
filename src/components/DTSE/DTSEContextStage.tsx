@@ -226,7 +226,7 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                   { label: 'Watchlist', value: bandCounts.watchlist, tone: 'text-amber-300' },
                   { label: 'Intervention', value: bandCounts.intervention, tone: 'text-rose-300' },
                 ]).map((item) => (
-                  <div key={item.label} className="rounded-xl border border-white/10 bg-slate-950/35 p-3.5">
+                  <div key={item.label} className="rounded-lg border border-white/10 bg-slate-950/35 p-3.5">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{item.label}</p>
                     <p className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</p>
                   </div>
@@ -264,12 +264,12 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
                   {showAdvanced && <p className="mt-1 text-xs font-mono text-slate-500">{protocolBrief.protocol_id}</p>}
                 </div>
 
-                <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                <div className="rounded-lg border border-white/5 bg-slate-950/30 p-3.5">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Surface</p>
                   <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.depin_surface}</p>
                 </div>
 
-                <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
+                <div className="rounded-lg border border-white/5 bg-slate-950/30 p-3.5">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Mechanism</p>
                   <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.mechanism}</p>
                 </div>

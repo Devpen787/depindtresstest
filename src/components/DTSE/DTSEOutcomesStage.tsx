@@ -231,13 +231,13 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
       {!isLoading && sequenceView && (
         <>
           <section className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Baseline Drift</p>
+            <p className="text-xs font-bold text-slate-400">Baseline drift</p>
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.75fr]">
               <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
                 <div className="mb-4">
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Stress deviation vs baseline</h3>
+                    <h3 className="text-xs font-bold text-slate-300">Stress deviation vs baseline</h3>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
                       Zero marks the matched baseline. Negative drift shows where stress pushes the network off its expected path.
                     </p>
@@ -325,11 +325,11 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
           </section>
 
           <section className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Transmission Pathway</p>
+            <p className="text-xs font-bold text-slate-400">Transmission pathway</p>
             <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-sm">
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">What breaks first</h3>
+                  <h3 className="text-xs font-bold text-slate-300">What breaks first</h3>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
                     Each row shows when a subsystem first leaves the healthy or baseline envelope. Earlier rows usually absorb the shock before node count visibly reacts.
                   </p>
@@ -578,7 +578,7 @@ export const DTSEOutcomesStage: React.FC<DTSEOutcomesStageProps> = ({
       )}
 
       <section className="space-y-2">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Metrics</p>
+        <p className="text-xs font-bold text-slate-400">Metrics</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {scoredOutcomes.map((outcome, idx) => {
             const s = BAND_STYLES[outcome.band];
