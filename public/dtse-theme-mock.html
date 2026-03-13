@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DTSE Theme Mock</title>
+  <style>
+    :root {
+      --page-bg: #0a0b0f;
+      --shell-bg: #121620;
+      --stage-frame: #171d28;
+      --card-bg: #242d3a;
+      --card-bg-2: #2d3746;
+      --border: #4b596f;
+      --border-strong: #6b7f9e;
+      --text-primary: #ecf1f8;
+      --text-secondary: #bdc7d8;
+      --text-muted: #909eb6;
+      --accent: #7dc4ff;
+      --success: #49bf88;
+      --warning: #f2be68;
+      --danger: #ef7f83;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--page-bg);
+      color: var(--text-primary);
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background:
+        radial-gradient(circle at 12% -18%, rgba(125, 196, 255, 0.12), transparent 34%),
+        radial-gradient(circle at 88% 118%, rgba(242, 190, 104, 0.08), transparent 40%),
+        linear-gradient(180deg, var(--page-bg) 0%, #0d1118 100%);
+    }
+
+    .topbar {
+      background: var(--shell-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      font-size: 16px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chip {
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card-bg) 88%, #ffffff 12%);
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 11px;
+      font-weight: 700;
+    }
+
+    .chip.accent {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .wrap {
+      max-width: 1500px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .stage-rail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .stage {
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card-bg) 86%, #ffffff 14%);
+      border-radius: 12px;
+      padding: 9px 12px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .stage.active {
+      border-color: var(--accent);
+      color: var(--text-primary);
+      background: linear-gradient(180deg, #334157 0%, #2b374b 100%);
+      box-shadow: 0 8px 22px rgba(6, 10, 18, 0.35), 0 0 0 1px rgba(125, 196, 255, 0.22) inset;
+    }
+
+    .frame {
+      background: var(--stage-frame);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 16px 44px rgba(2, 5, 11, 0.42);
+    }
+
+    .header {
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 14px;
+    }
+
+    .board {
+      background: var(--card-bg);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 10px 24px rgba(2, 5, 11, 0.3);
+    }
+
+    .board.secondary {
+      background: var(--card-bg-2);
+      border-color: color-mix(in srgb, var(--border) 82%, #ffffff 18%);
+    }
+
+    .board h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .board p {
+      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .status {
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card-bg-2);
+      padding: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .status .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .status .value {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .status.success {
+      border-color: color-mix(in srgb, var(--success) 55%, var(--border) 45%);
+    }
+    .status.warning {
+      border-color: color-mix(in srgb, var(--warning) 55%, var(--border) 45%);
+    }
+    .status.danger {
+      border-color: color-mix(in srgb, var(--danger) 55%, var(--border) 45%);
+    }
+
+    .legend {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .swatch {
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--card-bg);
+    }
+
+    .swatch .tone {
+      height: 34px;
+    }
+
+    .swatch .meta {
+      padding: 8px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .status-row {
+        grid-template-columns: 1fr;
+      }
+      .legend {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .stage-rail {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">DePIN Stress Test · DTSE Theme Mock</div>
+      <div class="controls">
+        <div class="chip accent">Guided</div>
+        <div class="chip">Overview</div>
+        <div class="chip">More Off</div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="stage-rail">
+        <div class="stage active">1 · Context</div>
+        <div class="stage">2 · What Can Be Scored</div>
+        <div class="stage">3 · What Broke First</div>
+        <div class="stage">4 · Failure Patterns</div>
+        <div class="stage">5 · Next Tests</div>
+      </div>
+
+      <div class="frame">
+        <div class="header">
+          <div class="eyebrow">Stage 1</div>
+          <h1 class="title">Protocol Context</h1>
+          <p class="subtitle">Identify the run setup before trusting any score. Separate live market context from model assumptions.</p>
+        </div>
+
+        <div class="layout">
+          <div class="board">
+            <h3>Run Briefing</h3>
+            <p>Liquidity Shock is applied to ONOCOY against a matched baseline. The earliest pressure is likely to appear in provider economics before visible station count reacts.</p>
+
+            <div class="status-row">
+              <div class="status success">
+                <div class="label">Market Context</div>
+                <div class="value">Reference</div>
+                <div class="meta">Saved baseline values</div>
+              </div>
+              <div class="status warning">
+                <div class="label">Model Source</div>
+                <div class="value">Current Run</div>
+                <div class="meta">Live simulation output</div>
+              </div>
+              <div class="status danger">
+                <div class="label">Confidence</div>
+                <div class="value">Partial</div>
+                <div class="meta">Proxy-backed metrics</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="board secondary">
+              <h3>Protocol at a Glance</h3>
+              <p>Solana · Fixed Emissions w/ Partial Burn</p>
+            </div>
+            <div class="board secondary">
+              <h3>Stress Applied</h3>
+              <p>Investor sell pressure compresses fiat-equivalent rewards quickly.</p>
+            </div>
+            <div class="board secondary">
+              <h3>Likely Pressure Point</h3>
+              <p>Provider economics compress first.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="swatch">
+            <div class="tone" style="background:#070b12"></div>
+            <div class="meta">Page<br />#070B12</div>
+          </div>
+          <div class="swatch">
+            <div class="tone" style="background:#0b1220"></div>
+            <div class="meta">Shell<br />#0B1220</div>
+          </div>
+          <div class="swatch">
+            <div class="tone" style="background:#111a2a"></div>
+            <div class="meta">Stage Frame<br />#111A2A</div>
+          </div>
+          <div class="swatch">
+            <div class="tone" style="background:#182338"></div>
+            <div class="meta">Card<br />#182338</div>
+          </div>
+          <div class="swatch">
+            <div class="tone" style="background:#1e2c44"></div>
+            <div class="meta">Nested Card<br />#1E2C44</div>
+          </div>
+        </div>
+
+        <div class="footer">Preview URL: <strong>/dtse-theme-mock.html</strong> · this is a mock only and does not touch production DTSE behavior.</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

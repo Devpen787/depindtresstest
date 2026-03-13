@@ -20,7 +20,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 410000000,
+                "value": 810000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -54,7 +54,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 0.1,
+                "value": 0.026128,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -81,7 +81,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 180000000,
+                "value": 223000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -115,7 +115,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 3,
+                "value": 1.21,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -142,7 +142,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 520000000,
+                "value": 644245094,
                 "unit": "tokens"
             },
             "emissions": {
@@ -176,7 +176,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 4.5,
+                "value": 1.35,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -203,7 +203,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 500000000,
+                "value": 1958153213,
                 "unit": "tokens"
             },
             "emissions": {
@@ -237,7 +237,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 5,
+                "value": 1.006,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -264,7 +264,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 230000000,
+                "value": 388539008,
                 "unit": "tokens"
             },
             "emissions": {
@@ -298,7 +298,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 2.5,
+                "value": 0.334779,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -325,7 +325,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 100000000,
+                "value": 10000000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -359,7 +359,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 0.15,
+                "value": 0.00319693,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -386,7 +386,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 70000000,
+                "value": 1000000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -420,7 +420,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 0.2,
+                "value": 0.012288,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -447,7 +447,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 244000000,
+                "value": 1000000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -481,7 +481,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 1.5,
+                "value": 0.288771,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -508,7 +508,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 500000000,
+                "value": 800000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -542,7 +542,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 0.03,
+                "value": 0.11008,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -569,7 +569,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 48000000,
+                "value": 100000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -603,7 +603,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 3.5,
+                "value": 0.173381,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -630,7 +630,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 440000000,
+                "value": 1000000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -664,7 +664,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 0.15,
+                "value": 0.121491,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -691,7 +691,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
         },
         "parameters": {
             "supply": {
-                "value": 244000000,
+                "value": 500000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -725,7 +725,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 0.3,
+                "value": 0.021824,
                 "unit": "usd"
             },
             "hardware_cost": {
@@ -747,12 +747,12 @@ export const GENERATED_PROTOCOL_PROFILES = [
             "notes": "Mobile network on Solana. 80% revenue buy-and-burn. 2.5M/epoch emissions.",
             "model_type": "location_based",
             "source": "CoinGecko + XNET Docs",
-            "coingeckoId": "xnet-mobile",
+            "coingeckoId": "xnet-mobile-2",
             "chain": "solana"
         },
         "parameters": {
             "supply": {
-                "value": 137000000,
+                "value": 2400000000,
                 "unit": "tokens"
             },
             "emissions": {
@@ -786,7 +786,7 @@ export const GENERATED_PROTOCOL_PROFILES = [
                 "unit": "nodes"
             },
             "initial_price": {
-                "value": 0.04,
+                "value": 0.011767,
                 "unit": "usd"
             },
             "hardware_cost": {

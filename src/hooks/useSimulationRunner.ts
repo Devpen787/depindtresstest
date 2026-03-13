@@ -354,6 +354,7 @@ export const useSimulationRunner = (
 
     // 4. HELPERS
     const loadProfile = (profile: ProtocolProfileV1) => {
+        setLoading(true);
         setActiveProfile(profile);
         if (!selectedProtocolIds.includes(profile.metadata.id)) {
             setSelectedProtocolIds([...selectedProtocolIds, profile.metadata.id]);

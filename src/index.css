@@ -4,12 +4,24 @@
 
 @layer base {
   :root {
+    --background: 248 250 252; /* #f8fafc White */
+    --foreground: 15 23 42; /* #0f172a Slate 900 */
+  }
+  .dark {
     --background: 11 17 32; /* #0b1120 Deep Navy */
     --foreground: 248 250 252; /* #f8fafc White */
   }
 
   body {
-    @apply bg-slate-950 text-slate-50 antialiased font-sans selection:bg-indigo-500/30 selection:text-indigo-200;
+    background-color: theme('colors.slate.50');
+    @apply text-slate-900 antialiased font-sans selection:bg-indigo-500/30 selection:text-indigo-900 transition-colors duration-300;
+  }
+  .dark body {
+    background:
+      radial-gradient(circle at top, rgba(161, 161, 170, 0.12), transparent 34%),
+      linear-gradient(180deg, #050608 0%, #07090c 52%, #050608 100%);
+    background-color: theme('colors.slate.950');
+    @apply text-slate-50 selection:text-indigo-200;
   }
 
   /* Custom Scrollbar for "Cockpit" feel */
@@ -18,16 +30,174 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-slate-950;
+    @apply bg-slate-100 dark:bg-slate-800 transition-colors duration-300;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+    @apply bg-slate-300 hover:bg-slate-400 dark:bg-slate-600 dark:hover:bg-slate-500 rounded-full transition-colors duration-300;
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@layer components {
+  .dtse-content-width {
+    @apply mx-auto w-full max-w-[1320px];
+  }
+
+  /* The Living Background */
+  .dtse-shell-bg {
+    background:
+      radial-gradient(circle at top, rgba(99, 102, 241, 0.04), transparent 32%),
+      linear-gradient(180deg, #eef3f9 0%, #f6f8fc 24%, #f1f5f9 100%);
+    @apply text-slate-900 transition-colors duration-300;
+  }
+  .dark .dtse-shell-bg {
+    background: 
+      radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.05), transparent 45%),
+      radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.08), transparent 50%),
+      radial-gradient(circle at 50% 80%, rgba(99, 102, 241, 0.05), transparent 60%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(5, 8, 15, 0.8) 100%);
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  .dtse-stage-frame {
+    @apply border border-slate-200/80 bg-white/65 shadow-[0_18px_45px_-24px_rgba(15,23,42,0.22)] backdrop-blur-sm;
+  }
+  .dark .dtse-stage-frame {
+    @apply border-white/5 bg-slate-900/35 shadow-none backdrop-blur-xl;
+  }
+
+  /* Glassmorphism Token */
+  .dtse-surface-glass {
+    @apply bg-white/80 border border-slate-200/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)] ring-1 ring-slate-200/50 transition-colors duration-300;
+  }
+  .dark .dtse-surface-glass {
+    @apply bg-slate-900/40 border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ring-white/5;
+  }
+  
+  /* Fallback static surface if glass is too heavy/distracting for deeply nested data */
+  .dtse-surface-base {
+    @apply bg-white border border-slate-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] transition-colors duration-300;
+  }
+  .dark .dtse-surface-base {
+    @apply bg-slate-900/80 border-slate-700/50 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)];
+  }
+
+  /* Interactive Card Token */
+  .dtse-card-interactive {
+    @apply transition-all duration-300 ease-out;
+  }
+  .dtse-card-interactive:hover {
+    @apply transform -translate-y-1 bg-slate-50 border-slate-300 shadow-[0_20px_40px_-5px_rgba(0,0,0,0.1)];
+  }
+  .dark .dtse-card-interactive:hover {
+    @apply bg-slate-800/60 border-slate-600/50 shadow-[0_20px_40px_-5px_rgba(0,0,0,0.4)];
+  }
+
+  /* Lit-from-within glow for Critical items */
+  .dtse-glow-critical {
+    background: linear-gradient(135deg, rgba(254, 226, 226, 0.8), rgba(254, 202, 202, 0.5));
+    border: 1px solid rgba(248, 113, 113, 0.5);
+    box-shadow: 0 0 20px rgba(225, 29, 72, 0.05);
+    @apply text-rose-700;
+  }
+  .dark .dtse-glow-critical {
+    background: linear-gradient(135deg, rgba(153, 27, 27, 0.4), rgba(127, 29, 29, 0.2));
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    box-shadow: 0 0 20px rgba(225, 29, 72, 0.15);
+    @apply text-rose-300;
+  }
+
+  /* Positive state glow */
+  .dtse-glow-success {
+    background: linear-gradient(135deg, rgba(209, 250, 229, 0.8), rgba(167, 243, 208, 0.5));
+    border: 1px solid rgba(52, 211, 153, 0.5);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.05);
+    @apply text-emerald-700;
+  }
+  .dark .dtse-glow-success {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.4), rgba(2, 44, 34, 0.2));
+    border: 1px solid rgba(52, 211, 153, 0.2);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+    @apply text-emerald-300;
+  }
+  
+  .dtse-glow-active {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+  .dark .dtse-glow-active {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+    border-color: rgba(129, 140, 248, 0.4);
+  }
+
+  /* Expandable Accordion Lifted State */
+  .dtse-card-expanded {
+    @apply bg-white border-indigo-500/30 scale-[1.01] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] ring-1 ring-indigo-500/20 z-10;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .dark .dtse-card-expanded {
+    @apply bg-slate-800/80 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)];
+  }
+  
+  /* Text gradient for premium headers */
+  .dtse-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500;
+  }
+  .dark .dtse-gradient-text {
+    @apply from-slate-100 via-slate-300 to-slate-500;
+  }
+
+  /* The Breathing Hero Card */
+  @keyframes dtse-subtle-breathe {
+    0% { box-shadow: 0 0 15px rgba(225, 29, 72, 0.05), 0 4px 6px -1px rgba(0,0,0,0.1); border-color: rgba(226,232,240,1); }
+    50% { box-shadow: 0 0 40px rgba(225, 29, 72, 0.15), 0 10px 15px -3px rgba(0,0,0,0.15); border-color: rgba(244, 63, 94, 0.3); }
+    100% { box-shadow: 0 0 15px rgba(225, 29, 72, 0.05), 0 4px 6px -1px rgba(0,0,0,0.1); border-color: rgba(226,232,240,1); }
+  }
+  @keyframes dtse-subtle-breathe-dark {
+    0% { box-shadow: 0 0 15px rgba(225, 29, 72, 0.1), 0 4px 6px -1px rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.05); }
+    50% { box-shadow: 0 0 40px rgba(225, 29, 72, 0.2), 0 10px 15px -3px rgba(0,0,0,0.3); border-color: rgba(244, 63, 94, 0.3); }
+    100% { box-shadow: 0 0 15px rgba(225, 29, 72, 0.1), 0 4px 6px -1px rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.05); }
+  }
+  
+  .dtse-animate-breathe {
+    animation: dtse-subtle-breathe 4s ease-in-out infinite;
+  }
+  .dark .dtse-animate-breathe {
+    animation: dtse-subtle-breathe-dark 4s ease-in-out infinite;
+  }
+  
+  /* The Conclusion Gradient Card */
+  .dtse-surface-conclusion {
+    background: linear-gradient(135deg, rgba(238, 242, 255, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 
+      0 20px 40px -10px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+  .dark .dtse-surface-conclusion {
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+    box-shadow: 
+      0 20px 40px -10px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* Respect prefers-reduced-motion (Phase 7 a11y) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  [class*='animate-']:not(.animate-spin),
+  [class*='animate-pulse'] {
+    animation: none !important;
+  }
+  [class*='transition-'] {
+    transition-duration: 0.01ms !important;
   }
 }
 

@@ -115,8 +115,32 @@ describe('buildDTSEProtocolInsights', () => {
     expect(insights.find((insight) => insight.id === 'lagging-signal')?.title).toBe('Station count can lag the economic break');
     expect(insights.find((insight) => insight.id === 'lagging-signal')?.observation).toContain('Week 12');
     expect(insights.find((insight) => insight.id === 'lagging-signal')?.observation).toContain('Week 49');
-    expect(insights.find((insight) => insight.id === 'capped-supply-tradeoff')?.provenance).toContain('Brief: capped supply / Fixed Emissions w/ Partial Burn');
-    expect(insights.find((insight) => insight.id === 'liquidity-exposure')?.provenance).toContain('Signature: Liquidity-Driven Compression');
-    expect(insights.find((insight) => insight.id === 'comparative-anchor')?.provenance).toContain('Peer mapping: GEODNET, Helium');
+    expect(insights.find((insight) => insight.id === 'capped-supply-tradeoff')?.provenance).toContain('Protocol setup: capped supply / Fixed Emissions w/ Partial Burn');
+    expect(insights.find((insight) => insight.id === 'liquidity-exposure')?.provenance).toContain('Failure pattern: Liquidity-Driven Compression');
+    expect(insights.find((insight) => insight.id === 'comparative-anchor')?.provenance).toContain('Peer comparison set: GEODNET, Helium');
+  });
+
+  it('sanitizes implausible trigger narratives before exposing protocol insights', () => {
+    const insights = buildDTSEProtocolInsights({
+      profile,
+      protocolBrief,
+      outcomes,
+      failureSignatures: [
+        {
+          id: 'liquidity-driven-compression',
+          label: 'Liquidity-Driven Compression',
+          pattern: 'Market stress compresses rewards.',
+          severity: 'high',
+          affected_metrics: ['tail_risk_score'],
+          trigger_logic: 'Triggered because price compression is -999%, max drawdown is 0%, and tail risk is 45.',
+        },
+      ],
+      sequenceView,
+      peerNames: ['GEODNET', 'Helium'],
+    });
+
+    const liquidityInsight = insights.find((insight) => insight.id === 'liquidity-exposure');
+    expect(liquidityInsight).toBeDefined();
+    expect(liquidityInsight?.trigger).toBe('Tail risk score: 42');
   });
 });

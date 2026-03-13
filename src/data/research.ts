@@ -1,50 +1,64 @@
+export interface LearnContentSection {
+  title: string;
+  body: string[];
+}
 
-export const RESEARCH_CONTENT = {
-    methodology: {
-        title: "1.2 Inferred Research Plan and Methodology",
-        content: `Based on the specific data requirements for analyzing Onocoy's resilience, the underlying research plan governing this dashboard design is inferred to consist of four distinct phases. The dashboard must provide specific visualization modules for each phase.
-
-**Phase I: Baseline Economic Modeling.** This phase establishes the "peace-time" operation of the network. It requires the dashboard to model the "DePIN Flywheel" where token incentives ($ONO) successfully drive hardware acquisition (CAPEX) and operational persistence (OPEX). The research necessitates a deep understanding of the Burn-and-Mint Equilibrium (BME) model employed by Onocoy, specifically tracking the conversion of fiat demand into Data Credits and the subsequent burning of ONO tokens.
-
-**Phase II: Hardware and Agent Profiling.** The research aims to categorize the network's physical agents. Since Onocoy is hardware-agnostic, the dashboard must differentiate between "mercenary" miners using low-cost, L1-only equipment and "professional" operators deploying triple-frequency, survey-grade reference stations. This distinction is critical for modeling churn, as different agent classes have different break-even points and psychological commitments to the network.
-
-**Phase III: The Stress Injection.** This is the core experimental phase. The dashboard must allow the simulation of exogenous and endogenous shocks. The research plan likely investigates the hypothesis that the "Location Scale" and "Quality Scale" mechanisms—designed to optimize density and signal integrity—may inadvertently accelerate miner capitulation during a token price crash by reducing rewards for honest nodes in competitive areas.
-
-**Phase IV: Resilience and Recovery Analysis.** The final phase assesses the network's elasticity. The dashboard must quantify the "Recovery Hysteresis"—measuring whether a network that loses 50% of its nodes can recover them when prices rebound, or if the loss of trust results in permanent infrastructure degradation.`
-    },
-    mathModels: {
-        title: "8. Mathematical Models & Simulation Logic",
-        intro: "This section provides the rigorous mathematical definitions required for the dashboard's backend code.",
-        models: [
-            {
-                id: "churn",
-                name: "8.1 The Probability of Churn (P_churn)",
-                description: "We model the probability of a miner leaving the network using a logistic function based on profitability and streak status.",
-                formula: "P_{churn}(t) = \\frac{1}{1 + e^{k(ROI(t) - T_{churn})}} \\times (1 - S_{streak})",
-                variables: [
-                    "ROI(t): Rolling 30-day Return on Investment",
-                    "T_churn: Psychological threshold for quitting (e.g., 0% ROI)",
-                    "k: Sensitivity factor (how reactive miners are to price)",
-                    "S_streak: Streak Appreciation factor (normalized 0-1)"
-                ]
-            },
-            {
-                id: "bme",
-                name: "8.2 The 'Burn-to-Emission' Ratio (R_BE)",
-                description: "This is the primary health metric for the BME model. If > 1, the network is deflationary (Healthy). If < 1, it is inflationary (Subsidy Phase).",
-                formula: "R_{BE} = \\frac{\\sum_{t=0}^{n} (Usage_{GB} \\times Price_{GB})}{\\sum_{t=0}^{n} (Emissions_{ONO} \\times Price_{ONO})}"
-            },
-            {
-                id: "spoofing",
-                name: "8.3 The 'Spoofing Impact' Function",
-                description: "Modeling the degradation of the network utility due to adversarial behavior.",
-                formula: "U_{net} = U_{ideal} \\times (1 - \\alpha \\cdot I_{spoof})",
-                variables: [
-                    "U_net: Realized network utility",
-                    "I_spoof: Intensity of spoofing attacks (0-1)",
-                    "alpha: Resilience factor of the consensus algorithm"
-                ]
-            }
-        ]
-    }
+export const DTSE_LEARN_CONTENT = {
+  howItWorks: {
+    title: 'How DTSE Works',
+    eyebrow: 'DTSE guide',
+    intro: 'DTSE compares a selected stress scenario against a matched baseline and shows what weakens first. Use it to understand failure order and next tests. Do not use it as a price forecast or a universal protocol ranking.',
+    helper: 'Read Stage 1 before trusting the scores. Read Stage 3 before reading Stage 5.',
+    sections: [
+      {
+        title: 'What DTSE is',
+        body: [
+          'DTSE is a guided workflow for reading a DePIN stress run from context to failure order to next tests.',
+          'It helps a user separate live market context, saved reference values, and model outputs before making a judgment about the run.',
+        ],
+      },
+      {
+        title: 'What DTSE is not',
+        body: [
+          'DTSE is not a price predictor, a trading signal, or a universal protocol ranking.',
+          'A weak DTSE result means the selected scenario exposes a fragile path under matched conditions. It does not claim the live network is already failing.',
+        ],
+      },
+      {
+        title: 'How to read a run',
+        body: [
+          'Stage 1 tells you what is live market context, what is reference context, and what the model assumed.',
+          'Stage 2 tells you which metrics are fair to score in this exact run.',
+          'Stage 3 shows failure order. Stage 4 groups those outputs into interpreted patterns. Stage 5 turns them into reruns or decision discussions.',
+        ],
+      },
+      {
+        title: 'Where data comes from',
+        body: [
+          'Market context can come from a live CoinGecko pull or from saved reference values when live data is unavailable.',
+          'Model outputs come from the current simulator run when those series exist. Otherwise DTSE falls back to the saved protocol pack.',
+        ],
+      },
+      {
+        title: 'How evidence quality affects scoring',
+        body: [
+          'DTSE only scores metrics that are fair under the selected protocol, stress channel, and evidence quality.',
+          'Metrics can still appear in the workflow but be held out from scoring when the scenario does not activate them, the evidence is too weak, or the metric would be misleading for this protocol.',
+        ],
+      },
+      {
+        title: 'Use DTSE with Stress Lab',
+        body: [
+          'Use DTSE first to find the failure order and the likely weak link.',
+          'Then open Stress Lab to rerun the same protocol with one or two targeted changes so you can see whether the sequence improves, not just the final headline metric.',
+        ],
+      },
+    ] as LearnContentSection[],
+  },
+  metricDefinitions: {
+    title: 'Metric Definitions',
+    eyebrow: 'Scored metrics',
+    intro: 'These are the DTSE metrics the app can score when the active protocol, stress channel, and evidence quality support a fair readout.',
+    helper: 'Start with the metric definition, then read the target, the decision use, and the healthy/watchlist/intervention interpretation.',
+  },
 };

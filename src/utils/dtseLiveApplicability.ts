@@ -165,8 +165,8 @@ export function buildLiveDTSEApplicability(
         entries.push({
           metricId,
           verdict: 'NR',
-          reasonCode: 'DATA_AVAILABLE',
-          details: 'Competitor-yield stress is inactive in this run, so vampire churn is excluded to avoid unfair scoring.',
+          reasonCode: 'SCENARIO_INACTIVE',
+          details: 'Competitive-yield stress is not active in this run, so vampire churn is held out.',
         });
         continue;
       }

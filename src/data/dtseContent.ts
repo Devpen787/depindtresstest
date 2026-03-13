@@ -6,10 +6,24 @@ import type {
     DTSERecommendation,
     DTSEMetricInsight,
     DTSEProtocolBrief,
+    DTSEStressChannel,
 } from '../types/dtse';
+import type { DTSESequenceView } from '../utils/dtseSequenceView';
 import { DTSE_PEER_ANALOGS } from './dtsePeerAnalogs';
 import { PROTOCOL_PROFILES, type ProtocolProfileV1 } from './protocols';
+import type { DTSESavedScenarioPack } from './dtseSavedScenarios';
 import { buildLiveDTSERecommendations } from '../utils/dtseLiveRecommendations';
+import { resolveDTSEStressChannelSelection } from '../utils/dtseStressChannel';
+import {
+    PAYBACK_GUARDRAILS,
+    RETENTION_GUARDRAILS,
+    SOLVENCY_GUARDRAILS,
+    UTILIZATION_GUARDRAILS,
+    classifyPaybackBand,
+    classifyTailRiskBand,
+    type GuardrailBand,
+} from '../constants/guardrails';
+import { classifyRetentionBand, classifySolvencyBand } from '../audit/kpiOwnerMath';
 
 // ---------------------------------------------------------------------------
 // DTSEProtocolPack — self-contained stress-test data for a single protocol
@@ -32,6 +46,22 @@ export interface DTSEDashboardPack {
     outcomes: DTSEOutcome[];
     failureSignatures: DTSEFailureSignature[];
     recommendations: DTSERecommendation[];
+    sequenceView?: DTSESequenceView | null;
+}
+
+export function mergeSavedScenarioPackIntoDTSEPack(
+    pack: DTSEDashboardPack,
+    savedScenarioPack: DTSESavedScenarioPack,
+): DTSEDashboardPack {
+    return {
+        ...pack,
+        runContext: savedScenarioPack.runContext,
+        applicability: savedScenarioPack.applicability,
+        outcomes: savedScenarioPack.outcomes,
+        failureSignatures: savedScenarioPack.failureSignatures,
+        recommendations: savedScenarioPack.recommendations,
+        sequenceView: savedScenarioPack.sequenceView,
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -171,7 +201,13 @@ const onocoyPack: DTSEProtocolPack = {
             { id: 'ono-rec-03', priority: 'medium', owner: 'operations', rationale: 'Station clustering degrades coverage value', action: 'Implement geo-weighted reward multipliers for underserved regions', expected_effect: 'Improve retention in low-density areas' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        vampire_churn: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Competitive-yield pressure uses GEODNET payout proxy and station mobility assumptions.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -199,7 +235,13 @@ const heliumPack: DTSEProtocolPack = {
             { id: 'hnt-rec-02', priority: 'high', owner: 'strategy', rationale: '5G deployment cost may outpace subscriber growth', action: 'Phase 5G rollout to high-demand metro areas first; defer rural expansion', expected_effect: 'Reduce tail risk score below 25' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        payback_period: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Payback blends IoT and 5G hotspot cohorts because hardware economics vary by deployment type.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -228,7 +270,13 @@ const renderPack: DTSEProtocolPack = {
             { id: 'rndr-rec-02', priority: 'medium', owner: 'growth', rationale: 'Revenue concentration creates single-point-of-failure risk', action: 'Diversify into AI inference and scientific computing workloads', expected_effect: 'Reduce client concentration HHI by 30%' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        network_utilization: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Utilization is estimated from render-job fill ratio and active node share.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -258,7 +306,13 @@ const filecoinPack: DTSEProtocolPack = {
             { id: 'fil-rec-03', priority: 'medium', owner: 'operations', rationale: 'Sector expiry cliff poses tail risk', action: 'Incentivize rolling renewals with early-renewal reward bonus', expected_effect: 'Smooth expiry curve, reducing tail risk below 20' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        vampire_churn: {
+            verdict: 'NR',
+            reasonCode: 'SOURCE_GRADE_INSUFFICIENT',
+            details: 'No reliable cross-network miner migration panel is available for storage providers.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -288,7 +342,13 @@ const akashPack: DTSEProtocolPack = {
             { id: 'akt-rec-03', priority: 'medium', owner: 'operations', rationale: 'Provider retention impacted by margin pressure', action: 'Introduce provider SLA tiers with premium pricing for guaranteed uptime', expected_effect: 'Retention above 95%' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        vampire_churn: {
+            verdict: 'R',
+            reasonCode: 'INTERPOLATION_RISK',
+            details: 'Competitive-yield churn is inferred from external cloud spot-pricing spreads.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -319,7 +379,11 @@ const hivemapperPack: DTSEProtocolPack = {
         ],
     ),
     applicability: standardApplicability({
-        vampire_churn: { verdict: 'NR', reasonCode: 'DATA_MISSING', details: 'No direct competitor mapping network to measure churn against' },
+        vampire_churn: {
+            verdict: 'NR',
+            reasonCode: 'SOURCE_GRADE_INSUFFICIENT',
+            details: 'No audited cross-network contributor migration dataset exists for map-to-earn flows.',
+        },
     }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
@@ -350,7 +414,13 @@ const dimoPack: DTSEProtocolPack = {
             { id: 'dimo-rec-03', priority: 'medium', owner: 'tokenomics', rationale: 'Low burn fraction (25%) insufficient for current emissions', action: 'Increase burn fraction to 40% and introduce data-buyer staking requirements', expected_effect: 'Improve solvency ratio by 0.2x' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        network_utilization: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Utilization uses telemetry request-fulfillment proxy because buyer contract logs are partial.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -383,6 +453,11 @@ const grassPack: DTSEProtocolPack = {
     ),
     applicability: standardApplicability({
         payback_period: { verdict: 'NR', reasonCode: 'DATA_AVAILABLE', details: 'Zero hardware cost makes payback instant; metric is trivially healthy' },
+        vampire_churn: {
+            verdict: 'R',
+            reasonCode: 'INTERPOLATION_RISK',
+            details: 'Competitive-yield pressure is estimated from adjacent bandwidth-sharing campaigns.',
+        },
     }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
@@ -413,7 +488,18 @@ const ionetPack: DTSEProtocolPack = {
             { id: 'io-rec-03', priority: 'medium', owner: 'governance', rationale: 'Staking concentration creates centralization risk', action: 'Cap individual staking influence and introduce quadratic reward scaling', expected_effect: 'Reduce Gini coefficient of reward distribution' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        network_utilization: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Utilization is derived from GPU queue-depth proxy and fulfilled compute-hour series.',
+        },
+        tail_risk_score: {
+            verdict: 'R',
+            reasonCode: 'INTERPOLATION_RISK',
+            details: 'Tail-risk envelope mixes short live history with stress interpolation tails.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -443,7 +529,18 @@ const nosanaPack: DTSEProtocolPack = {
             { id: 'nos-rec-03', priority: 'medium', owner: 'growth', rationale: 'CI/CD niche too narrow for sustainable utilization', action: 'Expand to general AI inference workloads alongside CI/CD', expected_effect: 'Increase addressable market by 5x' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        payback_period: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Payback is blended across heterogeneous GPU classes rather than a single provider cohort.',
+        },
+        vampire_churn: {
+            verdict: 'R',
+            reasonCode: 'INTERPOLATION_RISK',
+            details: 'Exit pressure is inferred from external GPU rental yield spreads.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -471,7 +568,13 @@ const geodnetPack: DTSEProtocolPack = {
             { id: 'geod-rec-02', priority: 'medium', owner: 'growth', rationale: 'Compete with legacy CORS networks', action: 'Target precision agriculture and autonomous vehicle markets with sub-cm accuracy guarantees', expected_effect: 'Maintain utilization above 50% through halving events' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        vampire_churn: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Cross-network station migration is approximated with RTK competitor reward proxies.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -503,6 +606,11 @@ const alephPack: DTSEProtocolPack = {
     ),
     applicability: standardApplicability({
         payback_period: { verdict: 'NR', reasonCode: 'DATA_AVAILABLE', details: 'Zero hardware cost (virtual nodes); payback is trivially instant' },
+        network_utilization: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Utilization is represented by indexed API and storage-throughput proxy series.',
+        },
     }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
@@ -535,7 +643,18 @@ const xnetPack: DTSEProtocolPack = {
             { id: 'xnet-rec-04', priority: 'high', owner: 'growth', rationale: 'Need subscriber base to generate revitalization burn revenue', action: 'Partner with MVNOs for wholesale wireless capacity agreements', expected_effect: 'Generate baseline subscriber revenue within 3 months' },
         ],
     ),
-    applicability: standardApplicability(),
+    applicability: standardApplicability({
+        network_utilization: {
+            verdict: 'R',
+            reasonCode: 'PROXY_ACCEPTED',
+            details: 'Subscriber conversion is still maturing; utilization relies on connected-subscriber proxy.',
+        },
+        vampire_churn: {
+            verdict: 'R',
+            reasonCode: 'INTERPOLATION_RISK',
+            details: 'Provider exit pressure is interpolated from competing wireless incentive campaigns.',
+        },
+    }),
     metricLabels: METRIC_LABELS,
     unitMap: UNIT_MAP,
 };
@@ -944,6 +1063,7 @@ export const DTSE_REASON_LABELS: Record<DTSEApplicabilityEntry['reasonCode'], st
     MANUAL_OVERRIDE: 'Manual override',
     PROXY_ACCEPTED: 'Proxy accepted',
     INTERPOLATION_RISK: 'Interpolation risk',
+    SCENARIO_INACTIVE: 'Not used in this scenario',
 };
 
 const CANONICAL_SIGNATURE_ORDER = [
@@ -1120,11 +1240,321 @@ function filterFallbackFailureSignaturesByOutcomes(
     return filtered.length > 0 ? filtered : signatures.slice(0, 1);
 }
 
-export function buildDTSEProtocolPack(profile: ProtocolProfileV1): DTSEDashboardPack {
+type ScenarioAwareMetricId =
+    | 'solvency_ratio'
+    | 'payback_period'
+    | 'weekly_retention_rate'
+    | 'network_utilization'
+    | 'tail_risk_score';
+
+const metricBandSeverityRank: Record<GuardrailBand, number> = {
+    healthy: 0,
+    watchlist: 1,
+    intervention: 2,
+};
+
+const FALLBACK_TARGET_VALUES: Record<ScenarioAwareMetricId, Record<Exclude<GuardrailBand, 'healthy'>, number>> = {
+    solvency_ratio: {
+        watchlist: 1.15,
+        intervention: 0.88,
+    },
+    payback_period: {
+        watchlist: 30,
+        intervention: 48,
+    },
+    weekly_retention_rate: {
+        watchlist: 91,
+        intervention: 86,
+    },
+    network_utilization: {
+        watchlist: 28,
+        intervention: 16,
+    },
+    tail_risk_score: {
+        watchlist: 45,
+        intervention: 72,
+    },
+};
+
+const SIGNATURE_METRICS_BY_ID: Record<typeof CANONICAL_SIGNATURE_ORDER[number], string[]> = {
+    'reward-demand-decoupling': ['solvency_ratio', 'payback_period'],
+    'profitability-induced-churn': ['payback_period', 'weekly_retention_rate'],
+    'liquidity-driven-compression': ['tail_risk_score', 'solvency_ratio'],
+    'elastic-provider-exit': ['vampire_churn', 'weekly_retention_rate'],
+    'latent-capacity-degradation': ['network_utilization', 'solvency_ratio'],
+};
+
+interface FallbackStressPreset {
+    transforms: Partial<Record<ScenarioAwareMetricId, (value: number) => number>>;
+    minBands: Partial<Record<ScenarioAwareMetricId, Exclude<GuardrailBand, 'healthy'>>>;
+    signatureOrder: Array<typeof CANONICAL_SIGNATURE_ORDER[number]>;
+}
+
+const FALLBACK_STRESS_PRESETS: Record<DTSEStressChannel['id'], FallbackStressPreset> = {
+    baseline_neutral: {
+        transforms: {},
+        minBands: {},
+        signatureOrder: ['reward-demand-decoupling', 'latent-capacity-degradation'],
+    },
+    demand_contraction: {
+        transforms: {
+            network_utilization: (value) => value * 0.62,
+            solvency_ratio: (value) => value * 0.88,
+            payback_period: (value) => value * 1.22,
+            weekly_retention_rate: (value) => value - 2.2,
+            tail_risk_score: (value) => value + 9,
+        },
+        minBands: {
+            network_utilization: 'watchlist',
+            solvency_ratio: 'watchlist',
+            payback_period: 'watchlist',
+        },
+        signatureOrder: ['latent-capacity-degradation', 'reward-demand-decoupling', 'profitability-induced-churn'],
+    },
+    liquidity_shock: {
+        transforms: {
+            solvency_ratio: (value) => value * 0.58,
+            payback_period: (value) => value * 1.7,
+            weekly_retention_rate: (value) => value - 3.4,
+            network_utilization: (value) => value * 0.9,
+            tail_risk_score: (value) => value + 18,
+        },
+        minBands: {
+            solvency_ratio: 'intervention',
+            payback_period: 'intervention',
+            tail_risk_score: 'watchlist',
+        },
+        signatureOrder: ['liquidity-driven-compression', 'reward-demand-decoupling', 'profitability-induced-churn'],
+    },
+    competitive_yield_pressure: {
+        transforms: {
+            solvency_ratio: (value) => value * 0.93,
+            payback_period: (value) => value * 1.15,
+            weekly_retention_rate: (value) => value - 6.5,
+            network_utilization: (value) => value * 0.88,
+            tail_risk_score: (value) => value + 11,
+        },
+        minBands: {
+            weekly_retention_rate: 'watchlist',
+            payback_period: 'watchlist',
+        },
+        signatureOrder: ['elastic-provider-exit', 'profitability-induced-churn', 'latent-capacity-degradation'],
+    },
+    provider_cost_inflation: {
+        transforms: {
+            solvency_ratio: (value) => value * 0.8,
+            payback_period: (value) => value * 1.48,
+            weekly_retention_rate: (value) => value - 4.8,
+            network_utilization: (value) => value * 0.95,
+            tail_risk_score: (value) => value + 13,
+        },
+        minBands: {
+            solvency_ratio: 'watchlist',
+            payback_period: 'intervention',
+            weekly_retention_rate: 'watchlist',
+        },
+        signatureOrder: ['profitability-induced-churn', 'reward-demand-decoupling', 'latent-capacity-degradation'],
+    },
+};
+
+function classifyFallbackUtilizationBand(utilizationPct: number): GuardrailBand {
+    if (!Number.isFinite(utilizationPct)) return 'intervention';
+    if (utilizationPct < UTILIZATION_GUARDRAILS.watchlistMinPct) return 'intervention';
+    if (utilizationPct < UTILIZATION_GUARDRAILS.healthyMinPct) return 'watchlist';
+    return 'healthy';
+}
+
+function classifyFallbackOutcomeBand(metricId: ScenarioAwareMetricId, value: number): GuardrailBand {
+    switch (metricId) {
+        case 'solvency_ratio':
+            return classifySolvencyBand(value);
+        case 'payback_period':
+            return classifyPaybackBand(value);
+        case 'weekly_retention_rate':
+            return classifyRetentionBand(value);
+        case 'network_utilization':
+            return classifyFallbackUtilizationBand(value);
+        case 'tail_risk_score':
+        default:
+            return classifyTailRiskBand(value);
+    }
+}
+
+function clampFallbackMetricValue(metricId: ScenarioAwareMetricId, value: number): number {
+    if (!Number.isFinite(value)) {
+        return metricId === 'payback_period' ? PAYBACK_GUARDRAILS.extendedHorizonMonths : 0;
+    }
+
+    switch (metricId) {
+        case 'solvency_ratio':
+            return roundTo3(clamp(value, 0.5, 3));
+        case 'payback_period':
+            return roundTo3(clamp(value, 1, PAYBACK_GUARDRAILS.extendedHorizonMonths));
+        case 'weekly_retention_rate':
+            return roundTo3(clamp(value, 0, 100));
+        case 'network_utilization':
+            return roundTo3(clamp(value, 0, 100));
+        case 'tail_risk_score':
+        default:
+            return roundTo3(clamp(value, 0, 100));
+    }
+}
+
+function enforceScenarioBandFloor(
+    metricId: ScenarioAwareMetricId,
+    currentValue: number,
+    currentBand: GuardrailBand,
+    minBand?: Exclude<GuardrailBand, 'healthy'>,
+): { value: number; band: GuardrailBand } {
+    if (!minBand || metricBandSeverityRank[currentBand] >= metricBandSeverityRank[minBand]) {
+        return { value: currentValue, band: currentBand };
+    }
+
+    return {
+        value: FALLBACK_TARGET_VALUES[metricId][minBand],
+        band: minBand,
+    };
+}
+
+function buildScenarioAwareOutcomes(
+    outcomes: DTSEOutcome[],
+    stressChannel: DTSEStressChannel,
+): DTSEOutcome[] {
+    const preset = FALLBACK_STRESS_PRESETS[stressChannel.id];
+
+    return outcomes.map((outcome) => {
+        const metricId = outcome.metric_id as ScenarioAwareMetricId;
+        const transform = preset.transforms[metricId];
+        const transformedValue = clampFallbackMetricValue(
+            metricId,
+            transform ? transform(outcome.value) : outcome.value,
+        );
+        const transformedBand = classifyFallbackOutcomeBand(metricId, transformedValue);
+        const withFloor = enforceScenarioBandFloor(
+            metricId,
+            transformedValue,
+            transformedBand,
+            preset.minBands[metricId],
+        );
+
+        return {
+            ...outcome,
+            value: withFloor.value,
+            band: withFloor.band,
+            evidence_ref: `${outcome.evidence_ref ?? 'saved_dtse_pack'}::${stressChannel.id}`,
+        };
+    });
+}
+
+function buildScenarioAwareApplicability(
+    applicability: DTSEApplicabilityEntry[],
+    stressChannel: DTSEStressChannel,
+): DTSEApplicabilityEntry[] {
+    return applicability.map((entry) => {
+        if (entry.metricId !== 'vampire_churn') {
+            return entry;
+        }
+
+        if (stressChannel.id === 'competitive_yield_pressure') {
+            return {
+                ...entry,
+                verdict: 'R',
+                reasonCode: 'PROXY_ACCEPTED',
+                details: 'Competitive-yield pressure is active in this saved DTSE scenario, so provider mobility is inferred from retention and scenario assumptions.',
+            };
+        }
+
+        return {
+            ...entry,
+            verdict: 'NR',
+            reasonCode: 'SCENARIO_INACTIVE',
+            details: 'External yield substitution is not the active pressure channel in this saved DTSE scenario.',
+        };
+    });
+}
+
+function deriveScenarioSignatureSeverity(
+    signatureId: typeof CANONICAL_SIGNATURE_ORDER[number],
+    outcomesByMetric: Map<string, DTSEOutcome>,
+    isPrimary: boolean,
+): DTSEFailureSignature['severity'] {
+    const highestMetricBand = SIGNATURE_METRICS_BY_ID[signatureId]
+        .map((metricId) => outcomesByMetric.get(metricId)?.band ?? 'healthy')
+        .reduce<GuardrailBand>((worstBand, band) => (
+            metricBandSeverityRank[band] > metricBandSeverityRank[worstBand] ? band : worstBand
+        ), 'healthy');
+
+    if (isPrimary) {
+        if (highestMetricBand === 'intervention') return 'critical';
+        if (highestMetricBand === 'watchlist') return 'high';
+        return 'medium';
+    }
+
+    if (highestMetricBand === 'intervention') return 'high';
+    if (highestMetricBand === 'watchlist') return 'medium';
+    return 'low';
+}
+
+function buildScenarioAwareFailureSignatures(
+    outcomes: DTSEOutcome[],
+    stressChannel: DTSEStressChannel,
+): DTSEFailureSignature[] {
+    const outcomesByMetric = new Map(outcomes.map((outcome) => [outcome.metric_id, outcome]));
+    const stressedMetricIds = new Set(
+        outcomes
+            .filter((outcome) => outcome.band !== 'healthy')
+            .map((outcome) => outcome.metric_id),
+    );
+    const signatureOrder = FALLBACK_STRESS_PRESETS[stressChannel.id].signatureOrder;
+    const activeSignatureIds = signatureOrder.filter((signatureId) => (
+        SIGNATURE_METRICS_BY_ID[signatureId].some((metricId) => stressedMetricIds.has(metricId))
+    ));
+    const signatures = activeSignatureIds.map((signatureId, index) => buildCanonicalSignatureTemplate(
+        signatureId,
+        deriveScenarioSignatureSeverity(signatureId, outcomesByMetric, index === 0),
+        SIGNATURE_METRICS_BY_ID[signatureId],
+        `${stressChannel.label}: ${stressChannel.summary}`,
+    ));
+
+    return signatures;
+}
+
+function buildScenarioAwareRunContext(
+    baseRunContext: DTSERunContext,
+    profile: ProtocolProfileV1,
+    stressChannel: DTSEStressChannel,
+    outcomes: DTSEOutcome[],
+    failureSignatures: DTSEFailureSignature[],
+    recommendations: DTSERecommendation[],
+): DTSERunContext {
+    return {
+        ...baseRunContext,
+        scenario_grid_id: `${stressChannel.id}-${profile.metadata.id}-saved-pack`,
+        run_id: `dtse-saved-${profile.metadata.id}-${stressChannel.id}`,
+        protocol_id: profile.metadata.id,
+        evidence_status: 'partial',
+        bundle_hash: `saved:${profile.metadata.id}:${stressChannel.id}:v2`,
+        stress_channel: stressChannel,
+        weekly_solvency: buildWeeklySolvencySeries(
+            outcomes.find((outcome) => outcome.metric_id === 'solvency_ratio')?.value ?? 1,
+            baseRunContext.horizon_weeks,
+        ),
+        outcomes,
+        failure_signatures: failureSignatures,
+        recommendations,
+    };
+}
+
+export function buildDTSEProtocolPack(
+    profile: ProtocolProfileV1,
+    requestedStressChannel?: DTSEStressChannel,
+): DTSEDashboardPack {
     const pack = getDTSEProtocolPack(profile.metadata.id);
-    const outcomes = (pack.runContext.outcomes ?? []).filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
-    const normalizedFailureSignatures = normalizeFallbackFailureSignatures(pack.runContext.failure_signatures ?? []);
-    const failureSignatures = filterFallbackFailureSignaturesByOutcomes(normalizedFailureSignatures, outcomes);
+    const stressChannel = requestedStressChannel ?? resolveDTSEStressChannelSelection('baseline_neutral', profile).stressChannel;
+    const baseOutcomes = (pack.runContext.outcomes ?? []).filter((outcome) => outcome.metric_id !== 'stress_resilience_index');
+    const outcomes = buildScenarioAwareOutcomes(baseOutcomes, stressChannel);
+    const scenarioFailureSignatures = buildScenarioAwareFailureSignatures(outcomes, stressChannel);
+    const failureSignatures = filterFallbackFailureSignaturesByOutcomes(scenarioFailureSignatures, outcomes);
     const peerNames = DTSE_PEER_ANALOGS[profile.metadata.id]?.peer_ids
         .map((peerId) => PROFILE_NAME_BY_ID.get(peerId) ?? peerId);
     const recommendations = buildLiveDTSERecommendations(failureSignatures, outcomes, {
@@ -1134,23 +1564,24 @@ export function buildDTSEProtocolPack(profile: ProtocolProfileV1): DTSEDashboard
     const protocolBriefTemplate = PROTOCOL_BRIEF_OVERRIDES[profile.metadata.id] ?? deriveDefaultProtocolBrief(profile);
 
     return {
-        runContext: {
-            ...pack.runContext,
-            protocol_id: profile.metadata.id,
-            model_version: 'Agent-Based v2',
+        runContext: buildScenarioAwareRunContext(
+            pack.runContext,
+            profile,
+            stressChannel,
             outcomes,
-            failure_signatures: failureSignatures,
+            failureSignatures,
             recommendations,
-        },
+        ),
         protocolBrief: {
             protocol_id: profile.metadata.id,
             protocol_name: profile.metadata.name,
             chain: CHAIN_LABELS[profile.metadata.chain] ?? profile.metadata.chain,
             ...protocolBriefTemplate,
         },
-        applicability: pack.applicability,
+        applicability: buildScenarioAwareApplicability(pack.applicability, stressChannel),
         outcomes,
         failureSignatures,
         recommendations,
+        sequenceView: null,
     };
 }

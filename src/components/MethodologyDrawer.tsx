@@ -1,14 +1,37 @@
 import React from 'react';
 import { X, BookOpen, Sigma } from 'lucide-react';
-import { RESEARCH_CONTENT } from '../data/research';
+import { DTSE_METRIC_INSIGHTS } from '../data/dtseContent';
+import { DTSE_LEARN_CONTENT } from '../data/research';
 
 interface MethodologyDrawerProps {
-    isOpen: boolean;
+    mode: 'how-dtse-works' | 'metric-definitions' | null;
     onClose: () => void;
 }
 
-export const MethodologyDrawer: React.FC<MethodologyDrawerProps> = ({ isOpen, onClose }) => {
-    if (!isOpen) return null;
+const METRIC_ORDER = [
+    'solvency_ratio',
+    'payback_period',
+    'weekly_retention_rate',
+    'network_utilization',
+    'tail_risk_score',
+    'vampire_churn',
+] as const;
+
+const METRIC_TITLES: Record<(typeof METRIC_ORDER)[number], string> = {
+    solvency_ratio: 'Solvency Ratio',
+    payback_period: 'Payback Period',
+    weekly_retention_rate: 'Weekly Retention',
+    network_utilization: 'Network Utilization',
+    tail_risk_score: 'Tail Risk Score',
+    vampire_churn: 'Vampire Churn',
+};
+
+export const MethodologyDrawer: React.FC<MethodologyDrawerProps> = ({ mode, onClose }) => {
+    if (!mode) return null;
+
+    const isMetricMode = mode === 'metric-definitions';
+    const headerTitle = isMetricMode ? DTSE_LEARN_CONTENT.metricDefinitions.title : DTSE_LEARN_CONTENT.howItWorks.title;
+    const headerEyebrow = isMetricMode ? DTSE_LEARN_CONTENT.metricDefinitions.eyebrow : DTSE_LEARN_CONTENT.howItWorks.eyebrow;
 
     return (
         <div className="fixed inset-0 z-[100] flex justify-end">
@@ -25,11 +48,11 @@ export const MethodologyDrawer: React.FC<MethodologyDrawerProps> = ({ isOpen, on
                 <div className="sticky top-0 z-10 flex items-center justify-between p-6 bg-slate-900/95 backdrop-blur border-b border-slate-800">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
-                            <BookOpen size={20} />
+                            {isMetricMode ? <Sigma size={20} /> : <BookOpen size={20} />}
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight">Research Methodology</h2>
-                            <p className="text-xs text-slate-400 font-mono">Thesis: DePIN Tokenomics Under Stress</p>
+                            <h2 className="text-xl font-bold text-white tracking-tight">{headerTitle}</h2>
+                            <p className="text-xs text-slate-400 font-mono uppercase tracking-[0.18em]">{headerEyebrow}</p>
                         </div>
                     </div>
                     <button
@@ -42,71 +65,80 @@ export const MethodologyDrawer: React.FC<MethodologyDrawerProps> = ({ isOpen, on
 
                 {/* Content */}
                 <div className="p-8 space-y-10">
+                    {isMetricMode ? (
+                        <section className="space-y-6">
+                            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-5">
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">{DTSE_LEARN_CONTENT.metricDefinitions.eyebrow}</p>
+                                <p className="mt-2 text-sm leading-relaxed text-slate-200">{DTSE_LEARN_CONTENT.metricDefinitions.intro}</p>
+                                <p className="mt-2 text-sm leading-relaxed text-slate-300">{DTSE_LEARN_CONTENT.metricDefinitions.helper}</p>
+                            </div>
 
-                    {/* Section 1.2: Methodology */}
-                    <section className="space-y-4">
-                        <h3 className="text-lg font-bold text-indigo-400 uppercase tracking-widest border-b border-indigo-500/20 pb-2">
-                            {RESEARCH_CONTENT.methodology.title}
-                        </h3>
-                        <div className="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed space-y-4">
-                            {RESEARCH_CONTENT.methodology.content.split('\n\n').map((paragraph, idx) => (
-                                <p key={idx} dangerouslySetInnerHTML={{
-                                    __html: paragraph.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-                                }} />
-                            ))}
-                        </div>
-                    </section>
+                            <div className="space-y-5">
+                                {METRIC_ORDER.map((metricId) => {
+                                    const metric = DTSE_METRIC_INSIGHTS[metricId];
+                                    if (!metric) return null;
 
-                    {/* Section 8: Math Models */}
-                    <section className="space-y-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <Sigma className="text-emerald-500" size={20} />
-                            <h3 className="text-lg font-bold text-emerald-500 uppercase tracking-widest flex-1 border-b border-emerald-500/20 pb-2">
-                                {RESEARCH_CONTENT.mathModels.title}
-                            </h3>
-                        </div>
-                        <p className="text-sm text-slate-400 italic mb-6">{RESEARCH_CONTENT.mathModels.intro}</p>
-
-                        <div className="space-y-8">
-                            {RESEARCH_CONTENT.mathModels.models.map((model) => (
-                                <div key={model.id} className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden hover:border-slate-700 transition-colors">
-                                    <div className="p-4 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
-                                        <h4 className="font-bold text-slate-200">{model.name}</h4>
-                                    </div>
-                                    <div className="p-5 space-y-4">
-                                        <p className="text-sm text-slate-400">{model.description}</p>
-
-                                        {/* Formula Box */}
-                                        <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 font-mono text-center text-indigo-300 text-sm overflow-x-auto whitespace-nowrap custom-scrollbar">
-                                            {model.formula}
-                                        </div>
-
-                                        {/* Variables */}
-                                        {model.variables && (
-                                            <div className="bg-slate-900/30 p-3 rounded-lg border border-slate-800/50">
-                                                <ul className="space-y-1">
-                                                    {model.variables.map((v, i) => (
-                                                        <li key={i} className="text-xs text-slate-500 font-mono flex items-start gap-2">
-                                                            <span className="text-slate-600">•</span>
-                                                            {v}
-                                                        </li>
-                                                    ))}
-                                                </ul>
+                                    return (
+                                        <div key={metricId} className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80">
+                                            <div className="border-b border-slate-800 bg-slate-900/70 p-4">
+                                                <h3 className="text-base font-bold text-slate-100">{METRIC_TITLES[metricId]}</h3>
+                                                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">{metric.target}</p>
                                             </div>
-                                        )}
+                                            <div className="space-y-4 p-5">
+                                                <div>
+                                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">What it measures</p>
+                                                    <p className="mt-1 text-sm leading-relaxed text-slate-200">{metric.definition}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Why DTSE uses it</p>
+                                                    <p className="mt-1 text-sm leading-relaxed text-slate-200">{metric.why_relevant}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Decision use</p>
+                                                    <p className="mt-1 text-sm leading-relaxed text-slate-200">{metric.decision_use}</p>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-3">
+                                                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Healthy</p>
+                                                        <p className="mt-1 text-sm leading-relaxed text-slate-200">{metric.interpretation.healthy}</p>
+                                                    </div>
+                                                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-3">
+                                                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-300">Watchlist</p>
+                                                        <p className="mt-1 text-sm leading-relaxed text-slate-200">{metric.interpretation.watchlist}</p>
+                                                    </div>
+                                                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/8 p-3">
+                                                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-300">Intervention</p>
+                                                        <p className="mt-1 text-sm leading-relaxed text-slate-200">{metric.interpretation.intervention}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    ) : (
+                        <>
+                            <section className="rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-5">
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">{DTSE_LEARN_CONTENT.howItWorks.eyebrow}</p>
+                                <p className="mt-2 text-sm leading-relaxed text-slate-200">{DTSE_LEARN_CONTENT.howItWorks.intro}</p>
+                                <p className="mt-2 text-sm leading-relaxed text-slate-300">{DTSE_LEARN_CONTENT.howItWorks.helper}</p>
+                            </section>
+
+                            <section className="space-y-5">
+                                {DTSE_LEARN_CONTENT.howItWorks.sections.map((section) => (
+                                    <div key={section.title} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5">
+                                        <h3 className="text-base font-bold text-slate-100">{section.title}</h3>
+                                        <div className="mt-3 space-y-3">
+                                            {section.body.map((paragraph) => (
+                                                <p key={paragraph} className="text-sm leading-relaxed text-slate-300">{paragraph}</p>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Footer */}
-                    <div className="pt-8 border-t border-slate-800 text-center">
-                        <p className="text-xs text-slate-600 font-mono">
-                            Source: "DePIN Tokenomics Under Stress" - Doctoral Research Thesis (2025)
-                        </p>
-                    </div>
-
+                                ))}
+                            </section>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

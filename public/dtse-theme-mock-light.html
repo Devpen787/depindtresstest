@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DTSE Theme Mock · Third Pass Polish</title>
+  <style>
+    :root {
+      --bg: #e9eff6;
+      --shell: #f6f9fd;
+      --surface: #ffffff;
+      --surface-soft: #f8fbff;
+      --surface-support: #f7fafe;
+      --line: #d6dfeb;
+      --line-soft: #e3eaf3;
+      --text: #15243a;
+      --text-soft: #50627d;
+      --text-muted: #6b7d95;
+      --sidebar: #2a3864;
+      --sidebar-2: #31406f;
+      --sidebar-text: #d9e2f6;
+      --sidebar-accent: #87acff;
+      --accent: #3d71e0;
+      --accent-soft: #ebf2ff;
+      --good: #2f8655;
+      --warn: #a8782a;
+      --risk: #a84e57;
+      --radius-major: 16px;
+      --radius-card: 12px;
+      --radius-inner: 10px;
+      --space-1: 8px;
+      --space-2: 12px;
+      --space-3: 16px;
+      --space-4: 20px;
+      --space-5: 24px;
+      --shadow-soft: 0 8px 22px rgba(15, 29, 52, 0.045);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(61, 113, 224, 0.06), transparent 30%),
+        radial-gradient(circle at 90% 100%, rgba(189, 127, 28, 0.04), transparent 34%),
+        var(--bg);
+    }
+
+    .app-shell {
+      max-width: 1600px;
+      margin: 16px auto;
+      min-height: calc(100vh - 32px);
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--shell);
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .SidebarNav {
+      background: linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-2) 100%);
+      border-right: 1px solid rgba(225, 234, 252, 0.16);
+      padding: var(--space-4) var(--space-3);
+      color: var(--sidebar-text);
+      display: grid;
+      align-content: start;
+      gap: var(--space-3);
+    }
+
+    .sidebar-brand {
+      margin: 0;
+      font-size: 31px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #f2f6ff;
+    }
+
+    .sidebar-list {
+      display: grid;
+      gap: 3px;
+    }
+
+    .sidebar-item {
+      text-decoration: none;
+      color: var(--sidebar-text);
+      font-size: 12.5px;
+      font-weight: 560;
+      padding: 9px 11px;
+      border-left: 2px solid transparent;
+      border-radius: 8px;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    .sidebar-item:hover {
+      background: rgba(237, 244, 255, 0.08);
+      color: #f7faff;
+    }
+
+    .sidebar-item.active {
+      background: rgba(234, 241, 255, 0.13);
+      border-left-color: var(--sidebar-accent);
+      color: #f7faff;
+      font-weight: 620;
+    }
+
+    .main-content {
+      padding: var(--space-5);
+      display: grid;
+      gap: var(--space-4);
+      align-content: start;
+    }
+
+    .StageHeader {
+      display: grid;
+      gap: 14px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-4);
+    }
+
+    .stage-label {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+    }
+
+    .stage-title {
+      margin: 2px 0 2px;
+      font-size: 38px;
+      line-height: 1.03;
+      font-weight: 810;
+      letter-spacing: -0.02em;
+    }
+
+    .stage-subtitle {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 15px;
+      line-height: 1.45;
+      max-width: 860px;
+    }
+
+    .mode-control {
+      display: inline-grid;
+      grid-template-columns: repeat(3, auto);
+      padding: 4px;
+      gap: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .mode-btn {
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 630;
+      padding: 8px 11px;
+      cursor: default;
+    }
+
+    .mode-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .StageTabs {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      position: relative;
+      padding-bottom: 2px;
+    }
+
+    .StageTabs::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 1px;
+      background: #d7e0ec;
+    }
+
+    .stage-tab {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f7fafd;
+      color: var(--text-muted);
+      text-align: center;
+      font-size: 12.5px;
+      font-weight: 620;
+      padding: 8px 9px 9px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stage-tab.active {
+      border-color: #adc5ef;
+      background: var(--accent-soft);
+      color: #244f99;
+      box-shadow: inset 0 -2px 0 #4d7fe3;
+      font-weight: 690;
+    }
+
+    .run-summary {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-major);
+      background: var(--surface);
+      padding: var(--space-4);
+      display: grid;
+      gap: var(--space-3);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .summary-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding-bottom: 2px;
+      border-bottom: 1px solid #e6edf6;
+    }
+
+    .summary-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 790;
+      letter-spacing: -0.01em;
+    }
+
+    .summary-line {
+      margin: 4px 0 0;
+      font-size: 15px;
+      line-height: 1.4;
+      color: var(--text-soft);
+      max-width: 760px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-width: 500px;
+      justify-content: flex-end;
+    }
+
+    .badge {
+      border: 1px solid #d9e3f0;
+      border-radius: 999px;
+      background: #f7fbff;
+      color: #526580;
+      font-size: 11.5px;
+      font-weight: 620;
+      line-height: 1;
+      padding: 6px 9px;
+      white-space: nowrap;
+    }
+
+    .badge b {
+      font-weight: 700;
+      color: #1f2f47;
+    }
+
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+
+    .SummaryStatCard {
+      border: 1px solid var(--line-soft);
+      background: var(--surface-support);
+      border-radius: var(--radius-card);
+      padding: 12px 14px;
+      min-height: 122px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      align-content: start;
+      gap: 7px;
+    }
+
+    .summary-stat-k {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .summary-stat-v {
+      font-size: 38px;
+      line-height: 0.98;
+      font-weight: 810;
+      min-height: 38px;
+      letter-spacing: -0.01em;
+      color: #1b2b43;
+    }
+
+    .summary-stat-v.good { color: var(--good); }
+    .summary-stat-v.warn { color: var(--warn); }
+    .summary-stat-v.risk { color: var(--risk); }
+
+    .summary-stat-d {
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.4;
+      margin: 0;
+      align-self: end;
+    }
+
+    .RunBriefingCard {
+      border: 1px solid #cfdbec;
+      background: #fbfdff;
+      border-radius: var(--radius-major);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 16px;
+      box-shadow: 0 10px 24px rgba(16, 32, 56, 0.05);
+    }
+
+    .brief-main {
+      padding-right: 8px;
+    }
+
+    .brief-label {
+      margin: 0 0 8px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brief-title {
+      margin: 0 0 12px;
+      font-size: 33px;
+      line-height: 1.08;
+      font-weight: 820;
+      letter-spacing: -0.02em;
+      max-width: 22ch;
+    }
+
+    .brief-copy {
+      margin: 0;
+      color: #475c79;
+      font-size: 17px;
+      line-height: 1.45;
+      max-width: 52ch;
+    }
+
+    .brief-meta {
+      border-left: 1px solid #e0e8f3;
+      padding-left: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .brief-meta-card {
+      border: 1px solid #e5ecf5;
+      border-radius: var(--radius-card);
+      background: #f8fbff;
+      min-height: 72px;
+      padding: 9px 10px;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+    }
+
+    .brief-meta-k {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 10.5px;
+      font-weight: 670;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .brief-meta-v {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.06;
+      font-weight: 760;
+      letter-spacing: -0.01em;
+      color: #1e2f4c;
+    }
+
+    .brief-meta-t {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.34;
+    }
+
+    .evidence-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 350px;
+      gap: var(--space-3);
+      align-items: start;
+    }
+
+    .main-column,
+    .rail-column {
+      display: grid;
+      gap: var(--space-3);
+    }
+
+    .ChartCard,
+    .EvidenceCard,
+    .InterpretationCard,
+    .InsightCard,
+    .ConfidenceCard,
+    .SignalStrengthCard,
+    .NextInspectionCard {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      padding: var(--space-4);
+      transition: border-color 140ms ease, background-color 140ms ease;
+    }
+
+    .ChartCard,
+    .RunBriefingCard {
+      box-shadow: var(--shadow-soft);
+    }
+
+    .EvidenceCard,
+    .ConfidenceCard,
+    .SignalStrengthCard,
+    .NextInspectionCard {
+      background: var(--surface-support);
+      border-color: var(--line-soft);
+    }
+
+    .InterpretationCard {
+      background: #f9fbfe;
+      border-color: #e7edf5;
+      padding: 16px 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .ChartCard:hover,
+    .InsightCard:hover,
+    .ConfidenceCard:hover,
+    .SignalStrengthCard:hover,
+    .NextInspectionCard:hover,
+    .EvidenceCard:hover,
+    .InterpretationCard:hover {
+      border-color: #c5d4e8;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 780;
+      letter-spacing: -0.01em;
+      color: #1a2a43;
+    }
+
+    .card-subtitle {
+      margin: 6px 0 0;
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.42;
+    }
+
+    .InterpretationCard .card-title {
+      font-size: 19px;
+      font-weight: 720;
+      color: #2e4059;
+    }
+
+    .InterpretationCard .card-subtitle {
+      font-size: 13px;
+      color: #5e718d;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line-soft);
+      margin-bottom: 12px;
+    }
+
+    .chart-legend {
+      display: grid;
+      gap: 6px;
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-soft);
+      font-weight: 620;
+    }
+
+    .legend-line {
+      display: inline-flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-line i {
+      width: 16px;
+      height: 2px;
+      border-radius: 99px;
+      display: inline-block;
+    }
+
+    .chart-wrap {
+      border: 1px solid #e0e8f3;
+      border-radius: 11px;
+      background: #f8fbff;
+      padding: 12px 12px 10px;
+    }
+
+    .chart-svg {
+      width: 100%;
+      height: 286px;
+      display: block;
+    }
+
+    .threshold-label {
+      fill: #a0722a;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .annotation-label {
+      fill: #375f9e;
+      font-size: 11px;
+      font-weight: 620;
+    }
+
+    .x-axis {
+      fill: #7185a2;
+      font-size: 12px;
+      font-weight: 560;
+    }
+
+    .EvidenceCard {
+      display: grid;
+      gap: 12px;
+    }
+
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .evidence-block {
+      border: 1px solid #dee7f2;
+      border-radius: var(--radius-inner);
+      background: #fbfdff;
+      min-height: 136px;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .evidence-k {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 660;
+      letter-spacing: 0.03em;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      border: 1px solid #d9e4f2;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #52647f;
+      font-size: 12px;
+      font-weight: 620;
+      padding: 5px 9px;
+    }
+
+    .boundaries-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .boundaries-item {
+      border: 0;
+      border-top: 1px solid #e1e9f3;
+      background: transparent;
+      border-radius: 0;
+      padding: 8px 2px 0;
+      font-size: 13px;
+      color: var(--text-soft);
+      line-height: 1.42;
+    }
+
+    .boundaries-item:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .boundaries-item b {
+      color: #20324e;
+      font-weight: 700;
+    }
+
+    .InsightCard {
+      border-color: #d6dde8;
+      background: #ffffff;
+      display: grid;
+      gap: 9px;
+    }
+
+    .risk-strong {
+      margin: 0;
+      color: #8f4a55;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 770;
+      letter-spacing: -0.02em;
+      max-width: 19ch;
+    }
+
+    .risk-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .risk-mini {
+      border: 1px solid #e0e8f2;
+      border-radius: var(--radius-inner);
+      background: #f8fbff;
+      padding: 8px 10px;
+    }
+
+    .risk-mini-k {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .risk-mini-v {
+      margin: 5px 0 0;
+      color: #1f3049;
+      font-size: 18px;
+      font-weight: 760;
+    }
+
+    .ConfidenceCard,
+    .SignalStrengthCard {
+      display: grid;
+      gap: 9px;
+    }
+
+    .composition-track {
+      width: 100%;
+      height: 16px;
+      border-radius: 999px;
+      background: #e7eef8;
+      border: 1px solid #dbe5f1;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .comp-a { width: 56%; background: #3d71e0; }
+    .comp-b { width: 28%; background: #bd7f1c; }
+    .comp-c { width: 16%; background: #a84e57; }
+
+    .confidence-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .confidence-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 620;
+    }
+
+    .confidence-row b {
+      color: #1f304b;
+      font-weight: 760;
+    }
+
+    .confidence-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      display: inline-block;
+      margin-right: 7px;
+      vertical-align: middle;
+    }
+
+    .signal-row {
+      display: grid;
+      grid-template-columns: 84px 1fr 40px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .signal-label {
+      color: #51637f;
+      font-size: 13px;
+      font-weight: 640;
+    }
+
+    .signal-track {
+      height: 9px;
+      border-radius: 999px;
+      border: 1px solid #dbe5f0;
+      background: #e9f0f8;
+      overflow: hidden;
+    }
+
+    .signal-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #8badf0 0%, #3d71e0 100%);
+    }
+
+    .signal-fill.warn { background: linear-gradient(90deg, #e8be74 0%, #bd7f1c 100%); }
+    .signal-fill.good { background: linear-gradient(90deg, #7fc89a 0%, #2f8655 100%); }
+
+    .signal-pct {
+      text-align: right;
+      color: #4f617b;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .NextInspectionCard {
+      display: grid;
+      gap: 8px;
+    }
+
+    .next-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .next-list li {
+      border-top: 1px solid #e3eaf3;
+      padding-top: 8px;
+    }
+
+    .next-list li:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .next-step-title {
+      margin: 0 0 3px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #223450;
+      line-height: 1.3;
+    }
+
+    .next-step-copy {
+      margin: 0;
+      color: #566a86;
+      font-size: 13px;
+      line-height: 1.36;
+    }
+
+    .footer-note {
+      margin-top: 2px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1400px) {
+      .main-content { padding: var(--space-4); }
+      .stage-title { font-size: 34px; }
+      .brief-title { font-size: 30px; }
+      .brief-copy { font-size: 16px; }
+      .brief-meta-v { font-size: 20px; }
+      .brief-meta-t { font-size: 13px; }
+      .evidence-layout { grid-template-columns: minmax(0, 1fr) 332px; }
+    }
+
+    @media (max-width: 1180px) {
+      .app-shell { grid-template-columns: 188px 1fr; }
+      .stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .RunBriefingCard { grid-template-columns: 1fr; }
+      .brief-meta { border-left: 0; border-top: 1px solid #d8e2ee; padding-left: 0; padding-top: 12px; }
+      .evidence-layout { grid-template-columns: 1fr; }
+      .rail-column { grid-template-columns: 1fr 1fr; }
+      .stage-title { font-size: 30px; }
+      .brief-title { font-size: 28px; }
+      .brief-copy { font-size: 15px; }
+      .brief-meta-v { font-size: 18px; }
+      .brief-meta-t { font-size: 13px; }
+    }
+
+    @media (max-width: 980px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+        margin: 0;
+        border-radius: 0;
+        min-height: 100vh;
+      }
+
+      .SidebarNav {
+        border-right: 0;
+        border-bottom: 1px solid rgba(225, 234, 252, 0.2);
+        padding: var(--space-3);
+      }
+
+      .sidebar-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .header-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .StageTabs { grid-template-columns: 1fr; }
+      .stats-strip { grid-template-columns: 1fr; }
+      .evidence-grid { grid-template-columns: 1fr; }
+      .rail-column { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="SidebarNav">
+      <h1 class="sidebar-brand">DTSE</h1>
+      <nav class="sidebar-list">
+        <a class="sidebar-item active" href="#">Overview</a>
+        <a class="sidebar-item" href="#">Context</a>
+        <a class="sidebar-item" href="#">Scoring</a>
+        <a class="sidebar-item" href="#">Failure Sequence</a>
+        <a class="sidebar-item" href="#">Patterns</a>
+        <a class="sidebar-item" href="#">Next Tests</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <section class="StageHeader">
+        <div class="header-top">
+          <div>
+            <p class="stage-label">Stage 1</p>
+            <h2 class="stage-title">Protocol Context</h2>
+            <p class="stage-subtitle">
+              Confirm this run setup first, then read trust and pressure signals before interpreting downstream outcomes.
+            </p>
+          </div>
+          <div class="mode-control" aria-label="View mode">
+            <button class="mode-btn active">Guided</button>
+            <button class="mode-btn">Overview</button>
+            <button class="mode-btn">More Off</button>
+          </div>
+        </div>
+
+        <div class="StageTabs">
+          <div class="stage-tab active">1 · Context</div>
+          <div class="stage-tab">2 · What Can Be Scored</div>
+          <div class="stage-tab">3 · What Broke First</div>
+          <div class="stage-tab">4 · Failure Patterns</div>
+          <div class="stage-tab">5 · Next Tests</div>
+        </div>
+      </section>
+
+      <section class="run-summary">
+        <div class="summary-title-row">
+          <div>
+            <h3 class="summary-title">Protocol Context</h3>
+            <p class="summary-line">What run am I looking at, what is trusted, and where pressure likely appears first.</p>
+          </div>
+          <div class="badge-row">
+            <span class="badge"><b>Protocol:</b> ONOCOY</span>
+            <span class="badge"><b>Stress:</b> Liquidity Shock</span>
+            <span class="badge"><b>Confidence:</b> Partial</span>
+            <span class="badge"><b>Likely break:</b> Provider economics first</span>
+          </div>
+        </div>
+
+        <div class="stats-strip">
+          <article class="SummaryStatCard">
+            <div class="summary-stat-k">Coverage &amp; Trust</div>
+            <div class="summary-stat-v">5/6</div>
+            <p class="summary-stat-d">Tracked metrics DTSE can fairly judge in this run.</p>
+          </article>
+          <article class="SummaryStatCard">
+            <div class="summary-stat-k">Scored Now</div>
+            <div class="summary-stat-v good">5</div>
+            <p class="summary-stat-d">Included with accepted proxy support.</p>
+          </article>
+          <article class="SummaryStatCard">
+            <div class="summary-stat-k">Held Out</div>
+            <div class="summary-stat-v warn">1</div>
+            <p class="summary-stat-d">Visible, but intentionally excluded from this score.</p>
+          </article>
+          <article class="SummaryStatCard">
+            <div class="summary-stat-k">Risk Lens</div>
+            <div class="summary-stat-v risk">Partial</div>
+            <p class="summary-stat-d">Proxy-backed confidence profile with known constraints.</p>
+          </article>
+        </div>
+
+        <article class="RunBriefingCard">
+          <div class="brief-main">
+            <p class="brief-label">Run briefing</p>
+            <p class="brief-title">Identify the stress contract, then test if demand support can absorb reward pressure.</p>
+            <p class="brief-copy">
+              Liquidity Shock is applied to ONOCOY against a matched baseline. This run indicates provider economics weaken before visible
+              station participation drops, so interpret station count as a lagging signal and validate solvency plus payback first.
+            </p>
+          </div>
+          <div class="brief-meta">
+            <article class="brief-meta-card">
+              <p class="brief-meta-k">Protocol at a glance</p>
+              <p class="brief-meta-v">ONOCOY</p>
+              <p class="brief-meta-t">Solana · Fixed emissions with partial burn.</p>
+            </article>
+            <article class="brief-meta-card">
+              <p class="brief-meta-k">Stress applied</p>
+              <p class="brief-meta-v">Liquidity Shock</p>
+              <p class="brief-meta-t">Investor sell pressure compresses fiat-equivalent rewards.</p>
+            </article>
+            <article class="brief-meta-card">
+              <p class="brief-meta-k">Likely pressure point</p>
+              <p class="brief-meta-v">Provider economics first</p>
+              <p class="brief-meta-t">Solvency and payback weaken before visible station loss.</p>
+            </article>
+          </div>
+        </article>
+      </section>
+
+      <section class="evidence-layout">
+        <div class="main-column">
+          <article class="ChartCard">
+            <div class="chart-header">
+              <div>
+                <h3 class="card-title">Drift vs Baseline (12w)</h3>
+                <p class="card-subtitle">Stress drift crosses threshold around mid-window and remains elevated through the close.</p>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-line"><i style="background:#3d71e0"></i>Stress drift</span>
+                <span class="legend-line"><i style="background:#bd7f1c"></i>Threshold</span>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg class="chart-svg" viewBox="0 0 760 286" preserveAspectRatio="none" aria-label="Drift chart">
+                <rect x="306" y="44" width="64" height="200" fill="rgba(189,127,28,0.06)" rx="8"></rect>
+
+                <g stroke="#d6e0ee" stroke-width="1">
+                  <line x1="44" y1="58" x2="730" y2="58"></line>
+                  <line x1="44" y1="112" x2="730" y2="112"></line>
+                  <line x1="44" y1="166" x2="730" y2="166"></line>
+                  <line x1="44" y1="220" x2="730" y2="220"></line>
+                </g>
+
+                <path d="M44 236 L92 219 L140 212 L188 218 L236 197 L284 175 L332 181 L380 158 L428 166 L476 170 L524 160 L572 146 L620 138 L668 140 L716 142 L716 252 L44 252 Z"
+                      fill="rgba(61,113,224,0.16)"></path>
+
+                <path d="M44 192 L92 190 L140 188 L188 186 L236 184 L284 182 L332 179 L380 176 L428 173 L476 170 L524 168 L572 166 L620 164 L668 162 L716 160"
+                      fill="none"
+                      stroke="#bd7f1c"
+                      stroke-width="2.3"
+                      stroke-dasharray="4 4"
+                      stroke-linecap="round"></path>
+
+                <path d="M44 236 L92 219 L140 212 L188 218 L236 197 L284 175 L332 181 L380 158 L428 166 L476 170 L524 160 L572 146 L620 138 L668 140 L716 142"
+                      fill="none"
+                      stroke="#3d71e0"
+                      stroke-width="3.1"
+                      stroke-linecap="round"></path>
+
+                <circle cx="318" cy="180" r="4.5" fill="#3d71e0" stroke="#ffffff" stroke-width="2"></circle>
+                <path d="M325 171 L374 157" stroke="#8da7d8" stroke-width="1.2"></path>
+                <text x="380" y="158" class="annotation-label">Threshold crossed</text>
+
+                <text x="724" y="156" class="threshold-label" text-anchor="end">Threshold</text>
+
+                <text x="44" y="274" class="x-axis">W1</text>
+                <text x="212" y="274" class="x-axis">W4</text>
+                <text x="380" y="274" class="x-axis">W7</text>
+                <text x="548" y="274" class="x-axis">W10</text>
+                <text x="702" y="274" class="x-axis">W12</text>
+              </svg>
+            </div>
+          </article>
+
+          <article class="EvidenceCard">
+            <h3 class="card-title">Evidence and Scoring Context</h3>
+            <p class="card-subtitle">What is trusted vs proxy-backed, and what remains visible but held out from scoring.</p>
+            <div class="evidence-grid">
+              <div class="evidence-block">
+                <p class="evidence-k">Scored now</p>
+                <div class="tag-row">
+                  <span class="tag">Solvency Ratio</span>
+                  <span class="tag">Payback Period</span>
+                  <span class="tag">Weekly Retention</span>
+                  <span class="tag">Network Utilization</span>
+                  <span class="tag">Tail Risk Score</span>
+                </div>
+              </div>
+              <div class="evidence-block">
+                <p class="evidence-k">Held out</p>
+                <div class="tag-row">
+                  <span class="tag">Vampire Churn</span>
+                </div>
+                <p class="card-subtitle" style="margin:0">
+                  Visible in diagnostics, excluded from this run because the stress contract does not activate that mechanism.
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="InterpretationCard">
+            <h3 class="card-title">Interpretation Boundaries</h3>
+            <p class="card-subtitle">What this stage supports, and what it does not claim before later stages are read.</p>
+            <ul class="boundaries-list">
+              <li class="boundaries-item"><b>Observed vs proxy-backed:</b> scored metrics are accepted with stable proxy evidence, not direct live observation.</li>
+              <li class="boundaries-item"><b>Lagging participation signals:</b> station count can remain stable while provider economics weaken first.</li>
+              <li class="boundaries-item"><b>Scope of this stage:</b> this context frame is for reading trust and failure order, not a universal protocol ranking.</li>
+            </ul>
+          </article>
+        </div>
+
+        <aside class="rail-column">
+          <article class="InsightCard">
+            <h3 class="card-title">Risk Summary</h3>
+            <p class="risk-strong">Provider economics likely break before station count signals it.</p>
+            <p class="card-subtitle">Read provider solvency and payback as the leading risk pair in this run.</p>
+            <div class="risk-grid">
+              <div class="risk-mini">
+                <p class="risk-mini-k">Earliest break</p>
+                <p class="risk-mini-v">Week 1</p>
+              </div>
+              <div class="risk-mini">
+                <p class="risk-mini-k">Triggered families</p>
+                <p class="risk-mini-v">1</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="ConfidenceCard">
+            <h3 class="card-title">Confidence Composition</h3>
+            <p class="card-subtitle">How this run's evidence splits across direct support, proxy-backed support, and held-out constraints.</p>
+            <div class="composition-track">
+              <div class="comp-a"></div>
+              <div class="comp-b"></div>
+              <div class="comp-c"></div>
+            </div>
+            <div class="confidence-list">
+              <div class="confidence-row"><span><i class="confidence-dot" style="background:#3d71e0"></i>Direct / stable evidence</span><b>56%</b></div>
+              <div class="confidence-row"><span><i class="confidence-dot" style="background:#bd7f1c"></i>Proxy-backed evidence</span><b>28%</b></div>
+              <div class="confidence-row"><span><i class="confidence-dot" style="background:#a84e57"></i>Held-out / constrained</span><b>16%</b></div>
+            </div>
+          </article>
+
+          <article class="SignalStrengthCard">
+            <h3 class="card-title">Metric Signal Strength</h3>
+            <p class="card-subtitle">Comparative reliability of high-priority metrics in the current stress setup.</p>
+            <div class="signal-row">
+              <div class="signal-label">Solvency</div>
+              <div class="signal-track"><div class="signal-fill" style="width:82%"></div></div>
+              <div class="signal-pct">82%</div>
+            </div>
+            <div class="signal-row">
+              <div class="signal-label">Payback</div>
+              <div class="signal-track"><div class="signal-fill warn" style="width:61%"></div></div>
+              <div class="signal-pct">61%</div>
+            </div>
+            <div class="signal-row">
+              <div class="signal-label">Retention</div>
+              <div class="signal-track"><div class="signal-fill good" style="width:74%"></div></div>
+              <div class="signal-pct">74%</div>
+            </div>
+          </article>
+
+          <article class="NextInspectionCard">
+            <h3 class="card-title">Next Inspection</h3>
+            <p class="card-subtitle">Suggested follow-up review order before moving to Stage 2 and Stage 3 interpretation.</p>
+            <ol class="next-list">
+              <li>
+                <p class="next-step-title">1. Validate provider margin compression path</p>
+                <p class="next-step-copy">Confirm whether payback widening is driven by reward compression or demand under-conversion.</p>
+              </li>
+              <li>
+                <p class="next-step-title">2. Stress-test demand-linked sink assumptions</p>
+                <p class="next-step-copy">Rerun with lower net emissions and stronger sink behavior under the same stress contract.</p>
+              </li>
+            </ol>
+          </article>
+        </aside>
+      </section>
+
+      <div class="footer-note">Mock only · DTSE theme prototype · no production behavior changed.</div>
+    </main>
+  </div>
+</body>
+</html>

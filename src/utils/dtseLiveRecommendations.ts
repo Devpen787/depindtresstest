@@ -1,16 +1,5 @@
 import type { DTSEFailureSignature, DTSEOutcome, DTSERecommendation } from '../types/dtse';
-
-const roundTo = (value: number, digits: number = 1): number => {
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
-};
-
-const priorityRank: Record<DTSERecommendation['priority'], number> = {
-  critical: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-};
+import { formatDTSEMetricValue } from './dtsePresentation';
 
 const outcomeMap = (outcomes: DTSEOutcome[]): Record<string, DTSEOutcome> => (
   outcomes.reduce<Record<string, DTSEOutcome>>((acc, outcome) => {
@@ -40,21 +29,26 @@ export function buildLiveDTSERecommendations(
     : undefined;
 
   const recommendations: DTSERecommendation[] = [];
+  const formattedSolvency = `${formatDTSEMetricValue('solvency_ratio', solvency)}x`;
+  const formattedPayback = `${formatDTSEMetricValue('payback_period', payback)} months`;
+  const formattedRetention = `${formatDTSEMetricValue('weekly_retention_rate', retention)}%`;
+  const formattedUtilization = `${formatDTSEMetricValue('network_utilization', utilization)}%`;
+  const formattedTailRisk = formatDTSEMetricValue('tail_risk_score', tailRisk);
 
   for (const signature of signatures) {
     if (signature.id === 'reward-demand-decoupling') {
       recommendations.push({
         id: 'live-response-reward-demand-decoupling',
         priority: signature.severity === 'critical' ? 'critical' : 'high',
-        owner: 'Tokenomics Review',
-        rationale: `${options.protocolName} is showing reward spend ahead of demand support: solvency is ${roundTo(solvency, 2)}x and payback is ${roundTo(payback, 1)} months.`,
-        action: 'Possible response path: test tighter issuance discipline, slower reward release, or stronger demand-linked sinks in reruns before treating growth as durable.',
-        expected_effect: `What to examine next: whether reruns can move solvency toward 1.30x+ and compress payback toward 24 months.`,
-        timeframe: 'Near-term design review',
-        success_metric: 'Compare reruns under lower net emissions and stronger sink assumptions.',
-        dependency: 'Requires scenario reruns under matched assumptions, not a direct governance mandate.',
-        risk_if_delayed: 'The dashboard can misread subsidy persistence as resilience if the demand side is not separated from reward support.',
-        peer_analog: peerAnalog ? `Comparable peer context: ${peerAnalog} faced similar pressure when rewards expanded faster than validated demand.` : undefined,
+        owner: 'Tokenomics lead',
+        rationale: `${options.protocolName} is spending rewards ahead of demand support. Solvency is ${formattedSolvency} and payback is ${formattedPayback}.`,
+        action: 'Rerun with lower net emissions and stronger demand sinks',
+        expected_effect: 'Lower net emissions, slow reward release, or strengthen demand-linked sinks. Keep the same stress contract.',
+        timeframe: 'Next model review',
+        success_metric: 'Move solvency toward 1.30x+ and payback toward 24 months without shifting the first break into another core metric.',
+        dependency: 'Hold the same baseline, protocol, and stress channel constant so the comparison stays matched.',
+        risk_if_delayed: 'The team can mistake subsidy persistence for resilience and keep reinforcing the same weak demand loop.',
+        peer_analog: peerAnalog ? `${peerAnalog} faced similar pressure when rewards expanded faster than validated demand.` : undefined,
       });
       continue;
     }
@@ -63,15 +57,15 @@ export function buildLiveDTSERecommendations(
       recommendations.push({
         id: 'live-response-liquidity-driven-compression',
         priority: signature.severity === 'critical' ? 'critical' : 'high',
-        owner: 'Treasury / Market Structure Review',
-        rationale: `Tail risk is ${roundTo(tailRisk, 0)} and the current run suggests a market dislocation can compress rewards faster than providers can adjust.`,
-        action: 'Possible response path: examine liquidity buffers, unlock staging, or downside-control variants as comparative scenarios, rather than assuming average-case metrics are sufficient.',
-        expected_effect: 'What to examine next: whether stress reruns reduce drawdown severity and keep solvency from collapsing during price compression.',
-        timeframe: 'Stress-test review window',
-        success_metric: 'Compare current run against liquidity-buffer and unlock-management variants.',
-        dependency: 'Requires matched-condition reruns; not a forecast of actual market depth or governance behavior.',
-        risk_if_delayed: 'Averages can look acceptable while the downside path remains too brittle to absorb a dislocation.',
-        peer_analog: peerAnalog ? `Comparable peer context: ${peerAnalog} became more legible once downside controls were tested against the same stress channel.` : undefined,
+        owner: 'Treasury / market structure',
+        rationale: `Tail risk is ${formattedTailRisk}. This run suggests a market dislocation can compress rewards faster than providers can adjust.`,
+        action: 'Rerun with liquidity buffers and unlock controls',
+        expected_effect: 'Test liquidity buffers, unlock staging, or downside controls. Keep demand and protocol assumptions constant.',
+        timeframe: 'Next stress-test cycle',
+        success_metric: 'Tail risk falls and solvency no longer collapses during the compression window under the same matched baseline.',
+        dependency: 'Hold the same baseline and stress channel so the rerun isolates liquidity-side changes.',
+        risk_if_delayed: 'Average metrics can look acceptable while the downside path stays too brittle to absorb a dislocation.',
+        peer_analog: peerAnalog ? `${peerAnalog} became more legible once downside controls were tested against the same stress channel.` : undefined,
       });
       continue;
     }
@@ -80,15 +74,15 @@ export function buildLiveDTSERecommendations(
       recommendations.push({
         id: 'live-response-elastic-provider-exit',
         priority: signature.severity === 'high' ? 'high' : 'medium',
-        owner: 'Supply-Side Retention Review',
-        rationale: `Weekly retention is ${roundTo(retention, 1)}% while external yield pressure is active, suggesting providers may be more mobile than the current node count implies.`,
-        action: 'Possible response path: test retention-weighting, quality-linked rewards, or competitor-defense variants to understand which supply segments are actually sticky.',
-        expected_effect: 'What to examine next: whether targeted retention variants defend productive supply without assuming broad reward escalation.',
-        timeframe: 'Scenario iteration',
-        success_metric: 'Compare reruns on retention stability and utilization continuity under competitive-yield pressure.',
-        dependency: 'Requires explicit competitive-yield scenario assumptions and supply segmentation.',
-        risk_if_delayed: 'Physical capacity can leave before the demand side visibly weakens, which makes node count a lagging comfort metric.',
-        peer_analog: peerAnalog ? `Comparable peer context: ${peerAnalog} is useful for seeing how mobile supply responds under the same external-yield pressure.` : undefined,
+        owner: 'Supply-side retention',
+        rationale: `Weekly retention is ${formattedRetention} while external yield pressure is active. Providers may be more mobile than node count suggests.`,
+        action: 'Rerun with stronger retention defense by cohort',
+        expected_effect: 'Segment providers by cohort and test targeted retention weighting, quality-linked rewards, or competitor-defense assumptions instead of a flat reward increase.',
+        timeframe: 'Next supply-side rerun',
+        success_metric: 'The at-risk cohort retains more productive supply without pushing utilization or solvency lower elsewhere in the run.',
+        dependency: 'Keep competitive-yield pressure active and hold the rest of the scenario constant so cohort effects stay visible.',
+        risk_if_delayed: 'Mobile supply can leave before demand visibly weakens, which makes node count a lagging comfort metric.',
+        peer_analog: peerAnalog ? `${peerAnalog} is useful for seeing how mobile supply responds under the same external-yield pressure.` : undefined,
       });
       continue;
     }
@@ -96,16 +90,16 @@ export function buildLiveDTSERecommendations(
     if (signature.id === 'profitability-induced-churn') {
       recommendations.push({
         id: 'live-response-profitability-induced-churn',
-        priority: signature.severity === 'critical' ? 'high' : 'medium',
-        owner: 'Provider Economics Review',
-        rationale: `Retention is ${roundTo(retention, 1)}% and payback is ${roundTo(payback, 1)} months, which suggests operator economics may be falling below tolerance.`,
-        action: 'Possible response path: test cost relief, reward-quality, or hardware-specific support assumptions to see which provider cohorts fail first.',
-        expected_effect: 'What to examine next: whether reruns stabilize retention without masking weak unit economics.',
-        timeframe: 'Scenario iteration',
-        success_metric: 'Compare reruns on provider retention, payback compression, and service continuity.',
-        dependency: 'Requires explicit provider-cost assumptions and cohort-aware interpretation.',
-        risk_if_delayed: 'Churn can become self-reinforcing before governance has a clear read on which provider segment is failing.',
-        peer_analog: peerAnalog ? `Comparable peer context: ${peerAnalog} is useful for comparing how provider cost pressure propagates into churn.` : undefined,
+        priority: signature.severity === 'critical' ? 'critical' : 'medium',
+        owner: 'Provider economics',
+        rationale: `Retention is ${formattedRetention} and payback is ${formattedPayback}. Operator economics may be falling below tolerance.`,
+        action: 'Rerun with provider cost relief by cohort',
+        expected_effect: 'Test cost relief, reward-quality changes, or hardware-specific support by provider cohort instead of a flat network-wide increase.',
+        timeframe: 'Next provider-economics rerun',
+        success_metric: 'Retention stabilizes and payback improves without hiding weak unit economics under broad subsidy.',
+        dependency: 'Hold the same provider-cost assumptions except for the targeted cohort change being tested.',
+        risk_if_delayed: 'Churn can become self-reinforcing before the team has a clean read on which provider segment is failing first.',
+        peer_analog: peerAnalog ? `${peerAnalog} is useful for comparing how provider cost pressure propagates into churn.` : undefined,
       });
       continue;
     }
@@ -114,15 +108,15 @@ export function buildLiveDTSERecommendations(
       recommendations.push({
         id: 'live-response-latent-capacity-degradation',
         priority: signature.severity === 'high' ? 'high' : 'medium',
-        owner: 'Demand / Capacity Review',
-        rationale: `Utilization is ${roundTo(utilization, 1)}%, which means physical capacity may still look present even as economic conversion weakens.`,
-        action: 'Possible response path: test slower supply expansion, higher-conviction demand assumptions, or capacity-quality filters before interpreting node count as a sign of health.',
-        expected_effect: `What to examine next: whether utilization can move from ${roundTo(utilization, 1)}% toward the healthy band under matched conditions.`,
-        timeframe: 'Scenario iteration',
-        success_metric: 'Compare reruns on utilization, demand coverage, and solvency under the same baseline.',
-        dependency: 'Requires baseline-relative comparison; low utilization alone is not a universal ranking signal.',
+        owner: 'Demand / capacity',
+        rationale: `Utilization is ${formattedUtilization}. Physical capacity may still look present even as economic conversion weakens.`,
+        action: 'Rerun with slower supply expansion and tighter demand quality',
+        expected_effect: 'Test slower supply expansion, higher-conviction demand assumptions, or capacity-quality filters before interpreting node count as health.',
+        timeframe: 'Next demand-quality rerun',
+        success_metric: `Utilization moves from ${formattedUtilization} toward the healthy band under the same matched baseline without worsening solvency.`,
+        dependency: 'Keep the same baseline-relative comparison because low utilization alone is not a universal ranking signal.',
         risk_if_delayed: 'The physical network can appear stable while the coordination loop is already weakening underneath it.',
-        peer_analog: peerAnalog ? `Comparable peer context: ${peerAnalog} helps frame whether weak utilization is structural or scenario-specific.` : undefined,
+        peer_analog: peerAnalog ? `${peerAnalog} helps frame whether weak utilization is structural or scenario-specific.` : undefined,
       });
       continue;
     }
@@ -135,13 +129,13 @@ export function buildLiveDTSERecommendations(
         priority: 'low',
         owner: 'Monitoring',
         rationale: `${options.protocolName} is currently inside healthy guardrails across the primary DTSE metrics in this run.`,
-        action: 'Possible response path: keep the current design as the reference case and rerun DTSE after any major market, demand, or tokenomics change.',
-        expected_effect: 'What to examine next: whether the same pattern holds across the thesis stress channels under matched assumptions.',
+        action: 'Rerun after the next major market or tokenomics change',
+        expected_effect: 'Keep the current setup as the control and rerun only after a meaningful market, demand, or tokenomics change.',
         timeframe: 'Ongoing comparison cadence',
-        success_metric: 'Primary DTSE metrics remain inside healthy bands across reruns of the same baseline-relative scenarios.',
+        success_metric: 'Primary DTSE metrics remain inside healthy bands across matched reruns of the same baseline-relative stress channels.',
       },
     ];
   }
 
-  return recommendations.sort((left, right) => priorityRank[left.priority] - priorityRank[right.priority]);
+  return recommendations;
 }

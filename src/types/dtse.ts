@@ -13,7 +13,8 @@ export type DTSEApplicabilityReasonCode =
     | 'SOURCE_GRADE_INSUFFICIENT'
     | 'MANUAL_OVERRIDE'
     | 'PROXY_ACCEPTED'
-    | 'INTERPOLATION_RISK';
+    | 'INTERPOLATION_RISK'
+    | 'SCENARIO_INACTIVE';
 
 export interface DTSEApplicabilityEntry {
     metricId: string;

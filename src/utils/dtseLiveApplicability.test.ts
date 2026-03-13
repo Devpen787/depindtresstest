@@ -142,6 +142,7 @@ describe('dtseLiveApplicability', () => {
 
     expect(entries?.find((entry) => entry.metricId === 'payback_period')?.verdict).toBe('NR');
     expect(entries?.find((entry) => entry.metricId === 'vampire_churn')?.verdict).toBe('NR');
-    expect(entries?.find((entry) => entry.metricId === 'vampire_churn')?.details).toContain('excluded to avoid unfair scoring');
+    expect(entries?.find((entry) => entry.metricId === 'vampire_churn')?.reasonCode).toBe('SCENARIO_INACTIVE');
+    expect(entries?.find((entry) => entry.metricId === 'vampire_churn')?.details).toContain('held out');
   });
 });

@@ -16,6 +16,7 @@ export const DTSE_APPLICABILITY_REASON_CODES: Readonly<Record<DTSEApplicabilityR
     MANUAL_OVERRIDE: 'Applicability was manually overridden by a reviewer.',
     PROXY_ACCEPTED: 'Proxy-grade source accepted under current evaluation policy.',
     INTERPOLATION_RISK: 'Interpolated data carries elevated uncertainty; flagged for review.',
+    SCENARIO_INACTIVE: 'Metric is not used in the active stress scenario.',
 } as const;
 
 const RUNNABLE_SOURCE_GRADES = new Set(['primary', 'secondary']);
