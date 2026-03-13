@@ -140,9 +140,14 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
     }).format(parsed);
   })();
 
-  const tokenRoleSummary =
-    protocolBrief.token_utility.length > 0 ? protocolBrief.token_utility.join(', ') : 'No token-role detail available.';
   const protocolSummaryMeta = [protocolBrief.chain, protocolBrief.mechanism].filter(Boolean).join(' · ');
+  const tokenRoleItems =
+    protocolBrief.token_utility.length > 0 ? protocolBrief.token_utility : ['No token-role detail available.'];
+  const stressEntryLabel = stressChannel?.label ?? 'Saved stress bundle';
+  const stressEntrySummary =
+    stressChannel?.summary ?? 'Saved scenario framing is active for this run.';
+  const stressEntryBasis =
+    stressChannel?.basis ?? 'Using the saved DTSE bundle because a live stress basis was not available.';
 
   const likelyPressurePoint = (() => {
     switch (stressChannel?.id) {
@@ -177,6 +182,10 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   const scoredNowValue = applicabilityCounts ? `${applicabilityCounts.scoredNow}` : '—';
   const heldOutValue = applicabilityCounts ? `${applicabilityCounts.heldOut}` : '—';
   const scoringConfidence = trustSummary?.scoringConfidenceStatus ?? 'Partial';
+  const laggingSignal = {
+    title: 'Coverage and active station visibility',
+    detail: 'These usually lag provider economics, so visible footprint can look fine after unit economics already slipped.',
+  };
 
   return (
     <div
@@ -233,39 +242,71 @@ export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
 
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700/50 dark:bg-slate-800/80 transition-colors">
             <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr_1.2fr_1fr]">
-              <article className="relative border-b border-slate-200 dark:border-slate-700/50 p-2.5 lg:border-b-0 lg:border-r transition-colors">
+              <article className="relative border-b border-slate-200 dark:border-slate-700/50 p-3 lg:border-b-0 lg:border-r transition-colors">
                 <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Baseline setup</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{protocolBrief.demand_signal}</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{tokenRoleSummary}</p>
+                <div className="mt-2 space-y-2">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-2 dark:border-slate-700/50 dark:bg-slate-900/40 transition-colors">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Demand driver</p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{protocolBrief.demand_signal}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-2 dark:border-slate-700/50 dark:bg-slate-900/40 transition-colors">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Token roles</p>
+                    <ul className="mt-1 space-y-1">
+                      {tokenRoleItems.map((item) => (
+                        <li key={item} className="flex items-start gap-2 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">
+                          <span className="mt-[0.45rem] h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500" aria-hidden="true" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
                 <span className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 text-slate-400 dark:text-slate-600 lg:block transition-colors">→</span>
               </article>
 
-              <article className="relative border-b border-slate-200 dark:border-slate-700/50 bg-indigo-50 dark:bg-indigo-500/10 p-2.5 lg:border-b-0 lg:border-r transition-colors">
+              <article className="relative border-b border-slate-200 dark:border-slate-700/50 bg-indigo-50 dark:bg-indigo-500/10 p-3 lg:border-b-0 lg:border-r transition-colors">
                 <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-300">Stress entry</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{stressChannel?.label ?? 'Saved stress bundle'}</p>
+                <div className="mt-2 space-y-2">
+                  <div className="rounded-lg border border-indigo-200/70 bg-white/70 p-2 dark:border-indigo-400/20 dark:bg-slate-900/30 transition-colors">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-300">Activated contract</p>
+                    <p className="mt-1 text-[12px] font-semibold leading-snug text-slate-800 dark:text-slate-200">{stressEntryLabel}</p>
+                  </div>
+                  <div className="rounded-lg border border-indigo-200/70 bg-white/70 p-2 dark:border-indigo-400/20 dark:bg-slate-900/30 transition-colors">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-300">Why it matters</p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{stressEntrySummary}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{stressEntryBasis}</p>
+                  </div>
+                </div>
                 <span className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 text-slate-400 dark:text-slate-600 lg:block transition-colors">→</span>
               </article>
 
-              <article className="relative border-b border-slate-200 dark:border-slate-700/50 bg-rose-50 dark:bg-rose-500/10 p-2.5 lg:border-b-0 lg:border-r transition-colors">
+              <article className="relative border-b border-slate-200 dark:border-slate-700/50 bg-rose-50 dark:bg-rose-500/10 p-3 lg:border-b-0 lg:border-r transition-colors">
                 <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-rose-600 dark:text-rose-300">Likely pressure point</p>
-                <p className="mt-0.5 text-[13px] font-bold leading-snug text-slate-900 dark:text-white">{likelyPressurePoint.title}</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-600 dark:text-slate-300">{likelyPressurePoint.detail}</p>
+                <div className="mt-2 rounded-lg border border-rose-200/70 bg-white/70 p-2.5 dark:border-rose-400/20 dark:bg-slate-900/30 transition-colors">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-600 dark:text-rose-300">Primary read</p>
+                  <p className="mt-1 text-[13px] font-bold leading-snug text-slate-900 dark:text-white">{likelyPressurePoint.title}</p>
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-slate-600 dark:text-slate-300">{likelyPressurePoint.detail}</p>
+                </div>
                 <span className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 text-rose-500 dark:text-slate-600 lg:block">→</span>
               </article>
 
-              <article className="bg-slate-100 dark:bg-slate-800/50 p-2.5 transition-colors">
+              <article className="bg-slate-100 dark:bg-slate-800/50 p-3 transition-colors">
                 <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Lagging signal</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">
-                  Coverage and active station visibility typically lag provider economics.
-                </p>
+                <div className="mt-2 rounded-lg border border-slate-200 bg-white/80 p-2.5 dark:border-slate-700/50 dark:bg-slate-900/30 transition-colors">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Read this later</p>
+                  <p className="mt-1 text-[12px] font-semibold leading-snug text-slate-800 dark:text-slate-200">{laggingSignal.title}</p>
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{laggingSignal.detail}</p>
+                </div>
               </article>
             </div>
           </div>
         </section>
 
-        <p className="text-[12px] leading-relaxed text-slate-500 dark:text-slate-400 transition-colors">
-          <span className="font-bold text-slate-800 dark:text-white">Run briefing:</span> Identify the protocol, the stress contract, and where pressure is most likely to show first.
-        </p>
+        <div className="rounded-xl border border-slate-200 bg-white/70 px-3 py-2.5 dark:border-slate-700/50 dark:bg-slate-900/30 transition-colors">
+          <p className="text-[12px] leading-relaxed text-slate-600 dark:text-slate-400 transition-colors">
+            <span className="font-bold text-slate-800 dark:text-white">Run briefing:</span> Identify the protocol, the stress contract, and where pressure is most likely to show first.
+          </p>
+        </div>
       </section>
 
       <section className="bg-white border border-slate-200 dark:bg-slate-900/80 dark:border-slate-700/50 shadow-sm dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] rounded-2xl p-4 transition-colors">
