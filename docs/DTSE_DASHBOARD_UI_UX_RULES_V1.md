@@ -15,7 +15,7 @@ DTSE supports the thesis *DePIN Tokenomics Under Stress* (CAS Blockchain, HSLU).
 - **Stress channels** — Demand contraction, liquidity shock, competitive-yield pressure, and provider-cost inflation map to the thesis’s stress constructs.
 - **Latent stress** — The “DePIN Illusion” warning reflects that participation metrics can lag underlying economic deterioration.
 
-Design choices (sequence-first Stage 3, Interpretation Boundary, stress channel selector, Advanced toggle) exist to support this stance.
+Design choices (sequence-first Stage 3, Interpretation Boundary, stress channel selector, **More** toggle) exist to support this stance.
 
 ---
 
@@ -55,8 +55,8 @@ Design choices (sequence-first Stage 3, Interpretation Boundary, stress channel 
 ## 3. Run Context Strip
 
 - A persistent strip is displayed below the tab bar and above stage content.
-- The strip shows: **Protocol selector**, **Stress channel selector**, and (when Advanced is on) **Evidence status** badge.
-- **Advanced toggle** — Evidence status, run details, and supplementary charts are behind Advanced to reduce default cognitive load.
+- The strip shows: **Protocol selector**, **Stress channel selector**, and (when **More** is on) **Evidence status** badge.
+- **More toggle** — Evidence status, run details, and supplementary charts are behind More to reduce default cognitive load.
 - The strip does **not** scroll with stage content; it remains fixed.
 - Evidence status uses color-coded badges: `complete` → green, `partial` → amber, `missing` → red.
 
@@ -66,7 +66,7 @@ Design choices (sequence-first Stage 3, Interpretation Boundary, stress channel 
 
 - **Stage 1** — Protocol context, Interpretation Boundary, assessment verdict, stress channel.
 - **Stage 2** — Applicability (Included/Excluded) with metric intent in expandable details.
-- **Stage 3** — Sequence-first: baseline drift chart, transmission pathway, band snapshot, threshold chart, then metrics. Solvency trajectory remains in Advanced.
+- **Stage 3** — Sequence-first: baseline drift chart, transmission pathway, band snapshot, threshold chart, then metrics. Solvency trajectory remains behind **More**.
 - **Stage 4** — Failure Autopsy (signatures with severity).
 - **Stage 5** — Response Paths (recommendations) and Export.
 
@@ -146,6 +146,7 @@ Design choices (sequence-first Stage 3, Interpretation Boundary, stress channel 
 - **Spacing:** `space-y-5`, `gap-3` for section spacing; `p-4`, `p-5` for card padding.
 - **Focus:** `focus:ring-2 focus:ring-indigo-500` on all interactive elements.
 - **Touch targets:** Minimum 44×44px for primary actions (Export, Next, Previous).
+- **Responsive breakpoints:** sm 640px, md 768px, lg 1024px, xl 1280px. DTSE targets xl-first; single-column acceptable below lg.
 
 ---
 

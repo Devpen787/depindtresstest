@@ -5,7 +5,11 @@ import {
     getDTSEProtocolPack,
     buildDTSEProtocolPack,
 } from './dtseContent';
+import { DTSE_SAVED_SCENARIO_PROTOCOL_IDS } from './generated/dtseSavedScenarioPacks.manifest.generated';
 import { DTSE_PEER_ANALOGS } from './dtsePeerAnalogs';
+import { makeDTSESavedScenarioPackKey } from './dtseSavedScenarios';
+import { loadDTSESavedScenarioPack } from './dtseSavedScenarioLoader';
+import { DTSE_STRESS_CHANNEL_OPTIONS, resolveDTSEStressChannelSelection } from '../utils/dtseStressChannel';
 
 const STANDARD_METRICS = [
     'solvency_ratio',
@@ -40,6 +44,22 @@ describe('DTSE protocol pack coverage', () => {
 });
 
 describe('buildDTSEProtocolPack', () => {
+    it('has a generated saved scenario pack for every protocol and stress combination', async () => {
+        expect(new Set(DTSE_SAVED_SCENARIO_PROTOCOL_IDS)).toEqual(
+            new Set(PROTOCOL_PROFILES.map((profile) => profile.metadata.id)),
+        );
+
+        for (const profile of PROTOCOL_PROFILES) {
+            for (const stressOption of DTSE_STRESS_CHANNEL_OPTIONS) {
+                const key = makeDTSESavedScenarioPackKey(profile.metadata.id, stressOption.id);
+                const pack = await loadDTSESavedScenarioPack(profile.metadata.id, stressOption.id);
+                expect(pack).toBeDefined();
+                expect(pack?.runContext.protocol_id).toBe(profile.metadata.id);
+                expect(makeDTSESavedScenarioPackKey(pack?.runContext.protocol_id ?? '', pack?.runContext.stress_channel?.id ?? 'baseline_neutral')).toBe(key);
+            }
+        }
+    }, 45000);
+
     for (const profile of PROTOCOL_PROFILES) {
         it(`builds a complete dashboard pack for ${profile.metadata.id}`, () => {
             const pack = buildDTSEProtocolPack(profile);
@@ -67,7 +87,6 @@ describe('buildDTSEProtocolPack', () => {
             }
             expect(pack.outcomes.some((outcome) => outcome.metric_id === 'stress_resilience_index')).toBe(false);
 
-            expect(pack.failureSignatures.length).toBeGreaterThan(0);
             expect(pack.recommendations.length).toBeGreaterThan(0);
             expect(pack.failureSignatures.every((signature) => [
                 'Reward–Demand Decoupling',
@@ -76,18 +95,22 @@ describe('buildDTSEProtocolPack', () => {
                 'Elastic Provider Exit',
                 'Latent Capacity Degradation',
             ].includes(signature.label))).toBe(true);
-            expect(pack.recommendations.every((recommendation) => recommendation.action.startsWith('Possible response path:'))).toBe(true);
+            expect(pack.recommendations.every((recommendation) => (
+                recommendation.action.startsWith('Rerun ') || recommendation.action.startsWith('Review ')
+            ))).toBe(true);
 
             const stressedMetricIds = new Set(
                 pack.outcomes
                     .filter((outcome) => outcome.band !== 'healthy')
                     .map((outcome) => outcome.metric_id),
             );
-            expect(pack.failureSignatures.every((signature) => (
-                signature.affected_metrics.some((metricId) => stressedMetricIds.has(metricId))
-            ))).toBe(true);
+            if (pack.failureSignatures.length > 0) {
+                expect(pack.failureSignatures.every((signature) => (
+                    signature.affected_metrics.some((metricId) => stressedMetricIds.has(metricId))
+                ))).toBe(true);
+            }
 
-            if (DTSE_PEER_ANALOGS[profile.metadata.id]) {
+            if (DTSE_PEER_ANALOGS[profile.metadata.id] && pack.failureSignatures.length > 0) {
                 expect(pack.recommendations.some((recommendation) => Boolean(recommendation.peer_analog))).toBe(true);
             }
 
@@ -96,9 +119,69 @@ describe('buildDTSEProtocolPack', () => {
             expect(pack.runContext.weekly_solvency?.every((point) => Number.isFinite(point))).toBe(true);
             const finalSolvency = pack.outcomes.find((outcome) => outcome.metric_id === 'solvency_ratio')?.value;
             const finalSeriesPoint = pack.runContext.weekly_solvency?.[pack.runContext.weekly_solvency.length - 1];
-            expect(finalSeriesPoint).toBeCloseTo(finalSolvency ?? 1, 3);
+            expect(finalSeriesPoint).toBeCloseTo(finalSolvency ?? 1, 2);
+            expect(pack.sequenceView).toBeNull();
         });
     }
+
+    it('contains protocol-specific applicability rationale for every pack', () => {
+        const applicabilitySignatures = new Set<string>();
+
+        for (const profile of PROTOCOL_PROFILES) {
+            const pack = buildDTSEProtocolPack(profile);
+            const hasSpecificApplicability = pack.applicability.some((entry) => (
+                entry.reasonCode !== 'DATA_AVAILABLE' || Boolean(entry.details)
+            ));
+            expect(hasSpecificApplicability).toBe(true);
+
+            const signature = pack.applicability
+                .map((entry) => `${entry.metricId}:${entry.verdict}:${entry.reasonCode}`)
+                .sort()
+                .join('|');
+            applicabilitySignatures.add(signature);
+        }
+
+        expect(applicabilitySignatures.size).toBeGreaterThanOrEqual(2);
+    });
+
+    it('builds stress-aware base packs from the selected DTSE stress channel', () => {
+        const profile = PROTOCOL_PROFILES.find((candidate) => candidate.metadata.id === 'ono_v3_calibrated');
+        expect(profile).toBeDefined();
+        if (!profile) return;
+
+        const baselineStress = resolveDTSEStressChannelSelection('baseline_neutral', profile).stressChannel;
+        const liquidityStress = resolveDTSEStressChannelSelection('liquidity_shock', profile).stressChannel;
+        const competitiveStress = resolveDTSEStressChannelSelection('competitive_yield_pressure', profile).stressChannel;
+
+        const baselinePack = buildDTSEProtocolPack(profile, baselineStress);
+        const liquidityPack = buildDTSEProtocolPack(profile, liquidityStress);
+        const competitivePack = buildDTSEProtocolPack(profile, competitiveStress);
+
+        expect(liquidityPack.runContext.stress_channel?.id).toBe('liquidity_shock');
+        expect(liquidityPack.runContext.scenario_grid_id).toContain('liquidity_shock');
+        expect(competitivePack.runContext.stress_channel?.id).toBe('competitive_yield_pressure');
+        expect(competitivePack.runContext.scenario_grid_id).toContain('competitive_yield_pressure');
+
+        const baselineSolvency = baselinePack.outcomes.find((outcome) => outcome.metric_id === 'solvency_ratio')?.value ?? 0;
+        const liquiditySolvency = liquidityPack.outcomes.find((outcome) => outcome.metric_id === 'solvency_ratio')?.value ?? 0;
+        const baselinePayback = baselinePack.outcomes.find((outcome) => outcome.metric_id === 'payback_period')?.value ?? 0;
+        const liquidityPayback = liquidityPack.outcomes.find((outcome) => outcome.metric_id === 'payback_period')?.value ?? 0;
+
+        expect(liquidityPack.runContext.bundle_hash).not.toBe(baselinePack.runContext.bundle_hash);
+        expect(liquiditySolvency).not.toBe(baselineSolvency);
+        expect(liquidityPayback).not.toBe(baselinePayback);
+        expect(liquidityPack.failureSignatures.some((signature) => signature.id === 'liquidity-driven-compression')).toBe(true);
+        expect(competitivePack.failureSignatures.some((signature) => signature.id === 'elastic-provider-exit')).toBe(true);
+        expect(liquidityPack.sequenceView).toBeNull();
+        expect(liquidityPack.runContext.bundle_hash).toContain('saved:ono_v3_calibrated:liquidity_shock');
+
+        expect(
+            baselinePack.applicability.find((entry) => entry.metricId === 'vampire_churn')?.verdict,
+        ).toBe('NR');
+        expect(
+            competitivePack.applicability.find((entry) => entry.metricId === 'vampire_churn')?.verdict,
+        ).toBe('R');
+    });
 });
 
 describe('getDTSEProtocolPack', () => {

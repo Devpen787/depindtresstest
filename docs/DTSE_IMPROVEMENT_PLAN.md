@@ -36,7 +36,7 @@
 | **Phase 2** | Remove redundancy | Less clutter, faster scan. |
 | **Phase 3** | Clarify labels | Jargon → plain language. |
 | **Phase 4** | Simplify content | Shorten headlines, collapse verbose sections. |
-| **Phase 5** | Polish | Decoration, Advanced label, UI review fixes (font weight, uppercase, blurs, glow, gradients, touch targets). |
+| **Phase 5** | Polish | Decoration, **More** label, UI review fixes (font weight, uppercase, blurs, glow, gradients, touch targets). |
 | **Phase 6** | UI refinement (optional) | Rounded corners, hover effects, colour palette tightening. |
 | **Phase 7** | Design system (optional) | Typography scale, design tokens, animation audit, loading/empty states, accessibility audit, responsive optimisation, component abstraction. |
 | **Phase 8** | Feedback loop (ongoing) | Deploy → gather user feedback → iterate. |
@@ -78,7 +78,7 @@
 | Persona | Goal | What matters |
 |---------|------|--------------|
 | **First-time reviewer** | Understand protocol stress in one pass | Clear labels, no jargon, obvious next step (export). |
-| **Power user** | Deep-dive into triggers, evidence, provenance | Advanced toggle, trigger logic, source trace. |
+| **Power user** | Deep-dive into triggers, evidence, provenance | More toggle, trigger logic, source trace. |
 | **Decision-maker** | Get a verdict and recommendations quickly | Lead recommendation, band snapshot, export. |
 | **Protocol team** | Compare protocols under stress | Protocol switch, stress channel switch, consistency. |
 
@@ -158,7 +158,7 @@ After fixing ONOCOY $0, verify all 14 protocols for baseline price and other obv
 |----------|--------|-----------|
 | **Price compression clamp** | ±999% | Extreme values (e.g. -38M%) are nonsensical; ±999% is readable and still informative. |
 | **Export feedback** | Toast or inline "Downloaded" | User needs confirmation; browser download bar is not enough. |
-| **Advanced label** | Keep "Advanced" for now | "More" or "Details" is clearer but requires broader UI consistency; defer. |
+| **Run-strip label** | Use "More" | Matches current UI toggle and keeps "default simple, deeper on demand". |
 | **Sequence view (pack-only)** | No change | "Sequence view unavailable" is accurate; adding "Run simulation to unlock" is optional polish. |
 | **"signature s" pluralisation** | No code change | Code is correct; likely a11y tree quirk. Monitor. |
 | **4-question test** | Use for future changes | Would user miss it? Duplicate? Need explanation? Help next step? |
@@ -248,8 +248,8 @@ After fixing ONOCOY $0, verify all 14 protocols for baseline price and other obv
 
 ### Phase 5: Polish
 
-- [x] "Advanced" → "More" or "Details" (run strip) — if consistent with rest of app.
-- [x] Milestones line (Stage 3 Advanced) — consider removing if redundant with trigger week.
+- [x] Run-strip label uses "More".
+- [x] Milestones line (Stage 3 More) — consider removing if redundant with trigger week.
 - [x] **UI: Reduce font-black on secondary labels** — Use `font-bold` for labels like "Scenario in this run", "Model", "Run Envelope". Reserve `font-black` for primary headings and numbers.
 - [x] **UI: Sentence case for secondary labels** — Replace `uppercase tracking-[0.2em]` with sentence case where appropriate (see §13).
 - [x] **UI: Remove or reduce decorative blurs** — Dashboard top/bottom; Applicability orb. Remove or reduce opacity to ~5%.
@@ -269,18 +269,18 @@ After fixing ONOCOY $0, verify all 14 protocols for baseline price and other obv
 
 - [x] **Typography scale** — Define H1/H2/H3/body/caption. Document in DTSE_DASHBOARD_UI_UX_RULES_V1 §9.
 - [x] **Design tokens** — Centralise colours, spacing, radii. Document in DTSE_DASHBOARD_UI_UX_RULES_V1 §11.
-- [ ] **Animation audit** — Audit `animate-in`, `fade-in`, `slide-in`, `transition-all`. Ensure consistency; add `prefers-reduced-motion` support.
-- [ ] **Loading / empty states** — Polish "Loading stress charts"; consider skeleton vs spinner. Improve empty-state copy (Stage 4, 5) for tone and clarity.
-- [ ] **Accessibility audit** — WCAG contrast ratios, focus-visible states, screen reader labels (aria-label, aria-describedby). Run axe or similar.
-- [ ] **Responsive optimisation** — Define breakpoints; responsive typography; ensure touch targets ≥44px on mobile.
-- [ ] **Component abstraction** — Extract shared `DTSECard`, `DTSEBadge`, `DTSEStageHeader` to enforce consistency and simplify future polish.
+- [x] **Animation audit** — Audit `animate-in`, `fade-in`, `slide-in`, `transition-all`. Ensure consistency; add `prefers-reduced-motion` support.
+- [x] **Loading / empty states** — Polish "Loading stress charts"; consider skeleton vs spinner. Improve empty-state copy (Stage 4, 5) for tone and clarity.
+- [x] **Accessibility audit** — WCAG contrast ratios, focus-visible states, screen reader labels (aria-label, aria-describedby). Run axe or similar.
+- [x] **Responsive optimisation** — Define breakpoints; responsive typography; ensure touch targets ≥44px on mobile.
+- [x] **Component abstraction** — Extract shared `DTSECard`, `DTSEBadge`, `DTSEStageHeader` to enforce consistency and simplify future polish.
 
 ### Phase 8: Feedback loop (ongoing)
 
-- [ ] **Deploy** — Ship Phase 1–6 (or 1–7) to preview/production.
+- [x] **Deploy** — Ship Phase 1–7 to preview/production. See [DTSE_DEPLOY.md](./DTSE_DEPLOY.md).
 - [ ] **Gather feedback** — User interviews, support tickets, analytics (export clicks, stage completion, drop-off).
 - [ ] **Iterate** — Prioritise feedback; add items to backlog or new phase.
-- [ ] **Document** — Log feedback and decisions in audit or changelog.
+- [x] **Document** — Log feedback and decisions in [DTSE_FEEDBACK_LOG.md](./DTSE_FEEDBACK_LOG.md).
 
 ---
 
@@ -294,7 +294,7 @@ After fixing ONOCOY $0, verify all 14 protocols for baseline price and other obv
 - [ ] DTSE tab is default; all 5 stages visible in Guided mode
 - [ ] Protocol select: switch ONOCOY → Helium → Render — content updates
 - [ ] Stress select: switch Liquidity Shock → Baseline Neutral — content updates
-- [ ] Advanced On: Run details, Evidence posture, Matched conditions, protocol_id, Model inputs visible
+- [ ] More On: Run details, Evidence posture, Matched conditions, protocol_id, Model inputs visible
 - [ ] Overview mode: all stages in one scroll; "Back to Guided" works
 - [ ] Export: click triggers download; no toast (current behaviour)
 - [ ] Stage 4: check for "active signature(s)" text
@@ -304,9 +304,9 @@ After fixing ONOCOY $0, verify all 14 protocols for baseline price and other obv
 
 | Check | Protocol | Stress | Action | Expected |
 |-------|----------|--------|--------|----------|
-| Price compression | ONOCOY or Helium | Liquidity Shock | Go to Stage 4, Advanced On, find trigger logic | Percentage in ±999 range |
+| Price compression | ONOCOY or Helium | Liquidity Shock | Go to Stage 4, More On, find trigger logic | Percentage in ±999 range |
 | Export feedback | Any | Any | Stage 5, click Export | Download + toast or "Downloaded" |
-| ONOCOY $0 | ONOCOY | Any | Stage 1, Advanced On, Model inputs | Baseline price not $0 |
+| ONOCOY $0 | ONOCOY | Any | Stage 1, More On, Model inputs | Baseline price not $0 |
 | review-rehearsal | — | — | `npm run test:e2e` | review-rehearsal.cy.ts passes |
 
 ### Phase 2–8 verification

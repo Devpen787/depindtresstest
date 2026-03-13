@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AggregateResult, SimulationParams } from '../model/types';
 import type { DTSEOutcome } from '../types/dtse';
 import { buildLiveDTSEFailureSignatures } from './dtseLiveSignatures';
+import type { DTSESequenceView } from './dtseSequenceView';
 
 const metric = (mean: number) => ({
   mean,
@@ -187,5 +188,30 @@ describe('dtseLiveSignatures', () => {
 
   it('returns no signatures for an empty run', () => {
     expect(buildLiveDTSEFailureSignatures([], params, [])).toEqual([]);
+  });
+
+  it('returns no signatures when Stage 3 has no first-break trigger', () => {
+    const aggregated: AggregateResult[] = [
+      buildPoint({ utilisation: metric(100), solvencyScore: metric(1.6), minted: metric(90), burned: metric(90) }, 0),
+      buildPoint({ utilisation: metric(100), solvencyScore: metric(1.6), minted: metric(90), burned: metric(90) }, 1),
+    ];
+
+    const outcomes: DTSEOutcome[] = [
+      { metric_id: 'solvency_ratio', value: 3.0, band: 'healthy' },
+      { metric_id: 'payback_period', value: 1.9, band: 'healthy' },
+      { metric_id: 'weekly_retention_rate', value: 96, band: 'healthy' },
+      { metric_id: 'network_utilization', value: 100, band: 'healthy' },
+      { metric_id: 'tail_risk_score', value: 28, band: 'healthy' },
+    ];
+
+    const containedSequenceView: DTSESequenceView = {
+      deviationSeries: [],
+      pathway: [],
+      earliestTriggerWeek: null,
+      earliestTriggerLabel: undefined,
+      illusionWarning: 'Node count is a lagging indicator.',
+    };
+
+    expect(buildLiveDTSEFailureSignatures(aggregated, params, outcomes, containedSequenceView)).toEqual([]);
   });
 });

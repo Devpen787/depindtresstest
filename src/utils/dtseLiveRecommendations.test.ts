@@ -37,8 +37,10 @@ describe('dtseLiveRecommendations', () => {
     expect(recommendations).toHaveLength(2);
     expect(recommendations[0].id).toBe('live-response-reward-demand-decoupling');
     expect(recommendations[0].priority).toBe('critical');
-    expect(recommendations[0].expected_effect).toContain('1.30x+');
+    expect(recommendations[0].action).toBe('Rerun with lower net emissions and stronger demand sinks');
+    expect(recommendations[0].success_metric).toContain('1.30x+');
     expect(recommendations[1].id).toBe('live-response-latent-capacity-degradation');
+    expect(recommendations[1].action).toBe('Rerun with slower supply expansion and tighter demand quality');
     expect(recommendations[1].peer_analog).toContain('GEODNET');
   });
 
@@ -49,6 +51,6 @@ describe('dtseLiveRecommendations', () => {
 
     expect(recommendations).toHaveLength(1);
     expect(recommendations[0].priority).toBe('low');
-    expect(recommendations[0].action).toContain('keep the current design as the reference case');
+    expect(recommendations[0].action).toContain('Rerun after the next major market or tokenomics change');
   });
 });

@@ -1,8 +1,7 @@
 import React from 'react';
-import { Server, ArrowRightLeft, Coins, Sparkles, Layers3, BadgeDollarSign, Factory, Flame } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import type { DTSEProtocolBrief, DTSEOutcome, DTSEStressChannel } from '../../types/dtse';
 import type { TokenMarketData } from '../../services/coingecko';
+import type { DTSEProtocolBrief, DTSEStressChannel } from '../../types/dtse';
+import { formatDTSEUsdPrice, type DTSETrustSummary } from '../../utils/dtsePresentation';
 
 interface DTSEPeerContext {
   peerNames: string[];
@@ -12,400 +11,319 @@ interface DTSEPeerContext {
 
 interface DTSEContextStageProps {
   protocolBrief: DTSEProtocolBrief;
-  outcomes: DTSEOutcome[];
   marketData?: TokenMarketData | null;
-  metricLabels: Record<string, string>;
   peerContext?: DTSEPeerContext;
   stressChannel?: DTSEStressChannel;
+  trustSummary?: DTSETrustSummary;
+  applicabilityCounts?: {
+    scoredNow: number;
+    heldOut: number;
+    total: number;
+  };
   showAdvanced?: boolean;
   modelVersion: string;
   generatedAt: string;
   horizonWeeks: number;
   nSims: number;
+  compact?: boolean;
 }
 
 export const DTSEContextStage: React.FC<DTSEContextStageProps> = ({
   protocolBrief,
-  outcomes,
   marketData,
-  metricLabels,
-  peerContext,
   stressChannel,
-  showAdvanced = false,
+  trustSummary,
+  applicabilityCounts,
   modelVersion,
   generatedAt,
   horizonWeeks,
   nSims,
+  compact = false,
 }) => {
-  const formatCompactNumber = (value: number): string => new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: value >= 100 ? 0 : 1,
-  }).format(value);
-  const formatUsdCompact = (value: number): string => new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
-  const marketStats = marketData ? [
-    {
-      label: 'Price',
-      value: formatUsdCompact(marketData.currentPrice),
-      detail: `${marketData.symbol} · live market`,
-      icon: BadgeDollarSign,
-    },
-    {
-      label: 'Market Cap',
-      value: formatUsdCompact(marketData.marketCap),
-      detail: 'Live market value',
-      icon: Layers3,
-    },
-    {
-      label: 'Circulating Supply',
-      value: `${formatCompactNumber(marketData.circulatingSupply)} ${marketData.symbol}`,
-      detail: 'Live circulating supply',
-      icon: Factory,
-    },
-    {
-      label: 'Supply Cap',
-      value: marketData.maxSupply && marketData.maxSupply > 0
-        ? `${formatCompactNumber(marketData.maxSupply)} ${marketData.symbol}`
-        : 'Not reported',
-      detail: marketData.maxSupply && marketData.maxSupply > 0
-        ? 'Max supply (live market data)'
-        : 'No max supply reported by market source',
-      icon: Coins,
-    },
-  ] : [];
+  const formatCompactNumber = (value: number): string =>
+    new Intl.NumberFormat('en-US', {
+      notation: 'compact',
+      maximumFractionDigits: value >= 100 ? 0 : 1,
+    }).format(value);
+
+  const formatUsdCompact = (value: number): string =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value);
+
+  const hasLiveMarketData = Boolean(marketData);
+  const marketSectionTitle = hasLiveMarketData ? 'Live market context' : 'Reference market context';
+
+  const marketStats = marketData
+    ? [
+        {
+          label: 'Price',
+          value: formatDTSEUsdPrice(marketData.currentPrice),
+          detail: `${marketData.symbol} · live`,
+        },
+        {
+          label: 'Market Cap',
+          value: formatUsdCompact(marketData.marketCap),
+          detail: 'Live market value',
+        },
+        {
+          label: 'Circulating Supply',
+          value: `${formatCompactNumber(marketData.circulatingSupply)} ${marketData.symbol}`,
+          detail: 'Live circulating supply',
+        },
+        {
+          label: 'Supply Cap',
+          value:
+            marketData.maxSupply && marketData.maxSupply > 0
+              ? `${formatCompactNumber(marketData.maxSupply)} ${marketData.symbol}`
+              : 'Unspecified',
+          detail: marketData.maxSupply && marketData.maxSupply > 0 ? 'Live max supply' : 'No max supply feed',
+        },
+      ]
+    : [
+        {
+          label: 'Price',
+          value: formatDTSEUsdPrice(protocolBrief.token_price_usd),
+          detail: 'Reference baseline',
+        },
+        {
+          label: 'Market Cap',
+          value: formatUsdCompact(protocolBrief.market_cap_usd),
+          detail: 'Reference baseline',
+        },
+        {
+          label: 'Supply Structure',
+          value: protocolBrief.supply_structure,
+          detail: 'Live cap feed unavailable',
+        },
+        {
+          label: 'Supply Cap',
+          value: protocolBrief.supply_structure === 'Capped' ? 'Capped' : 'Not capped',
+          detail: 'Protocol baseline profile',
+        },
+      ];
 
   const modelStats = [
     {
-      label: 'Starting Token Stock',
+      label: 'Token Stock',
       value: `${formatCompactNumber(protocolBrief.supply_count)} ${protocolBrief.supply_unit}`,
-      detail: 'Simulation assumption (not live token cap)',
-      icon: Layers3,
+      detail: 'Simulation assumption',
     },
     {
-      label: 'Weekly Emission Input',
+      label: 'Weekly Emission',
       value: `${formatCompactNumber(protocolBrief.weekly_emissions)} ${protocolBrief.weekly_emissions_unit}`,
-      detail: `${protocolBrief.burn_fraction_pct.toFixed(0)}% burn-linked in model`,
-      icon: Flame,
+      detail: `${protocolBrief.burn_fraction_pct.toFixed(0)}% burn-linked`,
     },
     {
-      label: 'Starting Provider Count',
+      label: 'Provider Count',
       value: `${formatCompactNumber(protocolBrief.active_providers)} ${protocolBrief.active_providers_unit}`,
       detail: 'Simulation start state',
-      icon: Factory,
     },
     {
       label: 'Model Structure',
       value: protocolBrief.supply_structure,
-      detail: `Baseline price input ${formatUsdCompact(protocolBrief.token_price_usd)}`,
-      icon: BadgeDollarSign,
+      detail: `Baseline input ${formatDTSEUsdPrice(protocolBrief.token_price_usd)}`,
     },
   ];
 
-  const CardHeader = ({ icon: Icon, label }: { icon: LucideIcon; label: string }) => (
-    <div className="mb-3 flex items-center gap-2">
-      <div className="rounded-md border border-cyan-500/20 bg-cyan-950/30 p-1.5">
-        <Icon size={14} className="text-cyan-400" />
-      </div>
-      <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">{label}</span>
-    </div>
-  );
+  const generatedDate = (() => {
+    const parsed = new Date(generatedAt);
+    if (Number.isNaN(parsed.getTime())) return generatedAt;
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(parsed);
+  })();
 
-  const coreOutcomes = outcomes;
-  const bandCounts = coreOutcomes.reduce(
-    (counts, outcome) => {
-      counts[outcome.band] += 1;
-      return counts;
-    },
-    { healthy: 0, watchlist: 0, intervention: 0 } as Record<'healthy' | 'watchlist' | 'intervention', number>,
-  );
-  const overallBand = bandCounts.intervention > 0
-    ? 'intervention'
-    : bandCounts.watchlist > 0
-      ? 'watchlist'
-      : 'healthy';
-  const bandClass = overallBand === 'healthy'
-    ? 'bg-emerald-500/8 border-emerald-500/30 text-emerald-300'
-    : overallBand === 'watchlist'
-      ? 'bg-amber-500/8 border-amber-500/30 text-amber-300'
-      : 'bg-rose-500/8 border-rose-500/30 text-rose-300';
-  const driverLabels = coreOutcomes
-    .filter((outcome) => outcome.band !== 'healthy')
-    .sort((left, right) => {
-      const rank: Record<string, number> = { intervention: 0, watchlist: 1, healthy: 2 };
-      return rank[left.band] - rank[right.band];
-    })
-    .slice(0, 2)
-    .map((outcome) => metricLabels[outcome.metric_id] ?? outcome.metric_id);
-  const attentionCount = bandCounts.watchlist + bandCounts.intervention;
-  const verdictSummary = overallBand === 'healthy'
-    ? `All ${coreOutcomes.length} core indicators are in healthy range.`
-    : `${attentionCount} of ${coreOutcomes.length} core indicators need attention.${driverLabels.length > 0 ? ` ${driverLabels.join(' and ')} drive most of the stress.` : ''}`;
-  const verdictTitle = overallBand === 'healthy'
-    ? 'Structure looks durable.'
-    : overallBand === 'watchlist'
-      ? 'Resilience is present, but the margin is thin.'
-      : 'The current token design breaks under stress.';
-  const peerConfidenceClass = peerContext?.confidence === 'high'
-    ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-300'
-    : peerContext?.confidence === 'medium'
-      ? 'bg-amber-950/40 border-amber-900/60 text-amber-300'
-      : 'bg-slate-900/70 border-slate-700/70 text-slate-300';
-  const tokenRoleSummary = protocolBrief.token_utility.length > 0
-    ? protocolBrief.token_utility.join(' • ')
-    : 'No token-role detail available.';
+  const tokenRoleSummary =
+    protocolBrief.token_utility.length > 0 ? protocolBrief.token_utility.join(', ') : 'No token-role detail available.';
+  const protocolSummaryMeta = [protocolBrief.chain, protocolBrief.mechanism].filter(Boolean).join(' · ');
+
+  const likelyPressurePoint = (() => {
+    switch (stressChannel?.id) {
+      case 'liquidity_shock':
+        return {
+          title: 'Provider economics compress first',
+          detail: 'Fiat-equivalent rewards and solvency usually weaken before visible station loss.',
+        };
+      case 'competitive_yield_pressure':
+        return {
+          title: 'Mobile supply loyalty gets tested',
+          detail: 'Provider retention and outside yield pressure matter before node count looks weak.',
+        };
+      case 'provider_cost_inflation':
+        return {
+          title: 'Payback stretches before visible churn',
+          detail: 'Cost pressure usually hits operator tolerance before physical capacity visibly disappears.',
+        };
+      case 'demand_contraction':
+        return {
+          title: 'Demand conversion weakens first',
+          detail: 'Utilization and revenue support usually soften before physical network exits.',
+        };
+      default:
+        return {
+          title: 'Use Stage 3 to verify the first break',
+          detail: 'Stage 1 frames likely pressure; Stage 3 validates timing and order.',
+        };
+    }
+  })();
+
+  const scoredNowValue = applicabilityCounts ? `${applicabilityCounts.scoredNow}` : '—';
+  const heldOutValue = applicabilityCounts ? `${applicabilityCounts.heldOut}` : '—';
+  const scoringConfidence = trustSummary?.scoringConfidenceStatus ?? 'Partial';
 
   return (
-    <div data-cy="dtse-context-stage" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-sm font-bold text-slate-400">
+    <div
+      data-cy="dtse-context-stage"
+      className={`${compact ? 'space-y-3 p-3' : 'space-y-3.5 p-4'} animate-in fade-in slide-in-from-bottom-2 duration-500 rounded-[20px] bg-white border-slate-200 dark:bg-slate-900/40 dark:border-white/5 dark:backdrop-blur-xl border shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] text-slate-800 dark:text-slate-100 transition-colors`}
+    >
+      <div className="space-y-0.5">
+        <h2 className={`${compact ? 'text-[15px]' : 'text-base'} font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 dark:from-slate-100 dark:via-slate-300 dark:to-slate-500`}>
           Stage 1 — Protocol Context
         </h2>
-        <p className="text-sm text-slate-500">
-          Context to understand what DTSE is testing and how to read the next stages.
+        <p className={`${compact ? 'max-w-3xl text-[13px]' : 'max-w-[52rem] text-[13px]'} leading-relaxed text-slate-500 dark:text-slate-400`}>
+          Confirm what this run is about before trusting any score.
         </p>
       </div>
 
-      <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-3">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">How to read this</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-200">
-          DTSE is baseline-relative and comparative. It does not predict price, assign a universal rank, or claim live-network truth outside the modeled scenario.
-        </p>
-      </div>
-
-      <section className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Scenario in this run</p>
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.75fr]">
-          <div className="rounded-xl border border-white/5 bg-slate-900/20 p-4 backdrop-blur-sm">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Stress Channel</p>
-            <p className="mt-2 text-lg font-black tracking-tight text-slate-100">{stressChannel?.label ?? 'Saved DTSE Bundle'}</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">{stressChannel?.summary ?? 'This view is using a saved DTSE bundle under predefined stress conditions.'}</p>
-            {showAdvanced && (
-              <details className="mt-4 rounded-xl border border-white/5 bg-slate-950/25 px-3.5 py-3 text-sm text-slate-400">
-                <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.16em] text-slate-300">
-                  Run details
-                </summary>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Model</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-200">{modelVersion}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Run Envelope</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-200">{horizonWeeks} weeks · {nSims} sims</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Generated</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-200">{new Date(generatedAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </details>
-            )}
+      <section className="bg-slate-50 border border-slate-200 dark:bg-slate-900/80 dark:border-slate-700/50 rounded-2xl p-4 space-y-3 transition-colors">
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[900px] grid-cols-6 gap-x-1.5 gap-y-1 rounded-xl border border-slate-200 bg-white dark:border-white/5 dark:bg-slate-900/40 shadow-sm dark:shadow-inner px-2.5 py-2 md:grid-cols-3 xl:min-w-0 xl:grid-cols-6 transition-colors">
+            <article className="space-y-0.5 xl:border-r border-slate-200 dark:border-slate-700/50 xl:pr-2 transition-colors">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Protocol</p>
+              <p className="text-[12.5px] font-semibold leading-snug text-slate-800 dark:text-slate-200">
+                {protocolBrief.protocol_name} <span className="text-slate-400">· {protocolSummaryMeta}</span>
+              </p>
+            </article>
+            <article className="space-y-0.5 xl:border-r border-slate-200 dark:border-slate-700/50 xl:px-2 transition-colors">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Stress</p>
+              <p className="text-[12.5px] leading-snug text-slate-700 dark:text-slate-300">{stressChannel?.label ?? 'Saved stress bundle'}</p>
+            </article>
+            <article className="space-y-0.5 xl:border-r border-slate-200 dark:border-slate-700/50 xl:px-2 transition-colors">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Run / model</p>
+              <p className="text-[12.5px] leading-snug text-slate-700 dark:text-slate-300">
+                {modelVersion} · {horizonWeeks}w · {nSims} sims · {generatedDate}
+              </p>
+            </article>
+            <article className="space-y-0.5 xl:border-r border-slate-200 dark:border-slate-700/50 xl:px-2 transition-colors">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Confidence</p>
+              <p className="text-[13px] font-semibold leading-snug text-rose-600 dark:text-rose-400">{scoringConfidence}</p>
+            </article>
+            <article className="space-y-0.5 xl:border-r border-slate-200 dark:border-slate-700/50 xl:px-2 transition-colors">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Scored</p>
+              <p className="text-[13px] font-semibold leading-snug text-emerald-600 dark:text-emerald-400">{scoredNowValue}</p>
+            </article>
+            <article className="space-y-0.5 xl:pl-2 transition-colors">
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Held out</p>
+              <p className="text-[13px] font-semibold leading-snug text-amber-600 dark:text-amber-400">{heldOutValue}</p>
+            </article>
           </div>
         </div>
-      </section>
 
-      <section className="space-y-2">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Assessment</p>
+        <section className="rounded-xl border border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-slate-900/60 p-3 shadow-sm dark:shadow-inner transition-colors">
+          <div className="mb-1.5 border-b border-slate-200 dark:border-slate-700/50 pb-1.5 transition-colors">
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-400">Baseline mechanism map</p>
+          </div>
 
-        <div data-cy="dtse-overall-verdict" className={`relative overflow-hidden rounded-2xl border p-5 backdrop-blur-md ${bandClass}`}>
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-r from-white/[0.02] via-transparent to-transparent" />
-            <div className="relative z-10 space-y-5">
-              <div className="space-y-2">
-                <h3 className="max-w-xl text-2xl font-black tracking-tight text-slate-100">{verdictTitle}</h3>
-                <p className="max-w-2xl text-sm font-semibold leading-relaxed text-slate-100">{verdictSummary}</p>
-              </div>
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700/50 dark:bg-slate-800/80 transition-colors">
+            <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr_1.2fr_1fr]">
+              <article className="relative border-b border-slate-200 dark:border-slate-700/50 p-2.5 lg:border-b-0 lg:border-r transition-colors">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Baseline setup</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{protocolBrief.demand_signal}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{tokenRoleSummary}</p>
+                <span className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 text-slate-400 dark:text-slate-600 lg:block transition-colors">→</span>
+              </article>
 
-              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
-                {([
-                  { label: 'Healthy', value: bandCounts.healthy, tone: 'text-emerald-300' },
-                  { label: 'Watchlist', value: bandCounts.watchlist, tone: 'text-amber-300' },
-                  { label: 'Intervention', value: bandCounts.intervention, tone: 'text-rose-300' },
-                ]).map((item) => (
-                  <div key={item.label} className="rounded-lg border border-white/10 bg-slate-950/35 p-3.5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{item.label}</p>
-                    <p className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
+              <article className="relative border-b border-slate-200 dark:border-slate-700/50 bg-indigo-50 dark:bg-indigo-500/10 p-2.5 lg:border-b-0 lg:border-r transition-colors">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-300">Stress entry</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">{stressChannel?.label ?? 'Saved stress bundle'}</p>
+                <span className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 text-slate-400 dark:text-slate-600 lg:block transition-colors">→</span>
+              </article>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
-                <div className="flex items-center gap-2 text-cyan-300">
-                  <Sparkles size={14} />
-                  <span className="text-xs font-black uppercase tracking-[0.18em]">Primary drivers</span>
-                </div>
-                {(driverLabels.length > 0 ? driverLabels : ['No stressed drivers detected']).map((driver) => (
-                  <span
-                    key={driver}
-                    className="rounded-md border border-white/10 bg-slate-950/35 px-2.5 py-1 text-xs font-semibold text-slate-200"
-                  >
-                    {driver}
-                  </span>
-                ))}
-              </div>
-            </div>
+              <article className="relative border-b border-slate-200 dark:border-slate-700/50 bg-rose-50 dark:bg-rose-500/10 p-2.5 lg:border-b-0 lg:border-r transition-colors">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-rose-600 dark:text-rose-300">Likely pressure point</p>
+                <p className="mt-0.5 text-[13px] font-bold leading-snug text-slate-900 dark:text-white">{likelyPressurePoint.title}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-600 dark:text-slate-300">{likelyPressurePoint.detail}</p>
+                <span className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 text-rose-500 dark:text-slate-600 lg:block">→</span>
+              </article>
 
-            <div className="relative z-10 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
-              <div className="space-y-3">
-                <div>
-                  <div className="mb-2 flex items-center gap-3">
-                    <span className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">Protocol</span>
-                    <span className="rounded-[4px] border border-slate-700/50 bg-slate-800/80 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-slate-200">
-                      {protocolBrief.chain}
-                    </span>
-                  </div>
-                  <h3 className="text-3xl font-black tracking-tight text-white">
-                    {protocolBrief.protocol_name}
-                  </h3>
-                  {showAdvanced && <p className="mt-1 text-xs font-mono text-slate-500">{protocolBrief.protocol_id}</p>}
-                </div>
-
-                <div className="rounded-lg border border-white/5 bg-slate-950/30 p-3.5">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Surface</p>
-                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.depin_surface}</p>
-                </div>
-
-                <div className="rounded-lg border border-white/5 bg-slate-950/30 p-3.5">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Mechanism</p>
-                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">{protocolBrief.mechanism}</p>
-                </div>
-
-                <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3.5">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Notes</p>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-300">{protocolBrief.notes}</p>
-                </div>
-
-                {showAdvanced && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Evidence posture</p>
-                      <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">
-                        Stage 2 shows which metrics are fair to score. Stage 3 shows what breaks first under stress.
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3.5">
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Matched conditions</p>
-                      <p className="mt-2 text-sm font-medium leading-relaxed text-slate-300">
-                        Compare stress output against a scenario-matched baseline before drawing conclusions.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <article className="bg-slate-100 dark:bg-slate-800/50 p-2.5 transition-colors">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Lagging signal</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">
+                  Coverage and active station visibility typically lag provider economics.
+                </p>
+              </article>
             </div>
           </div>
-        </div>
-      </section>
-
-      {showAdvanced && (
-        <section className="space-y-2">
-          <details className="rounded-2xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-sm">
-            <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
-              Supplementary data (market snapshot + simulation assumptions)
-            </summary>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
-              Use this for deeper context only. Market cards are live; model cards are simulation assumptions.
-            </p>
-
-            <div className="mt-4 space-y-5">
-              {marketStats.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Market Snapshot</p>
-                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-emerald-300">
-                      Live Market
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {marketStats.map(({ label, value, detail, icon }) => (
-                      <div key={label} className="rounded-xl border border-emerald-500/20 bg-slate-900/45 p-4 backdrop-blur-sm">
-                        <CardHeader icon={icon} label={label} />
-                        <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
-                        <p className="mt-1.5 text-sm font-medium leading-relaxed text-slate-300">{detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Model Inputs</p>
-                  <span className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-300">
-                    Simulation
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {modelStats.map(({ label, value, detail, icon }) => (
-                    <div key={label} className="rounded-xl border border-white/10 bg-slate-900/45 p-4 backdrop-blur-sm">
-                      <CardHeader icon={icon} label={label} />
-                      <p className="text-lg font-black tracking-tight text-slate-100">{value}</p>
-                      <p className="mt-1.5 text-sm font-medium leading-relaxed text-slate-300">{detail}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </details>
         </section>
-      )}
 
-      <section className="space-y-2">
-        <details className="rounded-2xl border border-white/10 bg-slate-900/35 p-4 backdrop-blur-sm">
-          <summary className="cursor-pointer list-none text-sm font-bold text-slate-200">
-            Additional protocol context (optional)
-          </summary>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">
-            Open this only when you need deeper peer and mechanism context.
-          </p>
+        <p className="text-[12px] leading-relaxed text-slate-500 dark:text-slate-400 transition-colors">
+          <span className="font-bold text-slate-800 dark:text-white">Run briefing:</span> Identify the protocol, the stress contract, and where pressure is most likely to show first.
+        </p>
+      </section>
 
-          <div className="mt-4 space-y-4">
-            {peerContext && (
-              <div className="rounded-2xl border border-white/10 bg-slate-900/30 p-4 space-y-3">
-                <div className="space-y-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Comparable peers</p>
-                    <span className={`rounded border px-2 py-0.5 text-xs font-bold uppercase tracking-[0.16em] ${peerConfidenceClass}`}>
-                      {peerContext.confidence} confidence
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {peerContext.peerNames.map((peerName) => (
-                      <span key={peerName} className="rounded-md border border-slate-700/70 bg-slate-900/70 px-2.5 py-1 text-xs font-semibold text-slate-200">
-                        {peerName}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-slate-950/25 px-3.5 py-3">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Why these peers</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-300">{peerContext.rationale}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {[
-                { icon: ArrowRightLeft, label: 'Demand Side', text: protocolBrief.demand_signal },
-                { icon: Server, label: 'Supply Side', text: protocolBrief.supply_signal },
-              ].map((block) => (
-                <div key={block.label} className="rounded-xl border border-white/10 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-slate-900/35">
-                  <CardHeader icon={block.icon} label={block.label} />
-                  <p className="text-sm leading-relaxed text-slate-300">{block.text}</p>
+      <section className="bg-white border border-slate-200 dark:bg-slate-900/80 dark:border-slate-700/50 shadow-sm dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] rounded-2xl p-4 transition-colors">
+        <div className="mb-1.5 border-b border-slate-200 dark:border-slate-700/50 pb-1.5 transition-colors">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-400">Context & assumptions</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">Setup boundaries for reading later stages.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-2 mt-2">
+          <section>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-300">{marketSectionTitle}</p>
+              <span
+                className={`rounded-md border px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] ${
+                  marketData ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                }`}
+              >
+                {marketData ? 'Live' : 'Reference'}
+              </span>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-slate-900/40 shadow-sm dark:shadow-inner transition-colors">
+              {marketStats.map((stat, idx) => (
+                <div
+                  key={stat.label}
+                  className={`grid gap-1 px-2.5 py-1 sm:grid-cols-[130px_1fr] transition-colors ${idx > 0 ? 'border-t border-slate-200 dark:border-slate-700/50' : ''}`}
+                >
+                  <p className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{stat.label}</p>
+                  <p className="text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">
+                    <span className="font-semibold text-slate-900 dark:text-white">{stat.value}</span>
+                    <span className="text-slate-500 dark:text-slate-400"> · {stat.detail}</span>
+                  </p>
                 </div>
               ))}
-
-              <div className="rounded-xl border border-white/10 bg-slate-900/20 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-slate-900/35">
-                <CardHeader icon={Coins} label="Token Role" />
-                <p className="text-sm leading-relaxed text-slate-300">{tokenRoleSummary}</p>
-              </div>
             </div>
-          </div>
-        </details>
+          </section>
+
+          <section>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-indigo-600 dark:text-indigo-300">Model assumptions</p>
+              <span className="rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] dark:text-indigo-300 transition-colors">
+                Simulation
+              </span>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-slate-900/40 shadow-sm dark:shadow-inner transition-colors">
+              {modelStats.map((stat, idx) => (
+                <div
+                  key={stat.label}
+                  className={`grid gap-1 px-2.5 py-1 sm:grid-cols-[140px_1fr] transition-colors ${idx > 0 ? 'border-t border-slate-200 dark:border-slate-700/50' : ''}`}
+                >
+                  <p className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{stat.label}</p>
+                  <p className="text-[12px] leading-relaxed text-slate-700 dark:text-slate-300">
+                    <span className="font-semibold text-slate-900 dark:text-white">{stat.value}</span>
+                    <span className="text-slate-500 dark:text-slate-400"> · {stat.detail}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </section>
     </div>
   );

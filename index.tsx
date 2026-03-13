@@ -25,6 +25,7 @@ import { DecisionBriefPayload, DecisionBriefSurface } from './src/types/decision
 import { buildDecisionBrief, downloadDecisionBrief, downloadDecisionBriefMarkdown } from './src/utils/decisionBrief';
 import { getScenarioDisplayLabel } from './src/utils/scenarioLabels';
 import type { DTSEStressChannel } from './src/types/dtse';
+import { resolveDTSEStressChannelSelection } from './src/utils/dtseStressChannel';
 import { getMetricEvidence, withExtractionTimestamp } from './src/data/metricEvidence';
 import {
   OWNER_KPI_BAND_CLASSIFIERS,
@@ -38,6 +39,7 @@ import {
   mergeGuardrailBands
 } from './src/audit/kpiOwnerMath';
 import DecisionBriefCard from './src/components/ui/DecisionBriefCard';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 const ThesisDashboard = lazy(() => import('./src/components/ThesisDashboard').then((m) => ({ default: m.ThesisDashboard })));
 const TokenomicsStudy = lazy(() => import('./src/components/CaseStudy/TokenomicsStudy').then((m) => ({ default: m.TokenomicsStudy })));
@@ -73,12 +75,12 @@ const App: React.FC = () => {
   });
 
   // Modals & Panels
-  const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
-  const [showSpecModal, setShowSpecModal] = useState(false);
-  const [showAuditPanel, setShowAuditPanel] = useState(false);
+  const [learnDrawerMode, setLearnDrawerMode] = useState<'how-dtse-works' | 'metric-definitions' | null>(null);
+  const [isProductDocsOpen, setIsProductDocsOpen] = useState(false);
   const [showKnowledgeLayer, setShowKnowledgeLayer] = useState(false);
   const [hasVisitedDiagnostic, setHasVisitedDiagnostic] = useState(false);
   const [hasVisitedThesis, setHasVisitedThesis] = useState(false);
+  const [dtseExportRequestId, setDtseExportRequestId] = useState(0);
   const priorPrimaryTabBeforeDecisionTree = useRef<AppTab>('benchmark');
 
   const primaryTabs: PrimaryTab[] = [
@@ -121,6 +123,7 @@ const App: React.FC = () => {
   const lastBenchmarkRunKey = useRef<string | null>(null);
   const tabSwitchStartedAt = useRef<number | null>(null);
   const diagnosticRunTimer = useRef<number | null>(null);
+  const dtseRunTimer = useRef<number | null>(null);
 
   // --- ACTIONS ---
 
@@ -156,7 +159,7 @@ const App: React.FC = () => {
   };
 
   const renderPanelFallback = (label: string) => (
-    <div className="flex-1 flex items-center justify-center bg-slate-950 text-slate-500 text-sm font-semibold uppercase tracking-wider">
+    <div className="flex-1 flex items-center justify-center bg-slate-100 text-slate-500 dark:bg-slate-950 dark:text-slate-500 text-sm font-semibold uppercase tracking-wider transition-colors">
       Loading {label}...
     </div>
   );
@@ -552,66 +555,24 @@ const App: React.FC = () => {
     applyGlobalScenario(undefined, scenarioId);
   }, [applyGlobalScenario]);
 
+  const handleDTSEProtocolChange = useCallback((profile: typeof sim.activeProfile) => {
+    sim.setViewMode('sandbox');
+    sim.loadProfile(profile);
+  }, [sim]);
+
   const handleDTSEStressChannelChange = useCallback((channelId: DTSEStressChannel['id']) => {
-    const baseOpex = sim.activeProfile.parameters.provider_economics.opex_weekly.value;
-    const baseDemand = sim.activeProfile.parameters.demand_regime.value;
-    const baselineUpdate = {
-      scenario: 'baseline' as const,
-      competitorYield: 0,
-      investorSellPct: 0,
-      macro: 'sideways' as const,
-      demandType: baseDemand,
-      providerCostPerWeek: baseOpex,
-    };
+    const selection = resolveDTSEStressChannelSelection(channelId, sim.activeProfile);
 
-    let scenarioIdForState: string = 'baseline';
-    let updates: Partial<typeof sim.params> = baselineUpdate;
-
-    switch (channelId) {
-      case 'demand_contraction':
-        scenarioIdForState = 'demand_contraction';
-        updates = {
-          ...baselineUpdate,
-          demandType: 'high-to-decay',
-          macro: 'bearish',
-        };
-        break;
-      case 'liquidity_shock':
-        scenarioIdForState = 'death_spiral';
-        updates = {
-          ...baselineUpdate,
-          investorSellPct: 0.35,
-          investorUnlockWeek: 20,
-          macro: 'bearish',
-        };
-        break;
-      case 'competitive_yield_pressure':
-        scenarioIdForState = 'vampire_attack';
-        updates = {
-          ...baselineUpdate,
-          competitorYield: 1.5,
-        };
-        break;
-      case 'provider_cost_inflation':
-        scenarioIdForState = 'provider_cost_inflation';
-        updates = {
-          ...baselineUpdate,
-          providerCostPerWeek: Number((baseOpex * 1.25).toFixed(2)),
-        };
-        break;
-      case 'baseline_neutral':
-      default:
-        scenarioIdForState = 'baseline';
-        updates = baselineUpdate;
-        break;
+    sim.setViewMode('sandbox');
+    setActiveScenarioId(selection.scenarioIdForState);
+    sim.setParams((prev) => ({ ...prev, ...selection.updates }));
+    if (dtseRunTimer.current !== null) {
+      window.clearTimeout(dtseRunTimer.current);
     }
-
-    setActiveScenarioId(scenarioIdForState);
-    sim.setParams((prev) => ({ ...prev, ...updates }));
-    if (!sim.autoRun) {
+    dtseRunTimer.current = window.setTimeout(() => {
       sim.runSimulation();
-    }
-  }, [sim.activeProfile, sim.autoRun, sim.runSimulation, sim.setParams]);
+    }, 0);
+  }, [sim]);
 
   const exportDisabled = !activeBrief;
   const handleExport = () => {
@@ -633,10 +594,10 @@ const App: React.FC = () => {
   return (
     <div
       data-cy="dashboard-root"
-      className="h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-hidden"
+      className="h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-hidden transition-colors"
     >
       {/* HEADER */}
-      <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-xl shrink-0 z-[100]">
+      <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white/85 dark:bg-slate-950/80 backdrop-blur-xl shrink-0 z-[100] transition-colors">
         <div
           data-cy="global-context-state"
           data-protocol-id={sim.activeProfile.metadata.id}
@@ -654,11 +615,11 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div role="tablist" aria-label="Primary dashboard sections" className="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800">
+          <div role="tablist" aria-label="Primary dashboard sections" className="flex items-center p-1 bg-white/90 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none transition-colors">
             {primaryTabs.map((tab, idx) => (
               <React.Fragment key={tab}>
                 {tab === 'benchmark' && (
-                  <div className="w-px h-5 bg-slate-700/60 mx-0.5" aria-hidden="true" />
+                  <div className="w-px h-5 bg-slate-200 dark:bg-slate-700/60 mx-0.5 transition-colors" aria-hidden="true" />
                 )}
                 <button
                   onClick={() => setActiveTabTracked(tab)}
@@ -676,7 +637,7 @@ const App: React.FC = () => {
                         tab === 'decision_tree' ? 'bg-indigo-600 text-white shadow-lg' :
                           tab === 'thesis' ? 'bg-emerald-600 text-white shadow-lg' :
                             tab === 'diagnostic' ? 'bg-rose-600 text-white shadow-lg' : 'bg-orange-500 text-white shadow-lg'
-                    : 'text-slate-500 hover:text-slate-300'
+                    : 'text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                     }`}
                 >
                   {primaryTabLabel[tab]}
@@ -686,7 +647,7 @@ const App: React.FC = () => {
           </div>
 
           {activeTab === 'simulator' && (
-            <nav role="tablist" aria-label="Advanced workspace views" className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <nav role="tablist" aria-label="Advanced workspace views" className="flex items-center bg-white/90 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none transition-colors">
               <button
                 onClick={() => { setActiveTabTracked('simulator'); sim.setViewMode('explorer'); }}
                 onKeyDown={(event) => handleAdvancedTabKeyDown(event, 'explorer')}
@@ -697,7 +658,7 @@ const App: React.FC = () => {
                 aria-selected={activeTab === 'simulator' && sim.viewMode === 'explorer'}
                 aria-controls="panel-sim-view-explorer"
                 aria-pressed={activeTab === 'simulator' && sim.viewMode === 'explorer'}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'explorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'explorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 <Search size={14} /> {secondaryTabLabel.explorer}
               </button>
@@ -714,7 +675,7 @@ const App: React.FC = () => {
                 aria-selected={activeTab === 'simulator' && sim.viewMode === 'comparison'}
                 aria-controls="panel-sim-view-comparison"
                 aria-pressed={activeTab === 'simulator' && sim.viewMode === 'comparison'}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'comparison' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'comparison' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 <GitCompare size={14} /> {secondaryTabLabel.comparison}
               </button>
@@ -728,7 +689,7 @@ const App: React.FC = () => {
                 aria-selected={activeTab === 'simulator' && sim.viewMode === 'sandbox'}
                 aria-controls="panel-sim-view-sandbox"
                 aria-pressed={activeTab === 'simulator' && sim.viewMode === 'sandbox'}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'sandbox' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'simulator' && sim.viewMode === 'sandbox' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 <LayoutGrid size={14} /> {secondaryTabLabel.sandbox}
               </button>
@@ -737,31 +698,48 @@ const App: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <HeaderDropdown dataCy="header-learn" label="Learn" icon={<BookOpen size={14} />} isActive={isMethodologyOpen || showSpecModal || showAuditPanel}>
-            <DropdownItem icon={<BookOpen size={14} />} onClick={() => setIsMethodologyOpen(true)} description="Simulation methodology & assumptions">Methodology</DropdownItem>
-            <DropdownItem icon={<Zap size={14} />} onClick={() => setIsMethodologyOpen(true)} description="Mathematical formulas & equations">Math Specification</DropdownItem>
-            <DropdownItem icon={<Scale size={14} />} onClick={() => setShowAuditPanel(true)} description="Wiki documentation & tutorials">System Wiki</DropdownItem>
+          <HeaderDropdown dataCy="header-learn" label="Learn" icon={<BookOpen size={14} />} isActive={Boolean(learnDrawerMode) || isProductDocsOpen}>
+            <DropdownItem icon={<BookOpen size={14} />} onClick={() => setLearnDrawerMode('how-dtse-works')} description="Plain-language guide to the DTSE workflow">How DTSE Works</DropdownItem>
+            <DropdownItem icon={<Zap size={14} />} onClick={() => setLearnDrawerMode('metric-definitions')} description="What DTSE metrics mean and how to read them">Metric Definitions</DropdownItem>
+            <DropdownItem icon={<Scale size={14} />} onClick={() => setIsProductDocsOpen(true)} description="Product docs for DTSE, data sources, and Stress Lab">Product Docs</DropdownItem>
           </HeaderDropdown>
 
           <HeaderDropdown dataCy="header-data" label="Data" icon={<Activity size={14} />} isActive={Object.keys(liveData).length > 0}>
             <DropdownItem icon={liveDataLoading ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} />} onClick={fetchLiveData} disabled={liveDataLoading} description={lastLiveDataFetch ? `Last: ${lastLiveDataFetch.toLocaleTimeString()}` : 'Pull from CoinGecko'}>
-              {liveDataLoading ? 'Fetching...' : Object.keys(liveData).length > 0 ? 'Refresh Live Data ✓' : 'Fetch Live Data'}
+              {liveDataLoading ? 'Refreshing...' : 'Refresh market data'}
             </DropdownItem>
-            <DropdownToggle icon={<RefreshCw size={14} />} checked={autoRefreshEnabled} onChange={() => setAutoRefreshEnabled(!autoRefreshEnabled)} description="Auto-refresh every 5 minutes">Auto Refresh</DropdownToggle>
+            <DropdownToggle icon={<RefreshCw size={14} />} checked={autoRefreshEnabled} onChange={() => setAutoRefreshEnabled(!autoRefreshEnabled)} description="Keep market context aligned to 5-minute CoinGecko pulls">Auto-refresh every 5 minutes</DropdownToggle>
             <DropdownDivider />
-            <DropdownToggle icon={<Zap size={14} />} checked={useNewModel} onChange={() => setUseNewModel(!useNewModel)} description={useNewModel ? 'V2: With sell pressure model' : 'V1: Legacy model'}>Use V2 Model</DropdownToggle>
+            <DropdownToggle
+              icon={<Zap size={14} />}
+              checked={useNewModel}
+              onChange={() => setUseNewModel(!useNewModel)}
+              description={useNewModel ? 'Currently using the Agent-Based v2 engine.' : 'Currently using the Legacy v1 engine.'}
+            >
+              {useNewModel ? 'Model engine: Agent-Based v2' : 'Model engine: Legacy v1'}
+            </DropdownToggle>
           </HeaderDropdown>
 
-          <HeaderDropdown dataCy="header-actions" label="Actions" icon={<SlidersHorizontal size={14} />} isActive={activeTab === 'simulator' || activeTab === 'case_study'}>
-            {activeTab === 'case_study' && (
+          <HeaderDropdown dataCy="header-actions" label="Actions" icon={<SlidersHorizontal size={14} />} isActive={activeTab === 'simulator' || activeTab === 'dtse'}>
+            {activeTab === 'dtse' && (
+              <DropdownItem
+                dataCy="dtse-export-action"
+                icon={<Download size={14} />}
+                onClick={() => setDtseExportRequestId((current) => current + 1)}
+                description="Download DTSE export (.json + .md)"
+              >
+                Export DTSE run
+              </DropdownItem>
+            )}
+            {activeTab !== 'simulator' && (
               <DropdownItem
                 dataCy="open-advanced-workspace"
                 icon={<LayoutGrid size={14} />}
                 onClick={() => { setActiveTabTracked('simulator'); sim.setViewMode('sandbox'); }}
                 description="Open sandbox controls and stress scenarios"
-              >
-                Open Stress Lab
-              </DropdownItem>
+                >
+                  Open Stress Lab
+                </DropdownItem>
             )}
             {activeTab === 'simulator' && (
               <>
@@ -794,16 +772,20 @@ const App: React.FC = () => {
                 )}
               </>
             )}
-            <DropdownDivider />
-            <DropdownItem
-              dataCy="toggle-export"
-              icon={<Download size={14} />}
-              onClick={handleExport}
-              disabled={exportDisabled}
-              description={exportDisabled ? 'Available on Benchmark, Root Causes, and Strategy' : 'Download decision brief (.json + .md)'}
-            >
-              Export Brief
-            </DropdownItem>
+            {activeTab !== 'dtse' && (
+              <>
+                <DropdownDivider />
+                <DropdownItem
+                  dataCy="toggle-export"
+                  icon={<Download size={14} />}
+                  onClick={handleExport}
+                  disabled={exportDisabled}
+                  description={exportDisabled ? 'Available on Benchmark, Root Causes, and Strategy' : 'Download decision brief (.json + .md)'}
+                >
+                  Export Brief
+                </DropdownItem>
+              </>
+            )}
           </HeaderDropdown>
 
           {activeTab === 'simulator' && sim.viewMode === 'sandbox' && (
@@ -822,12 +804,19 @@ const App: React.FC = () => {
 
       {/* MAIN CONTENT AREA */}
       {activeTab === 'dtse' ? (
-        <div id="panel-dtse" role="tabpanel" aria-labelledby="tab-dtse" className="flex-1 overflow-hidden bg-slate-950">
-          <Suspense fallback={renderPanelFallback('DTSE')}>
-            <DTSEDashboard
+        <div id="panel-dtse" role="tabpanel" aria-labelledby="tab-dtse" className="relative flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950 transition-colors">
+          <a
+            href="#dtse-stage-content"
+            className="absolute left-4 top-4 z-50 -translate-y-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 opacity-0 transition-opacity focus:translate-y-0 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            Skip to stage content
+          </a>
+          <ErrorBoundary>
+            <Suspense fallback={renderPanelFallback('DTSE')}>
+              <DTSEDashboard
               activeProfile={sim.activeProfile}
               profiles={PROTOCOL_PROFILES}
-              onSelectProtocol={sim.loadProfile}
+              onSelectProtocol={handleDTSEProtocolChange}
               onSelectStressChannel={handleDTSEStressChannelChange}
               liveData={liveData}
               params={sim.params}
@@ -837,15 +826,18 @@ const App: React.FC = () => {
               derivedMetrics={sim.derivedMetrics}
               simulationRunId={sim.simulationRunId}
               useNewModel={sim.useNewModel}
+              loading={sim.loading}
+              exportRequestToken={dtseExportRequestId}
             />
-          </Suspense>
+            </Suspense>
+          </ErrorBoundary>
         </div>
       ) : activeTab === 'benchmark' ? (
-        <div id="panel-benchmark" role="tabpanel" aria-labelledby="tab-benchmark" className="flex-1 overflow-y-auto bg-slate-950 p-6 custom-scrollbar">
+        <div id="panel-benchmark" role="tabpanel" aria-labelledby="tab-benchmark" className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6 custom-scrollbar transition-colors">
           <div className="mb-6 space-y-3">
             <DecisionBriefCard brief={briefsBySurface.benchmark} dataCy="benchmark-decision-brief" />
-            <p className="text-xs text-slate-400">
-              Next step: open <strong className="text-slate-200">Root Causes</strong> to confirm which parameter is driving the gap before sharing externally.
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Next step: open <strong className="text-slate-700 dark:text-slate-200">Root Causes</strong> to confirm which parameter is driving the gap before sharing externally.
             </p>
           </div>
           <Suspense fallback={renderPanelFallback('benchmark')}>
@@ -865,13 +857,13 @@ const App: React.FC = () => {
           </Suspense>
         </div>
       ) : activeTab === 'case_study' ? (
-        <div id="panel-case_study" role="tabpanel" aria-labelledby="tab-case_study" className="flex-1 overflow-y-auto bg-slate-950 custom-scrollbar">
+        <div id="panel-case_study" role="tabpanel" aria-labelledby="tab-case_study" className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 custom-scrollbar transition-colors">
           <Suspense fallback={renderPanelFallback('evidence')}>
             <TokenomicsStudy />
           </Suspense>
         </div>
       ) : activeTab === 'thesis' ? null : activeTab === 'diagnostic' ? null : activeTab === 'decision_tree' ? (
-        <div id="panel-decision_tree" role="tabpanel" aria-labelledby="tab-decision_tree" className="flex-1 overflow-hidden bg-slate-950">
+        <div id="panel-decision_tree" role="tabpanel" aria-labelledby="tab-decision_tree" className="flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950 transition-colors">
           <Suspense fallback={renderPanelFallback('decision flow')}>
             <DecisionTreeDashboard
               sim={sim}
@@ -880,7 +872,7 @@ const App: React.FC = () => {
           </Suspense>
         </div>
       ) : activeTab === 'simulator' ? (
-        <div className="flex flex-1 overflow-hidden bg-slate-950">
+        <div className="flex flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950 transition-colors">
           {sim.viewMode === 'settings' ? (
             <div className="flex-1 overflow-y-auto custom-scrollbar" id="panel-sim-view-settings" role="tabpanel" aria-labelledby="open-settings">
               <Suspense fallback={renderPanelFallback('settings')}>
@@ -974,7 +966,7 @@ const App: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="flex-1 bg-slate-950" />
+        <div className="flex-1 bg-slate-100 dark:bg-slate-950 transition-colors" />
       )}
 
       {(activeTab === 'thesis' || hasVisitedThesis) && (
@@ -984,12 +976,12 @@ const App: React.FC = () => {
           aria-labelledby="tab-thesis"
           aria-hidden={activeTab !== 'thesis'}
           className={activeTab === 'thesis'
-            ? 'flex-1 overflow-y-auto bg-slate-950 custom-scrollbar p-6'
+            ? 'flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 custom-scrollbar p-6 transition-colors'
             : 'hidden'}
         >
           <div className="mb-6 space-y-3">
             <DecisionBriefCard brief={briefsBySurface.strategy} dataCy="strategy-decision-brief" />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Next step: convert this strategy into one owner-assigned action and export the brief for review.
             </p>
           </div>
@@ -1012,15 +1004,15 @@ const App: React.FC = () => {
           aria-labelledby="tab-diagnostic"
           aria-hidden={activeTab !== 'diagnostic'}
           className={activeTab === 'diagnostic'
-            ? 'flex-1 overflow-y-auto bg-slate-950 custom-scrollbar p-6'
+            ? 'flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 custom-scrollbar p-6 transition-colors'
             : 'hidden'}
         >
           <div className="mb-6 space-y-3">
             <DecisionBriefCard brief={briefsBySurface.diagnostics} dataCy="diagnostic-decision-brief" />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Use Suggested Mode for first pass, then confirm the highest-impact failure mode.
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Next step: validate one intervention in Stress Lab and re-export the brief.
             </p>
           </div>
@@ -1038,8 +1030,8 @@ const App: React.FC = () => {
       )}
 
       {/* MODALS (Methodology, Wiki, etc) */}
-      <MethodologyDrawer isOpen={isMethodologyOpen} onClose={() => setIsMethodologyOpen(false)} />
-      <MethodologySheet isOpen={showAuditPanel} onClose={() => setShowAuditPanel(false)} />
+      <MethodologyDrawer mode={learnDrawerMode} onClose={() => setLearnDrawerMode(null)} />
+      <MethodologySheet isOpen={isProductDocsOpen} onClose={() => setIsProductDocsOpen(false)} />
 
     </div>
   );

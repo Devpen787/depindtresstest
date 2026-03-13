@@ -118,16 +118,20 @@ describe('dtseSequenceView', () => {
 
     expect(result).not.toBeNull();
     expect(result?.deviationSeries).toHaveLength(4);
+    expect(result?.deviationSeries[0]?.profitabilityDeltaPct).toBeCloseTo(-116.7, 1);
     expect(result?.deviationSeries[1]?.priceDeltaPct).toBeCloseTo(-18.8, 1);
     expect(result?.earliestTriggerWeek).toBe(1);
     expect(result?.earliestTriggerLabel).toBe('Provider Profitability');
 
     const profitability = result?.pathway.find((row) => row.familyId === 'profitability');
+    const solvency = result?.pathway.find((row) => row.familyId === 'solvency_proxy');
     const price = result?.pathway.find((row) => row.familyId === 'modeled_price');
     const retention = result?.pathway.find((row) => row.familyId === 'retention_churn');
 
     expect(profitability?.triggerWeek).toBe(1);
+    expect(solvency?.label).toBe('Reward Coverage');
     expect(price?.triggerWeek).toBe(2);
+    expect(price?.label).toBe('Token Price Pressure');
     expect(retention?.triggerWeek).toBe(3);
     expect(result?.illusionWarning).toContain('lagging indicator');
   });
@@ -135,5 +139,25 @@ describe('dtseSequenceView', () => {
   it('returns null without aligned baseline data', () => {
     const result = buildDTSESequenceView([point(0)], [], params);
     expect(result).toBeNull();
+  });
+
+  it('does not mark profitability as breaking when stress profit is less bad than a negative baseline', () => {
+    const baseline = [
+      point(0, { profit: metric(-22) }),
+      point(1, { profit: metric(-24) }),
+    ];
+    const stressed = [
+      point(0, { profit: metric(-20), providers: metric(90), churnCount: metric(5) }),
+      point(1, { profit: metric(-19), providers: metric(88), churnCount: metric(6) }),
+    ];
+
+    const result = buildDTSESequenceView(stressed, baseline, params);
+    const profitability = result?.pathway.find((row) => row.familyId === 'profitability');
+    const retention = result?.pathway.find((row) => row.familyId === 'retention_churn');
+
+    expect(result?.deviationSeries[0]?.profitabilityDeltaPct).toBeCloseTo(9.1, 1);
+    expect(profitability?.triggerWeek).toBeNull();
+    expect(retention?.triggerWeek).toBe(1);
+    expect(result?.earliestTriggerLabel).toBe('Retention / Churn');
   });
 });

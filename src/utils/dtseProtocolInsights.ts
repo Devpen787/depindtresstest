@@ -7,6 +7,7 @@ import type {
   DTSEProtocolInsight,
 } from '../types/dtse';
 import type { DTSESequenceView } from './dtseSequenceView';
+import { sanitizeDTSETriggerText } from './dtsePresentation';
 
 interface BuildDTSEProtocolInsightsOptions {
   profile: ProtocolProfileV1;
@@ -46,6 +47,16 @@ const formatMonths = (value: number): string => `${roundTo(value, 1)} months`;
 const formatPercent = (value: number): string => `${roundTo(value, 1)}%`;
 
 const formatUnitLabel = (value: string): string => value.toLowerCase();
+const formatCount = (value: number): string => new Intl.NumberFormat('en-US', {
+  notation: value >= 100000 ? 'compact' : 'standard',
+  maximumFractionDigits: 1,
+}).format(value);
+
+const coerceInsightTrigger = (preferred?: string, fallback?: string): string | undefined => {
+  const sanitizedPreferred = sanitizeDTSETriggerText(preferred);
+  if (sanitizedPreferred) return sanitizedPreferred;
+  return sanitizeDTSETriggerText(fallback) ?? fallback;
+};
 
 const countLabel = (value: string): string => {
   const normalized = value.trim().replace(/s$/, '');
@@ -127,8 +138,8 @@ const VERIFIED_PROJECT_ID_BY_PROFILE: Record<string, string> = {
 const PROFILE_SPECIFIC_INSIGHTS: Record<string, ProfileSpecificInsight> = {
   ono_v3_calibrated: {
     title: 'Coverage density and reward discipline move together',
-    observation: 'Onocoy depends on high-quality GNSS coverage density; emissions can look stable while local station economics thin out in weaker demand pockets.',
-    implication: 'Review utilization, payback, and regional reward discipline together before using node count as proof of resilience.',
+    observation: 'Onocoy depends on high-quality GNSS coverage density. Emissions can look stable while local station economics weaken in softer demand pockets.',
+    implication: 'Review utilization, payback, and reward discipline together before using station count as proof of resilience.',
     trigger: 'Prioritize review when utilization and payback deteriorate at the same time.',
     confidence: 'mixed',
     provenance: [
@@ -329,28 +340,28 @@ export function buildDTSEProtocolInsights({
       confidence: profileSpecificInsight.confidence,
       provenance: [
         ...profileSpecificInsight.provenance,
-        `Protocol: ${protocolBrief.protocol_name}`,
+        `Protocol context: ${protocolBrief.protocol_name}`,
       ],
     });
   }
 
   if (earliestLabel && hasNumber(earliestWeek)) {
     const lagText = hasNumber(retentionWeek) && retentionWeek > earliestWeek
-      ? `${protocolBrief.active_providers_unit} participation does not visibly soften until ${formatWeek(retentionWeek)}.`
-      : `${protocolBrief.active_providers_unit} participation remains a later or weaker signal than the initial break.`;
+      ? `Visible ${providerUnit} softness does not appear until ${formatWeek(retentionWeek)}.`
+      : `Visible ${providerUnit} participation remains a later or weaker signal than the initial break.`;
     insights.push({
       id: 'lagging-signal',
       title: laggingSignalTitle(protocolBrief),
       observation: `${protocolBrief.protocol_name} first breaks in ${earliestLabel} at ${formatWeek(earliestWeek)}. ${lagText}`,
-      implication: `For ${protocolBrief.protocol_name}, treat utilization, solvency, and provider economics as earlier warning signals than active ${providerUnit}.`,
+      implication: `For ${protocolBrief.protocol_name}, treat utilization, solvency, and provider economics as earlier warning signals than visible ${providerUnit} participation.`,
       trigger: `Earliest break: ${earliestLabel} at ${formatWeek(earliestWeek)}`,
       confidence: 'derived',
       provenance: [
-        `Sequence: first break in ${earliestLabel} (${formatWeek(earliestWeek)})`,
+        `Current run sequence: first break in ${earliestLabel} (${formatWeek(earliestWeek)})`,
         hasNumber(retentionWeek)
-          ? `Sequence: retention / churn weakens at ${formatWeek(retentionWeek)}`
-          : 'Sequence: retention / churn remains secondary in this run',
-        `Protocol brief: active supply measured in ${providerUnit}`,
+          ? `Current run sequence: retention / churn weakens at ${formatWeek(retentionWeek)}`
+          : 'Current run sequence: retention / churn remains secondary in this run',
+        `Protocol setup: active supply measured in ${providerUnit}`,
       ],
     });
   }
@@ -359,15 +370,15 @@ export function buildDTSEProtocolInsights({
     insights.push({
       id: 'capped-supply-tradeoff',
       title: 'Scarcity shifts the shock elsewhere',
-      observation: `${protocolBrief.protocol_name} runs a capped supply with ${protocolBrief.burn_fraction_pct}% burn pressure and ${roundTo(protocolBrief.weekly_emissions, 0)} ${protocolBrief.weekly_emissions_unit}. That limits open-ended token inflation, but it pushes more stress onto ${providerUnit} economics when paid demand softens.`,
-      implication: `The current DTSE run already shows that tradeoff: solvency is ${formatRatio(solvency)} and payback is ${formatMonths(payback)}. ${notes}.`,
+      observation: `${protocolBrief.protocol_name} runs a capped supply with ${protocolBrief.burn_fraction_pct}% burn pressure and ${formatCount(protocolBrief.weekly_emissions)} ${protocolBrief.weekly_emissions_unit}. That limits open-ended token inflation, but it pushes more stress onto ${providerUnit} economics when paid demand softens.`,
+      implication: `This run already shows that tradeoff: solvency is ${formatRatio(solvency)} and payback is ${formatMonths(payback)}. ${notes}.`,
       trigger: 'Use solvency and payback as the primary check on whether capped supply is actually protecting the network.',
       confidence: 'mixed',
       provenance: [
-        `Brief: capped supply / ${protocolBrief.mechanism}`,
-        `Brief: burn fraction ${protocolBrief.burn_fraction_pct}%`,
-        `Outcome: solvency ${formatRatio(solvency)}`,
-        `Outcome: payback ${formatMonths(payback)}`,
+        `Protocol setup: capped supply / ${protocolBrief.mechanism}`,
+        `Protocol setup: burn fraction ${protocolBrief.burn_fraction_pct}%`,
+        `Current run: solvency ${formatRatio(solvency)}`,
+        `Current run: payback ${formatMonths(payback)}`,
       ],
     });
   } else if (protocolBrief.mechanism.toLowerCase().includes('burn-and-mint') || signatures['reward-demand-decoupling']) {
@@ -376,14 +387,17 @@ export function buildDTSEProtocolInsights({
       title: 'Demand quality matters more than headline activity',
       observation: `${protocolBrief.protocol_name} depends on real demand converting into sinks, burns, or work settlement to keep issuance in balance. ${stripTrailingPeriod(protocolBrief.demand_signal)}.`,
       implication: `If demand quality softens before that conversion improves, the network can still look active while the economic base weakens. ${notes}.`,
-      trigger: signatures['reward-demand-decoupling']?.trigger_logic,
+      trigger: coerceInsightTrigger(
+        signatures['reward-demand-decoupling']?.trigger_logic,
+        'Protocol balance depends on real demand converting into sinks or work settlement.',
+      ),
       confidence: 'mixed',
       provenance: [
-        `Brief: ${protocolBrief.mechanism}`,
+        `Protocol setup: ${protocolBrief.mechanism}`,
         `Demand signal: ${stripTrailingPeriod(protocolBrief.demand_signal)}`,
         signatures['reward-demand-decoupling']
-          ? `Signature: ${signatures['reward-demand-decoupling'].label}`
-          : 'Mechanism: demand-linked balance path',
+          ? `Failure pattern: ${signatures['reward-demand-decoupling'].label}`
+          : 'Protocol mechanism: demand-linked balance path',
       ],
     });
   }
@@ -397,15 +411,18 @@ export function buildDTSEProtocolInsights({
     insights.push({
       id: 'liquidity-exposure',
       title: 'Market stress reaches providers quickly',
-      observation: `${protocolBrief.protocol_name} carries a tail-risk score of ${roundTo(tailRisk, 0)} in the current run, indicating that market compression reaches ${providerUnit} economics before physical capacity fully resets.`,
-      implication: `A customer-facing pricing shield is not enough if ${providerUnit} still reprice immediately under token stress. ${stripTrailingPeriod(protocolBrief.supply_signal)}.`,
-      trigger: signatures['liquidity-driven-compression']?.trigger_logic ?? `Tail risk score: ${roundTo(tailRisk, 0)}`,
+      observation: `${protocolBrief.protocol_name} carries a tail-risk score of ${roundTo(tailRisk, 0)} in this run. Market compression is reaching ${providerUnit} economics before physical capacity fully resets.`,
+      implication: `A customer-facing pricing shield is not enough if ${providerUnit} still reprice quickly under token stress. ${stripTrailingPeriod(protocolBrief.supply_signal)}.`,
+      trigger: coerceInsightTrigger(
+        signatures['liquidity-driven-compression']?.trigger_logic,
+        `Tail risk score: ${roundTo(tailRisk, 0)}`,
+      ),
       confidence: 'derived',
       provenance: [
-        `Outcome: tail risk ${roundTo(tailRisk, 0)}`,
+        `Current run: tail risk ${roundTo(tailRisk, 0)}`,
         signatures['liquidity-driven-compression']
-          ? `Signature: ${signatures['liquidity-driven-compression'].label}`
-          : 'Outcome threshold: tail risk above DTSE watch band',
+          ? `Failure pattern: ${signatures['liquidity-driven-compression'].label}`
+          : 'Current run threshold: tail risk above DTSE watch band',
         `Supply signal: ${stripTrailingPeriod(protocolBrief.supply_signal)}`,
       ],
     });
@@ -419,15 +436,18 @@ export function buildDTSEProtocolInsights({
       id: 'elastic-supply',
       title: 'Supply is more mobile than node count suggests',
       observation: `Weekly retention still reads ${formatPercent(retention)}, but the run triggered Elastic Provider Exit. For ${protocolBrief.protocol_name}, ${providerUnit} can leave before internal demand visibly collapses.`,
-      implication: `Competitive yield and external alternatives need active monitoring; internal utilization alone will not explain supply risk early enough. ${mobilityNarrative(protocolBrief, verifiedProject)}`,
-      trigger: signatures['elastic-provider-exit'].trigger_logic,
+      implication: `Competitive yield and external alternatives need active monitoring. Internal utilization alone will not explain supply risk early enough. ${mobilityNarrative(protocolBrief, verifiedProject)}`,
+      trigger: coerceInsightTrigger(
+        signatures['elastic-provider-exit'].trigger_logic,
+        'Supply exits can appear after economics weaken, not before.',
+      ),
       confidence: 'derived',
       provenance: [
-        `Signature: ${signatures['elastic-provider-exit'].label}`,
-        `Outcome: weekly retention ${formatPercent(retention)}`,
+        `Failure pattern: ${signatures['elastic-provider-exit'].label}`,
+        `Current run: weekly retention ${formatPercent(retention)}`,
         verifiedProject
-          ? `Verified taxonomy: ${verifiedProject.taxonomy.hardware.ecosystem} / ${verifiedProject.taxonomy.hardware.spacing}`
-          : `Protocol brief: ${stripTrailingPeriod(protocolBrief.supply_signal)}`,
+          ? `Verified protocol context: ${verifiedProject.taxonomy.hardware.ecosystem} hardware / ${verifiedProject.taxonomy.hardware.spacing} deployment`
+          : `Protocol setup: ${stripTrailingPeriod(protocolBrief.supply_signal)}`,
       ],
     });
   } else if (verifiedProject?.taxonomy.hardware.ecosystem === 'open') {
@@ -438,9 +458,9 @@ export function buildDTSEProtocolInsights({
       implication: `Monitor utilization (${formatPercent(utilization)}) and retention (${formatPercent(retention)}) together rather than reading active ${providerUnit} as a standalone health signal.`,
       confidence: 'mixed',
       provenance: [
-        `Verified taxonomy: ${verifiedProject.taxonomy.hardware.ecosystem} / ${verifiedProject.taxonomy.hardware.spacing}`,
-        `Outcome: utilization ${formatPercent(utilization)}`,
-        `Outcome: weekly retention ${formatPercent(retention)}`,
+        `Verified protocol context: ${verifiedProject.taxonomy.hardware.ecosystem} hardware / ${verifiedProject.taxonomy.hardware.spacing} deployment`,
+        `Current run: utilization ${formatPercent(utilization)}`,
+        `Current run: weekly retention ${formatPercent(retention)}`,
       ],
     });
   }
@@ -453,10 +473,10 @@ export function buildDTSEProtocolInsights({
       implication: `Treat that constraint as part of the DTSE interpretation, especially when comparing peers under matched conditions. Verified project risk is currently marked ${verifiedProject.riskLevel}.`,
       confidence: 'curated',
       provenance: [
-        `Verified project: ${verifiedProject.name}`,
-        `Verified risk: ${verifiedProject.riskLevel}`,
+        `Verified protocol context: ${verifiedProject.name}`,
+        `Verified risk note: ${verifiedProject.riskLevel}`,
         `Verified constraint: ${verifiedProject.criticalFlaw}`,
-        `Validation method: ${verifiedProject.validation.method.value}`,
+        `Verification basis: ${verifiedProject.validation.method.value}`,
       ],
     });
   }
@@ -469,8 +489,8 @@ export function buildDTSEProtocolInsights({
       implication: `Use peers to test whether the fragility comes from ${protocolBrief.mechanism.toLowerCase()} mechanics or from this protocol’s own execution and evidence constraints.`,
       confidence: 'curated',
       provenance: [
-        `Peer mapping: ${peerNames.slice(0, 3).join(', ')}`,
-        `Brief: ${protocolBrief.mechanism}`,
+        `Peer comparison set: ${peerNames.slice(0, 3).join(', ')}`,
+        `Protocol setup: ${protocolBrief.mechanism}`,
       ],
     });
   }

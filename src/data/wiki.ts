@@ -11,215 +11,167 @@ export interface WikiSection {
 
 export const WIKI_CONTENT: WikiSection[] = [
   {
-    id: 'intro',
-    title: 'Welcome',
-    icon: '👋',
+    id: 'overview',
+    title: 'What DTSE Is',
+    icon: '🧭',
     content: `
-# DePIN Stress Test Simulator
+# DTSE Product Docs
 
-The dashboard uses **DTSE** (DePIN Token Stress Evaluation) as the primary landing tab — a 5-stage guided workflow for protocol evaluation.
+## What DTSE is
 
-Advanced depth views (Benchmark, Root Causes, Strategy, Decide, Evidence) remain accessible in the tab bar for detailed analysis.
+DTSE compares a selected stress scenario against a matched baseline and shows what weakens first.
 
-- **DTSE** — primary evaluation workflow (Protocol Context → Applicability → Outcomes → Failure Signature → Recommendations)
-- **Benchmark** — peer scorecards and comparative matrices
-- **Root Causes** — structural fragility diagnostics
-- **Strategy** — intervention planning
-- **Decide** — decision tree analysis
-- **Evidence** — case study narratives
+Use it to understand failure order, scoring fairness, and the next reruns or decision discussions worth testing.
 
-Use this wiki as the source of truth for current controls and behavior.
+## What DTSE is not
+
+- DTSE is **not** a price forecast.
+- DTSE is **not** a universal protocol ranking.
+- DTSE is **not** a claim that the live network is already failing.
+
+Read DTSE as a comparative stress workflow, not as a standalone verdict.
     `,
   },
   {
-    id: 'dtse',
-    title: 'DTSE Workflow',
-    icon: '🔬',
+    id: 'stages',
+    title: 'What Each Stage Does',
+    icon: '🪜',
     content: `
-## DTSE — DePIN Token Stress Evaluation
+## Stage 1 — Context
 
-DTSE is the primary evaluation workflow. It loads a frozen simulation bundle and presents results through 5 progressive stages:
+Shows what the run is about before you trust any score.
 
-1. **Overview** — protocol identity, scenario, engine version, evidence status
-2. **Data Readiness** — which metrics are Runnable vs Not Runnable, with reason codes
-3. **Results** — stress test KPIs classified by risk level (healthy / watchlist / intervention)
-4. **Risk Patterns** — recurring failure patterns ranked by urgency
-5. **Next Actions** — concrete steps with priority, owner, and expected impact
+- live market context or saved reference market context
+- simulation inputs and structural assumptions
+- peer context and stress channel framing
 
-### Run Context Strip
+## Stage 2 — What Can Be Scored
 
-A persistent strip at the top shows protocol, scenario grid, horizon, evidence status, and model version.
+Shows which metrics are fair to score in the current protocol, stress channel, and evidence setup.
 
-### Frozen Bundle
+- **Scored now** means DTSE considers the metric fair for this run.
+- **Held out** means DTSE is intentionally not scoring the metric to avoid a misleading readout.
 
-DTSE loads pre-computed results from \`public/dtse/\`. Use \`npm run dtse:verify\` to validate bundle integrity.
+## Stage 3 — What Broke First
+
+Shows deterioration order before you focus on the metric levels.
+
+- baseline drift
+- earliest trigger timing
+- transmission pathway
+- scored outcome cards
+
+## Stage 4 — Failure Patterns
+
+Groups the Stage 3 outputs into interpreted failure patterns.
+
+Patterns are model interpretations, not direct observations of live network events.
+
+## Stage 5 — Next Tests
+
+Turns the readout into reruns or decision discussions.
+
+These are not direct prescriptions. They are the next tests worth running under matched conditions.
     `,
   },
   {
-    id: 'engine',
-    title: 'Engine Modes',
+    id: 'data-sources',
+    title: 'Where Data Comes From',
+    icon: '🔎',
+    content: `
+## Market context
+
+DTSE can show market context in two ways:
+
+- **Live**: fetched from CoinGecko through the header Data menu
+- **Reference**: saved protocol baseline values used when live market data is unavailable
+
+## Model source
+
+DTSE can show outcome layers in two ways:
+
+- **Current run**: built from the active simulator output for the selected protocol
+- **Saved pack**: built from the protocol's saved DTSE pack when current-run series are unavailable
+
+This means DTSE is not only a static bundle viewer. It prefers current simulation output when it exists.
+    `,
+  },
+  {
+    id: 'scoring',
+    title: 'Evidence Quality and Scoring',
+    icon: '🧪',
+    content: `
+## How evidence quality affects scoring
+
+DTSE only scores metrics that are fair under the selected protocol, stress channel, and evidence quality.
+
+Common scoring outcomes:
+
+- **Data available**: the metric is supported well enough to score
+- **Using proxy**: the metric is scored, but part of the evidence uses an accepted proxy
+- **Not used in this scenario**: the metric is intentionally held out because the active stress channel does not make it relevant
+- **Data missing / source quality insufficient**: the metric is held out to avoid a false sense of precision
+
+The trust chip **Scoring confidence** summarizes the overall evidence posture as **Full**, **Partial**, or **Limited**.
+    `,
+  },
+  {
+    id: 'stress-lab',
+    title: 'How To Use DTSE With Stress Lab',
+    icon: '🛠️',
+    content: `
+## Suggested workflow
+
+1. Open DTSE and identify the earliest break in Stage 3.
+2. Confirm in Stage 2 that the key metric is actually fair to score.
+3. Read Stage 4 to understand the interpreted failure pattern.
+4. Open **Actions -> Open Stress Lab**.
+5. Rerun the same protocol with one targeted change at a time.
+
+## Good rerun hygiene
+
+- Hold most assumptions constant.
+- Change only the lever the Stage 5 recommendation is testing.
+- Compare the new run against the same baseline.
+- Look for a better failure order, not just a prettier top-line score.
+    `,
+  },
+  {
+    id: 'header-controls',
+    title: 'Header Controls',
+    icon: '🧰',
+    content: `
+## Learn
+
+- **How DTSE Works**: product explanation for first-time readers
+- **Metric Definitions**: what each DTSE metric measures and how to interpret it
+- **Product Docs**: these longer-form docs
+
+## Data
+
+- **Refresh market data**
+- **Auto-refresh every 5 minutes**
+- **Model engine: Agent-Based v2** or **Legacy v1**
+
+## Actions
+
+- **Export DTSE run** while you are on DTSE
+- **Open Stress Lab** from DTSE and the other tabs
+    `,
+  },
+  {
+    id: 'engines',
+    title: 'Model Engines',
     icon: '⚙️',
     content: `
-## Runtime Engine Toggle
+## Engine choices
 
-Engine selection is controlled by **Data -> Use V2 Model** in the header.
+The Data menu lets you switch between the current agent-based engine and the legacy engine.
 
-- **ON (default):** Agent-based pipeline in \`src/model/simulation.ts\`
-- **OFF:** Legacy vector engine in \`src/model/legacy/engine.ts\` via \`src/model/SimulationAdapter.ts\`
+- **Agent-Based v2** is the default runtime path.
+- **Legacy v1** remains available for comparison and compatibility.
 
-## Behavior Differences
-
-- In V2, \`revenueStrategy=reserve\` accumulates treasury but does not apply explicit price dampening.
-- In V1 legacy, \`revenueStrategy=reserve\` includes dampening logic.
-- In V1 legacy, \`emissionModel\` (\`fixed\`/\`kpi\`) changes mint behavior.
-- In V2, emissions are dynamic with guardrails; \`emissionModel\` is currently passed through but not used as a branch toggle.
-    `,
-  },
-  {
-    id: 'simulator',
-    title: 'Simulator Controls',
-    icon: '🔬',
-    content: `
-## Stress Controls
-
-- **Time Horizon (T):** 12-104 weeks
-- **Exogenous Load (demandType):** consistent, growth, volatile, high-to-decay
-- **Network Effects:** Exogenous Only / Endogenous (Metcalfe)
-- **Macro Condition:** bearish, sideways, bullish
-
-Note: quick presets can also set \`macro=neutral\`.
-
-## Vampire & Treasury
-
-- **Competitor Yield Advantage:** 0-200%
-- **Emission Model:** fixed / kpi
-- **Revenue Strategy:** burn / reserve
-
-## Tokenomics
-
-- **Initial Token Price:** numeric input (0.01-100)
-- **Burn Percentage:** 0-100%
-- **Weekly Emission Cap:** numeric token cap
-
-## Advanced Configuration
-
-Provider economics:
-
-- **Initial Node Count:** 10-50,000
-- **Pro Hardware Share:** 0-100%
-- **Weekly OpEx Cost:** 5-200 USD/week
-- **Hardware Cost (CapEx):** 200-2,000 USD
-- **Churn Threshold:** -20 to 50 USD/week
-
-Simulation:
-
-- **Monte Carlo Runs (nSims):** 20-500
-- **Random Seed:** 1-999999
-    `,
-  },
-  {
-    id: 'presets',
-    title: 'Quick Presets',
-    icon: '⚡',
-    content: `
-Current preset list:
-
-- **Liquidity Shock**
-- **The Subsidy Trap**
-- **Vampire Attack**
-- **Aggressive Expansion**
-- **Project: Onocoy**
-- **Project: Hivemapper**
-- **Project: Grass**
-- **Vs Geodnet**
-
-Presets update one or more model parameters and can override macro/demand assumptions.
-    `,
-  },
-  {
-    id: 'benchmark',
-    title: 'Benchmark',
-    icon: '📊',
-    content: `
-Benchmark has two panels:
-
-- **Dashboard:** peer metrics, matrices, radar, sensitivity summary, export
-- **Research:** resilience scorecards and Monte Carlo cone views
-
-Benchmark reuses the same simulation parameter surface and engine toggle semantics.
-    `,
-  },
-  {
-    id: 'diagnostic',
-    title: 'Diagnostic',
-    icon: '🛡️',
-    content: `
-Diagnostic focuses on structural fragility and intervention planning.
-
-Core outputs include:
-
-- Signals of Death
-- Subsidy Trap
-- Density Trap
-- Hex Degradation Map
-- Strategic action recommendations
-    `,
-  },
-  {
-    id: 'data',
-    title: 'Data & Integrations',
-    icon: '🔗',
-    content: `
-## Header Data Menu
-
-- **Fetch Live Data:** CoinGecko market pulls
-- **Auto Refresh:** 5-minute cycle
-- **DePIN Browser:** token browser modal
-- **Use V2 Model:** runtime engine selection
-
-## Interpretation
-
-- Explorer combines live market context with protocol profiles.
-- Simulator and Benchmark are scenario-driven model outputs.
-- Outputs are stress-test evidence, not forward price predictions.
-    `,
-  },
-  {
-    id: 'metrics',
-    title: 'Metrics & Formulas',
-    icon: '🧮',
-    content: `
-## Core Metrics
-
-- **Solvency Score:** \`dailyBurnUsd / dailyMintUsd\`
-- **Net Daily Loss:** \`((burned/7) - (minted/7)) * price\`
-- **Utilization:** \`demandServed / capacity\`
-- **Vampire Churn:** competitor-induced churn proxy
-- **Payback Months:** derived from weekly provider profit and hardware cost in Sandbox
-
-## Formula Notes
-
-- Price combines macro drift, buy/sell pressure, scarcity pressure, emission pressure, and noise.
-- Unlock shock uses a constant-product pool representation.
-- V2 emissions are dynamic with demand/saturation + guardrails.
-    `,
-  },
-  {
-    id: 'defaults',
-    title: 'Defaults',
-    icon: '📌',
-    content: `
-Runner-level defaults (before profile-specific overrides/calibration):
-
-- \`T=52\`
-- \`nSims=25\`
-- \`seed=42\`
-- \`macro=sideways\`
-- \`investorUnlockWeek=26\`
-- \`initialLiquidity=500000\`
-- \`investorSellPct=0.05\`
-
-Source: \`src/hooks/useSimulationRunner.ts\`.
+Use engine changes carefully. A DTSE result should only be compared across runs when the engine, baseline, and stress assumptions are all matched.
     `,
   },
   {
@@ -227,10 +179,12 @@ Source: \`src/hooks/useSimulationRunner.ts\`.
     title: 'Limitations',
     icon: '⚠️',
     content: `
-- Weekly timestep model (not intraday market microstructure).
-- Geography is represented statistically, not full physical-network simulation.
-- Thesis tab uses a separate simplified logic path from Sandbox/Benchmark.
-- Scenario outputs are decision-support stress tests, not guaranteed forecasts.
+## Product limitations
+
+- DTSE is a weekly-step stress workflow, not an intraday market simulator.
+- Geographic and hardware behavior are modeled abstractions, not a full physical-network reconstruction.
+- Some metrics rely on proxy evidence or saved reference data depending on protocol coverage.
+- A strong DTSE result does not remove governance, liquidity, or execution risk outside the tested scenario.
     `,
   },
   {
@@ -238,24 +192,17 @@ Source: \`src/hooks/useSimulationRunner.ts\`.
     title: 'Developer Notes',
     icon: '👨‍💻',
     content: `
-Relevant files for extension work:
+Relevant files for DTSE work:
 
-- \`src/data/protocols.ts\` (protocol profiles)
-- \`src/data/scenarios.ts\` (quick presets)
-- \`src/hooks/useSimulationRunner.ts\` (simulation orchestration)
-- \`src/model/simulation.ts\` (agent-based engine)
-- \`src/model/legacy/engine.ts\` (legacy vector engine)
-- \`src/components/MethodologySheet.tsx\` (wiki modal renderer)
-    `,
-  },
-  {
-    id: 'version',
-    title: 'Documentation Status',
-    icon: '📅',
-    content: `
-This in-app wiki was refreshed on **2026-02-15**.
-
-Companion markdown wiki: \`docs/WIKI.md\`.
+- \`index.tsx\`
+- \`src/components/DTSE/\`
+- \`src/data/dtseContent.ts\`
+- \`src/utils/dtseLiveApplicability.ts\`
+- \`src/utils/dtseLiveOutputs.ts\`
+- \`src/utils/dtseLiveRecommendations.ts\`
+- \`src/utils/dtseProtocolInsights.ts\`
+- \`src/components/MethodologyDrawer.tsx\`
+- \`src/components/MethodologySheet.tsx\`
     `,
   },
 ];

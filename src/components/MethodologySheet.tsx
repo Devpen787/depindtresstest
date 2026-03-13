@@ -179,7 +179,7 @@ export const MethodologySheet: React.FC<MethodologySheetProps> = ({ isOpen, onCl
                 <div className="md:hidden p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900">
                     <span className="font-bold text-white flex items-center gap-2">
                         <BookOpen size={18} className="text-indigo-400" />
-                        Wiki
+                        Product Docs
                     </span>
                     <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-400">
                         <Menu size={20} />
@@ -197,9 +197,9 @@ export const MethodologySheet: React.FC<MethodologySheetProps> = ({ isOpen, onCl
                     <div className="p-6 border-b border-slate-800 hidden md:block">
                         <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
                             <BookOpen size={16} className="text-indigo-400" />
-                            Documentation
+                            Product Docs
                         </h2>
-                        <p className="text-[10px] text-slate-500 mt-1 font-mono">v1.2.0 • Updated Jan 2026</p>
+                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Updated Mar 2026</p>
                     </div>
 
                     {/* Search Bar */}
@@ -208,7 +208,7 @@ export const MethodologySheet: React.FC<MethodologySheetProps> = ({ isOpen, onCl
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
                             <input
                                 type="text"
-                                placeholder="Search wiki..."
+                                placeholder="Search docs..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-md py-2 pl-9 pr-3 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all"

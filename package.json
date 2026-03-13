@@ -22,6 +22,8 @@
     "test:backtest-calibration": "vitest run src/audit/backtest_calibration_fit.test.ts",
     "generate:math-audit": "node --experimental-strip-types scripts/generate_math_audit_reports.ts",
     "generate:protocol-artifacts": "node scripts/generate_protocol_artifacts.mjs",
+    "sync:protocol-market": "node scripts/sync_protocol_market_baselines.mjs",
+    "sync:protocol-market:regen": "npm run sync:protocol-market && npm run generate:protocol-artifacts",
     "test:paper-rigor": "vitest run src/audit/paper_stress_pack.test.ts src/audit/depin_decision_tree_fixtures.test.ts",
     "generate:paper-stress-report": "node --experimental-strip-types scripts/generate_paper_stress_report.ts",
     "skill:optimizer:quick": "node --experimental-strip-types skills/depin-simulation-optimizer/scripts/run_optimizer_diagnostics.ts --mode quick",
@@ -41,6 +43,7 @@
     "mindsdb:query-pack:full": "node --experimental-strip-types scripts/generate_mindsdb_query_pack.ts --mode full",
     "mindsdb:remediation:quick": "node --experimental-strip-types scripts/generate_mindsdb_remediation_list.ts --mode quick --top 5",
     "mindsdb:remediation:full": "node --experimental-strip-types scripts/generate_mindsdb_remediation_list.ts --mode full --top 5",
+    "dtse:generate:saved-matrix": "esbuild scripts/generate_dtse_saved_scenarios.ts --bundle --platform=node --format=esm --loader:.csv=text --outfile=tmp/generate_dtse_saved_scenarios.mjs && node tmp/generate_dtse_saved_scenarios.mjs",
     "dtse:sync": "node --experimental-strip-types scripts/sync_dtse_bundle.ts --mode sync",
     "dtse:verify": "node --experimental-strip-types scripts/sync_dtse_bundle.ts --mode verify"
   },

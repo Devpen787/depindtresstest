@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface HeaderDropdownProps {
@@ -43,8 +43,8 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({ label, icon, chi
                 aria-expanded={isOpen}
                 aria-controls={menuId}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all ${isOpen || isActive
-                    ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
-                    : 'text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-600/20 dark:text-indigo-400 dark:border-indigo-500/30'
+                    : 'text-slate-500 border-slate-200 bg-white/80 hover:border-slate-300 hover:text-slate-900 dark:text-slate-400 dark:border-slate-800 dark:bg-slate-950/50 dark:hover:border-slate-600 dark:hover:text-white'
                     }`}
             >
                 {icon}
@@ -53,15 +53,23 @@ export const HeaderDropdown: React.FC<HeaderDropdownProps> = ({ label, icon, chi
             </button>
 
             {isOpen && (
-                <div id={menuId} role="menu" className="absolute top-full right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
-                    <div className="py-1">
-                        {children}
+                <HeaderDropdownContext.Provider value={{ closeMenu: () => setIsOpen(false) }}>
+                    <div id={menuId} role="menu" className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl dark:bg-slate-900 dark:border-slate-700 dark:shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
+                        <div className="py-1">
+                            {children}
+                        </div>
                     </div>
-                </div>
+                </HeaderDropdownContext.Provider>
             )}
         </div>
     );
 };
+
+const HeaderDropdownContext = createContext<{ closeMenu: () => void }>({
+    closeMenu: () => {},
+});
+
+const useHeaderDropdown = () => useContext(HeaderDropdownContext);
 
 // Dropdown Item Component
 interface DropdownItemProps {
@@ -73,24 +81,32 @@ interface DropdownItemProps {
     dataCy?: string;
 }
 
-export const DropdownItem: React.FC<DropdownItemProps> = ({ icon, children, onClick, disabled = false, description, dataCy }) => (
-    <button
-        data-cy={dataCy}
-        onClick={onClick}
-        role="menuitem"
-        disabled={disabled}
-        className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all ${disabled
-            ? 'opacity-50 cursor-not-allowed'
-            : 'hover:bg-slate-800/50'
-            }`}
-    >
-        {icon && <span className="text-slate-400 mt-0.5">{icon}</span>}
-        <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-bold text-slate-200">{children}</div>
-            {description && <div className="text-[9px] text-slate-500 mt-0.5">{description}</div>}
-        </div>
-    </button>
-);
+export const DropdownItem: React.FC<DropdownItemProps> = ({ icon, children, onClick, disabled = false, description, dataCy }) => {
+    const { closeMenu } = useHeaderDropdown();
+
+    return (
+        <button
+            data-cy={dataCy}
+            onClick={() => {
+                if (disabled) return;
+                onClick();
+                closeMenu();
+            }}
+            role="menuitem"
+            disabled={disabled}
+            className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all ${disabled
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                }`}
+        >
+            {icon && <span className="text-slate-400 dark:text-slate-400 mt-0.5">{icon}</span>}
+            <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{children}</div>
+                {description && <div className="text-[9px] text-slate-500 dark:text-slate-500 mt-0.5">{description}</div>}
+            </div>
+        </button>
+    );
+};
 
 // Dropdown Toggle Component
 interface DropdownToggleProps {
@@ -102,26 +118,33 @@ interface DropdownToggleProps {
     dataCy?: string;
 }
 
-export const DropdownToggle: React.FC<DropdownToggleProps> = ({ icon, children, checked, onChange, description, dataCy }) => (
-    <button
-        data-cy={dataCy}
-        onClick={onChange}
-        role="menuitemcheckbox"
-        aria-checked={checked}
-        className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-800/50 transition-all"
-    >
-        {icon && <span className="text-slate-400 mt-0.5">{icon}</span>}
-        <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-bold text-slate-200">{children}</div>
-            {description && <div className="text-[9px] text-slate-500 mt-0.5">{description}</div>}
-        </div>
-        <div className={`w-8 h-4 rounded-full transition-colors relative ${checked ? 'bg-emerald-500' : 'bg-slate-700'}`}>
-            <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
-        </div>
-    </button>
-);
+export const DropdownToggle: React.FC<DropdownToggleProps> = ({ icon, children, checked, onChange, description, dataCy }) => {
+    const { closeMenu } = useHeaderDropdown();
+
+    return (
+        <button
+            data-cy={dataCy}
+            onClick={() => {
+                onChange();
+                closeMenu();
+            }}
+            role="menuitemcheckbox"
+            aria-checked={checked}
+            className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
+        >
+            {icon && <span className="text-slate-400 dark:text-slate-400 mt-0.5">{icon}</span>}
+            <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{children}</div>
+                {description && <div className="text-[9px] text-slate-500 dark:text-slate-500 mt-0.5">{description}</div>}
+            </div>
+            <div className={`w-8 h-4 rounded-full transition-colors relative ${checked ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </div>
+        </button>
+    );
+};
 
 // Dropdown Divider
 export const DropdownDivider: React.FC = () => (
-    <div className="my-1 border-t border-slate-800" />
+    <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
 );

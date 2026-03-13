@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ProtocolProfileV1 } from '../data/protocols';
 import type { SimulationParams } from '../model/types';
-import { inferDTSEStressChannel } from './dtseStressChannel';
+import { inferDTSEStressChannel, resolveDTSEStressChannelSelection } from './dtseStressChannel';
 
 const profile: ProtocolProfileV1 = {
   version: '1',
@@ -94,5 +94,22 @@ describe('inferDTSEStressChannel', () => {
 
   it('falls back to baseline neutral when no stress channel is active', () => {
     expect(inferDTSEStressChannel(baseParams, profile).id).toBe('baseline_neutral');
+  });
+});
+
+describe('resolveDTSEStressChannelSelection', () => {
+  it('returns the canonical DTSE contract for liquidity shock', () => {
+    const selection = resolveDTSEStressChannelSelection('liquidity_shock', profile);
+    expect(selection.scenarioIdForState).toBe('death_spiral');
+    expect(selection.updates.investorSellPct).toBe(0.35);
+    expect(selection.updates.macro).toBe('bearish');
+    expect(selection.stressChannel.id).toBe('liquidity_shock');
+  });
+
+  it('returns the canonical DTSE contract for provider cost inflation', () => {
+    const selection = resolveDTSEStressChannelSelection('provider_cost_inflation', profile);
+    expect(selection.scenarioIdForState).toBe('provider_cost_inflation');
+    expect(selection.updates.providerCostPerWeek).toBe(12.5);
+    expect(selection.stressChannel.id).toBe('provider_cost_inflation');
   });
 });
