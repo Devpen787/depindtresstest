@@ -315,9 +315,10 @@ export const DTSEDashboard: React.FC<DTSEDashboardProps> = ({
     if (!canUseLiveOutputs || !params) return null;
     return buildDTSESequenceView(liveAggregated, liveBaselineAggregated, params);
   }, [canUseLiveOutputs, liveAggregated, liveBaselineAggregated, params]);
+  const hasLiveSequenceTrigger = typeof liveSequenceView?.earliestTriggerWeek === 'number';
   const displayedSequenceView = useMemo(
-    () => liveSequenceView ?? pack.sequenceView ?? null,
-    [liveSequenceView, pack.sequenceView],
+    () => (hasLiveSequenceTrigger ? liveSequenceView : (pack.sequenceView ?? liveSequenceView ?? null)),
+    [hasLiveSequenceTrigger, liveSequenceView, pack.sequenceView],
   );
   const displayedApplicability = useMemo(
     () => liveApplicability ?? pack.applicability,

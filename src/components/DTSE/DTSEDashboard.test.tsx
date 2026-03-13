@@ -211,6 +211,31 @@ describe('DTSEDashboard', () => {
     expect((await screen.findAllByText('Elastic Provider Exit')).length).toBeGreaterThan(0);
   });
 
+  it('falls back to the saved Stage 3 sequence when the live comparison path resolves with no first-break trigger', async () => {
+    const activeProfile = PROTOCOL_PROFILES.find((profile) => profile.metadata.id === 'ono_v3_calibrated');
+
+    expect(activeProfile).toBeDefined();
+
+    render(
+      <DTSEDashboard
+        activeProfile={activeProfile}
+        profiles={PROTOCOL_PROFILES}
+        liveData={{}}
+        params={{ ...baseParams, investorSellPct: 0.35, macro: 'bearish' }}
+        aggregated={[aggregatePoint(0), aggregatePoint(1)]}
+        baselineAggregated={[aggregatePoint(0), aggregatePoint(1)]}
+        simulationRunId={77}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Failure Patterns'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('No failure signatures in this run')).toBeNull();
+    });
+    expect((await screen.findAllByText('Liquidity-Driven Compression')).length).toBeGreaterThan(0);
+  });
+
   it('withholds stale live outputs immediately after a DTSE stress change until the rerun resolves', () => {
     const activeProfile = PROTOCOL_PROFILES.find((profile) => profile.metadata.id === 'ono_v3_calibrated');
 
