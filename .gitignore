@@ -30,3 +30,8 @@ output/skill_reports/
 cypress/screenshots/
 cypress/videos/
 cypress/downloads/
+.playwright-cli/
+output/playwright/
+output/redesign-dashboard-stages-*/
+output/working_memory/dtse_*
+output/working_memory/*.png
